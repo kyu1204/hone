@@ -31,6 +31,8 @@ export interface HoneConfig {
   gates?: GateSpec;
   concurrency?: number;
   cacheDir?: string;
+  /** Named pure transforms of the config, measured by `hone ablate`. */
+  ablations?: Record<string, (config: HoneConfig) => HoneConfig>;
 }
 
 /** Identity with types: lets hone.config.ts get completion and checking. */
