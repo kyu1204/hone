@@ -2,6 +2,7 @@ import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { SCREENS, type Screen, type TuiStore } from "./state";
 import { MatrixScreen } from "./screens/matrix";
+import { TraceScreen, traceEntries } from "./screens/trace";
 import { useTheme } from "./theme";
 
 export interface AppProps {
@@ -104,11 +105,32 @@ export function App({ store, onQuit }: AppProps): ReactNode {
         else store.setDiffWith({ caseId: cell.caseId, targetId: cell.targetId, trialIdx: 0 });
       }
     } else if (s.screen === "trace") {
+      const trial = store.selectedTrial();
+      const total = trial ? traceEntries(trial).length : 0;
       if (key.name === "]") store.nextTrial(1);
       else if (key.name === "[") store.nextTrial(-1);
+      else if (key.name === "j" || key.name === "down") store.moveEntry(1, total);
+      else if (key.name === "k" || key.name === "up") store.moveEntry(-1, total);
+      else if (key.name === "return" || key.name === "e") store.toggleExpanded();
+      else if (key.name === "/") store.setInputActive(true);
+      else if (key.name === "n" && trial) {
+        const q = s.search.trim().toLowerCase();
+        if (!q) return;
+        const entries = traceEntries(trial);
+        const hits = entries.map((e, i) => (`${e.summary}\n${e.detail}`.toLowerCase().includes(q) ? i : -1)).filter((i) => i >= 0);
+        const next = hits.find((i) => i > s.entryIdx) ?? hits[0];
+        if (next !== undefined) store.setEntryIdx(next);
+      } else if (key.name === "f") store.setScreen("fork");
+      else if (key.name === "D" || (key.shift && key.name === "d")) {
+        const cell = store.selectedCell();
+        if (cell && s.trialIdx > 0) {
+          store.setDiffWith({ caseId: cell.caseId, targetId: cell.targetId, trialIdx: s.trialIdx - 1 });
+          store.setScreen("diff");
+        }
+      }
     }
   });
-  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : <Placeholder name={s.screen} />;
+  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : <Placeholder name={s.screen} />;
   return (
     <box style={{ flexDirection: "column", height, width: "100%" }}>
       <Header store={store} />

@@ -36,6 +36,10 @@ export interface TuiSnapshot {
   summary: boolean;
   /** A text input owns the keyboard; global keys are suspended. */
   inputActive: boolean;
+  /** Trace screen: selected entry, expanded entries, search text. */
+  entryIdx: number;
+  expanded: number[];
+  search: string;
 }
 
 export type SortMode = "case" | "passAsc" | "passDesc" | "cost";
@@ -68,6 +72,10 @@ export interface TuiStore {
   setInputActive(active: boolean): void;
   /** Cases in display order after filter and sort. */
   visibleCases(): string[];
+  moveEntry(d: number, total: number): void;
+  setEntryIdx(i: number): void;
+  toggleExpanded(): void;
+  setSearch(text: string): void;
   dispose(): void;
 }
 
@@ -97,7 +105,7 @@ function load(root: string, runId: string | undefined): Pick<TuiSnapshot, "runId
 
 export function createTuiStore(opts: TuiStoreOptions): TuiStore {
   const listeners = new Set<() => void>();
-  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false };
+  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "" };
   const emit = (): void => {
     for (const fn of listeners) fn();
   };
@@ -143,7 +151,7 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     enter() {
       const cell = cellAt(snap);
       if (!cell || cell.trials.length === 0) return;
-      set({ screen: "trace", trialIdx: 0 });
+      set({ screen: "trace", trialIdx: 0, entryIdx: 0, expanded: [], search: "" });
     },
     back() {
       if (snap.help) set({ help: false });
@@ -158,7 +166,7 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     nextTrial(d) {
       const cell = cellAt(snap);
       if (!cell) return;
-      set({ trialIdx: clamp(snap.trialIdx + d, cell.trials.length) });
+      set({ trialIdx: clamp(snap.trialIdx + d, cell.trials.length), entryIdx: 0, expanded: [] });
     },
     selectedCell: () => cellAt(snap),
     selectedTrial: () => cellAt(snap)?.trials[snap.trialIdx],
@@ -178,6 +186,18 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
       set({ inputActive: active });
     },
     visibleCases: () => visibleCases(snap),
+    moveEntry(d, total) {
+      set({ entryIdx: clamp(snap.entryIdx + d, total) });
+    },
+    setEntryIdx(i) {
+      set({ entryIdx: Math.max(0, i) });
+    },
+    toggleExpanded() {
+      set({ expanded: snap.expanded.includes(snap.entryIdx) ? snap.expanded.filter((i) => i !== snap.entryIdx) : [...snap.expanded, snap.entryIdx] });
+    },
+    setSearch(text) {
+      set({ search: text });
+    },
     dispose() {
       if (timer) clearInterval(timer);
       listeners.clear();
