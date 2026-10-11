@@ -75,7 +75,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 ## P6 Analysis (after P2 to P4)
 
-- [ ] T-601 `analysis/cluster.ts` failure clustering (M)
+- [x] T-601 `analysis/cluster.ts` failure clustering (M)
 - [ ] T-602 `analysis/taxonomy.ts` taxonomy induction + Jev classification (L)
 - [ ] T-603 `analysis/diffTrace.ts` LCS alignment of tool-call signatures (S)
 - [ ] T-604 `analysis/calibrate.ts` fault injection per domain, detection rate, kappa (M)
@@ -159,3 +159,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-506 | #54 | tui/forkRunner.ts forkTrial (resume or run with ctx.prefix, forked-from flag, meta.forkStep), fork screen (steps, inline edit, r run, d diff), hone tui loads config for fork options; global reload moved to R |
 | 2026-10-12 | T-507 | #55 | widgets/chart.ts sparkline, braillePlot, bar, detectGraphics, kittyImageEscape + dependency-free PNG encoder and rasterScatter; charts screen (history, Pareto scatter, Wilson bars). Pixel rendering inside the OpenTUI layout deferred: escape builder exists, screen uses cells |
 | 2026-10-12 | T-508 | #56 | serve/ssh.ts: host key via ssh-keygen (OpenSSH format for ssh2), one TuiStore + React root per session, connection counting; hone serve ssh --port --host --run --read-only. P5 complete |
+| 2026-10-12 | T-601 | #58 | providers/embed.ts (OpenAI-compatible /embeddings or 512-dim hashed bag of words offline); analysis/cluster.ts summarise, k-means++ with cosine, TF-IDF top terms, chooseK; hone cluster writes analysis/clusters-<run>.json with provisional cluster-n codes |
