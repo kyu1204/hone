@@ -14,7 +14,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-004 `core/cache.ts` content-addressed cache under `.hone/cache` (S)
 - [x] T-005 `core/store.ts` run JSON files + `bun:sqlite` index with rebuild (M)
 - [x] T-006 `core/events.ts` typed progress event bus (S)
-- [ ] T-007 `providers/jev.ts` System One client: noul/score/choice, batching, retry, timeout, rate limit, 3-level key resolution (M)
+- [x] T-007 `providers/jev.ts` System One client: noul/score/choice, batching, retry, timeout, rate limit, 3-level key resolution (M)
 - [ ] T-008 `providers/llm.ts` OpenAI-compatible + Anthropic chat client with cost table (S)
 - [ ] T-009 Compatibility research into `docs/compat.md`: Harbor task and result format, verifiers v1 API, OTel GenAI attribute names, Docent license, Jev request limits (S)
 
@@ -116,3 +116,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-004 | #6 | canonicalJson, cacheKey, Cache.memo with atomic writes |
 | 2026-10-12 | T-005 | #7 | Store: runs/trials JSON, sqlite index auto-rebuilt when missing |
 | 2026-10-12 | T-006 | #8 | HoneEvents: on/once/off/emit/iterate, listener errors become log events |
+| 2026-10-12 | T-007 | #9 | JevClient: noul/choice/score, 3-level key resolution, retry/backoff, timeout, semaphore |
