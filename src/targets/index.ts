@@ -4,6 +4,7 @@ import "./http";
 import "./mcp";
 import "./process";
 import "./python";
+import "./replay";
 
 export { createTarget, createTargets, knownTargetKinds, registerTargetKind, toTrace } from "./target";
 export type { RunContext, Target, TargetOutput } from "./target";
