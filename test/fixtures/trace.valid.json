@@ -1,0 +1,27 @@
+{
+  "id": "run-1_citations-basic_rag_0",
+  "caseId": "citations-basic",
+  "targetId": "rag",
+  "trial": 0,
+  "startedAt": "2026-10-12T00:00:00.000Z",
+  "endedAt": "2026-10-12T00:00:01.250Z",
+  "messages": [
+    { "role": "system", "content": "Answer with citations." },
+    { "role": "user", "content": "When does the new policy start?" },
+    {
+      "role": "assistant",
+      "content": "",
+      "tool_calls": [
+        { "id": "call_1", "type": "function", "function": { "name": "search", "arguments": "{\"q\":\"new policy start\"}" } }
+      ]
+    },
+    { "role": "tool", "tool_call_id": "call_1", "content": "[c1] The policy starts on 2026-07-01." },
+    { "role": "assistant", "content": "It starts on 2026-07-01 [c1]." }
+  ],
+  "spans": [
+    { "id": "s1", "kind": "retrieval", "name": "search", "startedAt": "2026-10-12T00:00:00.100Z", "endedAt": "2026-10-12T00:00:00.400Z", "input": { "q": "new policy start" }, "output": [{ "id": "c1", "text": "The policy starts on 2026-07-01." }] },
+    { "id": "s2", "kind": "llm", "name": "chat", "startedAt": "2026-10-12T00:00:00.400Z", "endedAt": "2026-10-12T00:00:01.200Z", "attrs": { "model": "stub" } }
+  ],
+  "output": "It starts on 2026-07-01 [c1].",
+  "usage": { "inputTokens": 120, "outputTokens": 14, "costUsd": 0.0003 }
+}
