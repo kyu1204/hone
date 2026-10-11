@@ -6,6 +6,7 @@ import { CalibrateScreen } from "./screens/calibrate";
 import { CandidatesScreen } from "./screens/candidates";
 import { ClustersScreen } from "./screens/clusters";
 import { DiffScreen, diffSides } from "./screens/diff";
+import { ForkScreen } from "./screens/fork";
 import { MatrixScreen } from "./screens/matrix";
 import { TraceScreen, traceEntries } from "./screens/trace";
 import { useTheme } from "./theme";
@@ -18,7 +19,7 @@ export interface AppProps {
 const SCREEN_KEYS: Record<string, Screen> = { "1": "matrix", "2": "trace", "3": "diff", "4": "clusters", "5": "calibrate", "6": "candidates", "7": "fork", "8": "charts" };
 
 export const KEYMAP: Record<Screen | "global", string> = {
-  global: "q quit  ? help  esc back  1-8 screens  r reload",
+  global: "q quit  ? help  esc back  1-8 screens  R reload",
   matrix: "h/j/k/l move  enter open trial  d diff  s sort  / filter",
   trace: "j/k move  enter expand  e evidence  [ ] trials  / search  f fork  D diff prev",
   diff: "j/k move  n divergence  enter expand  tab swap",
@@ -91,7 +92,7 @@ export function App({ store, onQuit }: AppProps): ReactNode {
     if (key.name === "q" || (key.ctrl && key.name === "c")) return onQuit();
     if (key.name === "?" || (key.shift && key.name === "/")) return store.toggleHelp();
     if (key.name === "escape") return store.back();
-    if (key.name === "r") return store.reload();
+    if (key.name === "R" || (key.shift && key.name === "r")) return store.reload();
     const screen = SCREEN_KEYS[key.name];
     if (screen && SCREENS.includes(screen)) return store.setScreen(screen);
     if (s.screen === "matrix") {
@@ -126,6 +127,13 @@ export function App({ store, onQuit }: AppProps): ReactNode {
         const next = hits.find((i) => i > s.entryIdx) ?? hits[0];
         if (next !== undefined) store.setEntryIdx(next);
       } else if (key.name === "f") store.setScreen("fork");
+    } else if (s.screen === "fork") {
+      const total = store.selectedTrial()?.trace.messages.length ?? 0;
+      if (key.name === "j" || key.name === "down") store.setForkStep(Math.min(total - 1, s.forkStep + 1));
+      else if (key.name === "k" || key.name === "up") store.setForkStep(Math.max(0, s.forkStep - 1));
+      else if (key.name === "return") store.beginForkEdit();
+      else if (key.name === "r") void store.runFork();
+      else if (key.name === "d" && s.forkResult) store.setScreen("diff");
     } else if (s.screen === "diff") {
       const sides = diffSides(store);
       const total = sides ? alignTraces(sides.a.trace.messages, sides.b.trace.messages).pairs.length : 0;
@@ -146,7 +154,7 @@ export function App({ store, onQuit }: AppProps): ReactNode {
       }
     }
   });
-  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : s.screen === "diff" ? <DiffScreen store={store} /> : s.screen === "clusters" ? <ClustersScreen store={store} /> : s.screen === "calibrate" ? <CalibrateScreen store={store} /> : s.screen === "candidates" ? <CandidatesScreen store={store} /> : <Placeholder name={s.screen} />;
+  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : s.screen === "diff" ? <DiffScreen store={store} /> : s.screen === "clusters" ? <ClustersScreen store={store} /> : s.screen === "calibrate" ? <CalibrateScreen store={store} /> : s.screen === "candidates" ? <CandidatesScreen store={store} /> : s.screen === "fork" ? <ForkScreen store={store} /> : <Placeholder name={s.screen} />;
   return (
     <box style={{ flexDirection: "column", height, width: "100%" }}>
       <Header store={store} />
