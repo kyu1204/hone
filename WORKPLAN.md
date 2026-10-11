@@ -79,7 +79,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-602 `analysis/taxonomy.ts` taxonomy induction + Jev classification (L)
 - [x] T-603 `analysis/diffTrace.ts` LCS alignment of tool-call signatures (S)
 - [x] T-604 `analysis/calibrate.ts` fault injection per domain, detection rate, kappa (M)
-- [ ] T-605 `analysis/branchpoints.ts` fork candidate ranking (S)
+- [x] T-605 `analysis/branchpoints.ts` fork candidate ranking (S)
 
 ## P7 Correction (after T-108, P3, P6)
 
@@ -163,3 +163,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-602 | #59 | analysis/taxonomy.ts: induceTaxonomy (one chat call per cluster, kebab codes, merge with existing by code or Jev noul >= 0.8), classify (one Jev choice per trial over codes + other), .hone/taxonomy.json; hone cluster --induce / --classify write real codes with classification counts |
 | 2026-10-12 | T-603 | #60 | tui/align.ts moved to analysis/diffTrace.ts; divergenceReport classifies aligned rows (identical, different-content, different-tool-args, missing-in-a/b); hone diff <a> <b> prints side-by-side rows with gap markers or --json |
 | 2026-10-12 | T-604 | #61 | analysis/calibrate.ts: fault injectors per domain (rag unsupported-claim/wrong-citation, qa answer-swapped/negated, agent verification-removed/tool-result-swapped/premature-done), calibrate with Wilson detection rates, clean re-score false alarms, Cohen kappa vs labels; hone calibrate --scorer --domain --run --n --seed --labels --json writes analysis/calibration-<scorer>.json |
+| 2026-10-12 | T-605 | #62 | analysis/branchpoints.ts rankBranchPoints (error spans, divergence from a passing sibling, differing tool results, last tool call, completion claim, early-step penalty), topSteps, pickSibling; fork screen marks the top 3 with ★; hone explain prints fork candidates with reasons. P6 complete |
