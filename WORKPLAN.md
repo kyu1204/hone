@@ -11,7 +11,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-001 Repo toolchain: Bun 1.3.14+, tsconfig, oxlint, bun test, `bun run check`, CI workflow (S)
 - [x] T-002 `core/types.ts` data model + JSON schema export (S)
 - [x] T-003 `core/config.ts` `defineConfig`, `hone.config.ts` loader, YAML/JSON case glob loader (M)
-- [ ] T-004 `core/cache.ts` content-addressed cache under `.hone/cache` (S)
+- [x] T-004 `core/cache.ts` content-addressed cache under `.hone/cache` (S)
 - [ ] T-005 `core/store.ts` run JSON files + `bun:sqlite` index with rebuild (M)
 - [ ] T-006 `core/events.ts` typed progress event bus (S)
 - [ ] T-007 `providers/jev.ts` System One client: noul/score/choice, batching, retry, timeout, rate limit, 3-level key resolution (M)
@@ -113,3 +113,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-001 | #3 | toolchain, CI, cli --version; bun run check green |
 | 2026-10-12 | T-002 | #4 | types + assertTrace/assertCase guards, valid trace fixture |
 | 2026-10-12 | T-003 | #5 | defineConfig, loadConfig with sha256 hash, loadCases yaml/json/jsonl with stem ids |
+| 2026-10-12 | T-004 | #6 | canonicalJson, cacheKey, Cache.memo with atomic writes |
