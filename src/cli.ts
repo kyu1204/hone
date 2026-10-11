@@ -3,19 +3,25 @@ import { ablateCommand } from "./cli/commands/ablate";
 import { bisectCommand } from "./cli/commands/bisect";
 import { ciCommand } from "./cli/commands/ci";
 import { compareCommand } from "./cli/commands/compare";
+import { explainCommand } from "./cli/commands/explain";
 import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
+import { powerCommand } from "./cli/commands/power";
+import { reportCommand } from "./cli/commands/report";
 import { type CommandIo, runCommand } from "./cli/commands/run";
 import { VERSION } from "./index";
 
 type Command = (argv: string[], io: CommandIo) => Promise<number>;
 
 const COMMANDS: Record<string, { run: Command; summary: string }> = {
+  power: { run: powerCommand, summary: "cases needed for an effect, or the smallest detectable effect" },
+  report: { run: reportCommand, summary: "write a self-contained HTML report for a run" },
   run: { run: runCommand, summary: "run every case against every target and summarise" },
   ci: { run: ciCommand, summary: "run and gate per axis for CI; writes JUnit and a PR comment" },
   compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
   ablate: { run: ablateCommand, summary: "measure what each config component contributes" },
   bisect: { run: bisectCommand, summary: "find the commit that broke a case, with confidence intervals" },
+  explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
   init: { run: initCommand, summary: "detect the project and write hone.config.ts, example cases and keys" },
   matrix: { run: matrixCommand, summary: "per-target solve rate, cost, tokens, time and significance bands" },
 };
