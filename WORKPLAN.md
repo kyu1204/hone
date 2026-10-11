@@ -88,7 +88,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-703 `correct/optimize.ts` bandit allocation + paired verdict (M)
 - [x] T-704 `io/export/rollouts.ts` (S)
 - [x] T-705 `serve/reward.ts` HTTP reward server (S)
-- [ ] T-706 `serve/mcp.ts` stdio MCP server (M)
+- [x] T-706 `serve/mcp.ts` stdio MCP server (M)
 
 ## P8 Ecosystem (after P0, P2)
 
@@ -169,3 +169,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-703 | #66 | config.optimize named candidates; correct/optimize.ts: one run + executor per arm, Thompson rounds (allocate) on least-observed cells, stop on budget or P(best) >= confidence with minPerArm, verification top-up so baseline and the leader cover every case, paired verdict, .hone/optimize/<id>.json; hone optimize --budget --batch --confidence --alpha --min-per-arm --seed --no-cache --json |
 | 2026-10-12 | T-704 | #67 | io/export/rollouts.ts: splitPrompt (prompt up to the last user turn before the first assistant turn), toRollout (trl prompt/completion or openai messages, reward = verdict / mean-score / one scorer, info with ids, scores, flags, cost, injectedFault), writeRollouts JSONL; hone export rollouts --run --out --pass-only --reward --format (other kinds reserved for T-803) |
 | 2026-10-12 | T-705 | #68 | serve/reward.ts: Bun.serve with GET /health, POST /score (messages or output + case -> reward/pass/scores, scorer exceptions -> 500), POST /batch (ordered, concurrency 4), 400 on bad bodies; hone serve reward --port --host --scorer (serve command split into ssh/reward modes with a non-blocking test hook) |
+| 2026-10-12 | T-706 | #69 | serve/mcp.ts: newline-delimited JSON-RPC 2.0 MCP server (initialize, ping, tools/list, tools/call; -32700/-32601/-32602; tool failures as isError) with tools hone_run, hone_list_runs, hone_matrix, hone_compare, hone_explain (+forkCandidates), hone_cluster, hone_fork, each delegating to the existing command with --json; serveStdio framing; hone serve mcp. P7 complete |
