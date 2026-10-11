@@ -31,7 +31,15 @@ export interface TuiSnapshot {
   loadedAt: number;
   /** Second cell chosen for the diff screen. */
   diffWith?: { caseId: string; targetId: string; trialIdx: number };
+  filter: string;
+  sort: SortMode;
+  summary: boolean;
+  /** A text input owns the keyboard; global keys are suspended. */
+  inputActive: boolean;
 }
+
+export type SortMode = "case" | "passAsc" | "passDesc" | "cost";
+export const SORT_MODES: SortMode[] = ["case", "passAsc", "passDesc", "cost"];
 
 export interface TuiStoreOptions {
   root: string;
@@ -54,6 +62,12 @@ export interface TuiStore {
   selectedCell(): TuiCell | undefined;
   selectedTrial(): Trial | undefined;
   setDiffWith(cell: { caseId: string; targetId: string; trialIdx: number } | undefined): void;
+  setFilter(text: string): void;
+  cycleSort(): void;
+  toggleSummary(): void;
+  setInputActive(active: boolean): void;
+  /** Cases in display order after filter and sort. */
+  visibleCases(): string[];
   dispose(): void;
 }
 
@@ -83,7 +97,7 @@ function load(root: string, runId: string | undefined): Pick<TuiSnapshot, "runId
 
 export function createTuiStore(opts: TuiStoreOptions): TuiStore {
   const listeners = new Set<() => void>();
-  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now() };
+  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false };
   const emit = (): void => {
     for (const fn of listeners) fn();
   };
@@ -92,7 +106,23 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     emit();
   };
   const clamp = (n: number, max: number): number => Math.max(0, Math.min(Math.max(0, max - 1), n));
-  const cellAt = (s: TuiSnapshot): TuiCell | undefined => s.cells.find((c) => c.caseId === s.cases[s.selected.caseIdx] && c.targetId === s.targets[s.selected.targetIdx]);
+  const visibleCases = (s: TuiSnapshot): string[] => {
+    const f = s.filter.trim().toLowerCase();
+    const cases = s.cases.filter((c) => !f || c.toLowerCase().includes(f) || s.cells.some((cell) => cell.caseId === c && cell.trials.some((t) => (t.trace.meta?.tags as string[] | undefined)?.some((tag) => tag.toLowerCase().includes(f)))));
+    const meanPass = (c: string): number => {
+      const cells = s.cells.filter((cell) => cell.caseId === c && cell.trials.length);
+      return cells.length ? cells.reduce((a, cell) => a + cell.verdict.passAt1, 0) / cells.length : -1;
+    };
+    const cost = (c: string): number => s.cells.filter((cell) => cell.caseId === c).reduce((a, cell) => a + cell.trials.reduce((x, t) => x + t.costUsd, 0), 0);
+    if (s.sort === "passAsc") return [...cases].sort((a, b) => meanPass(a) - meanPass(b));
+    if (s.sort === "passDesc") return [...cases].sort((a, b) => meanPass(b) - meanPass(a));
+    if (s.sort === "cost") return [...cases].sort((a, b) => cost(b) - cost(a));
+    return cases;
+  };
+  const cellAt = (s: TuiSnapshot): TuiCell | undefined => {
+    const caseId = visibleCases(s)[s.selected.caseIdx];
+    return s.cells.find((c) => c.caseId === caseId && c.targetId === s.targets[s.selected.targetIdx]);
+  };
 
   const timer = opts.watch ? setInterval(() => reload(), opts.pollMs ?? 1000) : undefined;
   function reload(): void {
@@ -108,7 +138,7 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     getSnapshot: () => snap,
     reload,
     move(dCase, dTarget) {
-      set({ selected: { caseIdx: clamp(snap.selected.caseIdx + dCase, snap.cases.length), targetIdx: clamp(snap.selected.targetIdx + dTarget, snap.targets.length) } });
+      set({ selected: { caseIdx: clamp(snap.selected.caseIdx + dCase, visibleCases(snap).length), targetIdx: clamp(snap.selected.targetIdx + dTarget, snap.targets.length) } });
     },
     enter() {
       const cell = cellAt(snap);
@@ -135,6 +165,19 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     setDiffWith(cell) {
       set({ diffWith: cell });
     },
+    setFilter(text) {
+      set({ filter: text, selected: { caseIdx: 0, targetIdx: snap.selected.targetIdx } });
+    },
+    cycleSort() {
+      set({ sort: SORT_MODES[(SORT_MODES.indexOf(snap.sort) + 1) % SORT_MODES.length]!, selected: { ...snap.selected, caseIdx: 0 } });
+    },
+    toggleSummary() {
+      set({ summary: !snap.summary });
+    },
+    setInputActive(active) {
+      set({ inputActive: active });
+    },
+    visibleCases: () => visibleCases(snap),
     dispose() {
       if (timer) clearInterval(timer);
       listeners.clear();

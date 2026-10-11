@@ -1,6 +1,7 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { SCREENS, type Screen, type TuiStore } from "./state";
+import { MatrixScreen } from "./screens/matrix";
 import { useTheme } from "./theme";
 
 export interface AppProps {
@@ -73,37 +74,14 @@ function Placeholder({ name }: { name: string }): ReactNode {
   );
 }
 
-/** Minimal matrix until T-502: one line per cell. */
-function MatrixPreview({ store }: { store: TuiStore }): ReactNode {
-  const s = useTui(store);
-  const theme = useTheme();
-  if (!s.runId) {
-    return (
-      <box border style={{ flexGrow: 1 }}>
-        <text fg={theme.muted}>No runs yet. Run `hone run` in this project, then come back.</text>
-      </box>
-    );
-  }
-  return (
-    <box border title="matrix" style={{ flexGrow: 1, flexDirection: "column" }}>
-      {s.cells.map((c) => {
-        const selected = c.caseId === s.cases[s.selected.caseIdx] && c.targetId === s.targets[s.selected.targetIdx];
-        const dots = c.trials.map((t) => (t.pass === true ? "●" : "○")).join("");
-        return (
-          <text key={`${c.caseId}/${c.targetId}`} fg={selected ? theme.accent : c.verdict.passAt1 === 1 ? theme.pass : c.verdict.passAt1 === 0 ? theme.fail : theme.fg}>
-            {selected ? "▶ " : "  "}
-            {c.caseId.padEnd(24)} {c.targetId.padEnd(14)} {dots || "·"} {c.trials.length ? c.verdict.passAt1.toFixed(2) : ""}
-          </text>
-        );
-      })}
-    </box>
-  );
-}
-
 export function App({ store, onQuit }: AppProps): ReactNode {
   const s = useTui(store);
   const { height } = useTerminalDimensions();
   useKeyboard((key) => {
+    if (s.inputActive) {
+      if (key.name === "escape") store.setInputActive(false);
+      return;
+    }
     if (key.name === "q" || (key.ctrl && key.name === "c")) return onQuit();
     if (key.name === "?" || (key.shift && key.name === "/")) return store.toggleHelp();
     if (key.name === "escape") return store.back();
@@ -116,12 +94,21 @@ export function App({ store, onQuit }: AppProps): ReactNode {
       else if (key.name === "h" || key.name === "left") store.move(0, -1);
       else if (key.name === "l" || key.name === "right") store.move(0, 1);
       else if (key.name === "return") store.enter();
+      else if (key.name === "s") store.cycleSort();
+      else if (key.name === "c") store.toggleSummary();
+      else if (key.name === "/") store.setInputActive(true);
+      else if (key.name === "d") {
+        const cell = store.selectedCell();
+        if (!cell) return;
+        if (s.diffWith && (s.diffWith.caseId !== cell.caseId || s.diffWith.targetId !== cell.targetId)) store.setScreen("diff");
+        else store.setDiffWith({ caseId: cell.caseId, targetId: cell.targetId, trialIdx: 0 });
+      }
     } else if (s.screen === "trace") {
       if (key.name === "]") store.nextTrial(1);
       else if (key.name === "[") store.nextTrial(-1);
     }
   });
-  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixPreview store={store} /> : <Placeholder name={s.screen} />;
+  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : <Placeholder name={s.screen} />;
   return (
     <box style={{ flexDirection: "column", height, width: "100%" }}>
       <Header store={store} />
