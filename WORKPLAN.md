@@ -43,11 +43,11 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 - [x] T-301 Wilson and bootstrap intervals, pass@k and pass^k unbiased estimators (S)
 - [x] T-302 Paired t, exact McNemar, CR1 clustered SE + ICC (M)
-- [ ] T-303 Holm-Bonferroni indistinguishable groups (S)
-- [ ] T-304 Power analysis (S)
-- [ ] T-305 Sequential stopping on interval width (S)
-- [ ] T-306 IRT 2PL estimation, Fisher-information ordering, noise metric (L)
-- [ ] T-307 Beta-Bernoulli Thompson sampling (S)
+- [x] T-303 Holm-Bonferroni indistinguishable groups (S)
+- [x] T-304 Power analysis (S)
+- [x] T-305 Sequential stopping on interval width (S)
+- [x] T-306 IRT 2PL estimation, Fisher-information ordering, noise metric (L)
+- [x] T-307 Beta-Bernoulli Thompson sampling (S)
 
 ## P4 Runner and CLI (after P0 to P3)
 
@@ -136,3 +136,8 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-207 | #29 | cachedScorer: key = spec + cacheKeyExtra + case(id, input, expected, rubric) + trace(output, messages, spans sans timestamps, artifacts, error); hits cost 0 and are marked. P2 complete |
 | 2026-10-12 | T-301 | #31 | dist (lgamma, inc. beta/gamma, AS241 quantile, t p/quantile), wilsonCi, meanCiClt, bootstrapCi (seeded), passAtK/passHatK, verdictFor; vectors match errorbars to 1e-9 |
 | 2026-10-12 | T-302 | #32 | pairedDifference (t, p, CI, corr, variance reduction), mcnemarExact, clusterRobustSe/ICC/designEffect/withinBetween, compareTargets composition |
+| 2026-10-12 | T-303 | #33 | holm(), leaderboard() with maximal-clique groups |
+| 2026-10-12 | T-304 | #34 | noncentral t (AS 243), pairedPower/N/Mde, withDesign |
+| 2026-10-12 | T-305 | #35 | shouldStop, nextCell (widest Wilson interval first) |
+| 2026-10-12 | T-306 | #36 | fit2pl joint MAP, fisherInformation, orderCasesByInformation, caseNoise |
+| 2026-10-12 | T-307 | #37 | BetaBandit Thompson sampling, allocate(). P3 complete |
