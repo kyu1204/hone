@@ -70,7 +70,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-504 Diff screen (M)
 - [x] T-505 Clusters, Calibrate, Candidates screens (M)
 - [x] T-506 Fork screen (M)
-- [ ] T-507 Charts: braille sparklines, Pareto, Kitty graphics upgrade (M)
+- [x] T-507 Charts: braille sparklines, Pareto, Kitty graphics upgrade (M)
 - [ ] T-508 `hone serve ssh` read-only (S)
 
 ## P6 Analysis (after P2 to P4)
@@ -157,3 +157,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-504 | #52 | tui/align.ts LCS over role:tool signatures with divergence index; DiffScreen side by side with muted prefix, highlighted divergence, n jump, tab swap, enter expand |
 | 2026-10-12 | T-505 | #53 | ListDetail widget; clusters (analysis/clusters-<run>.json, enter opens trial), calibrate (calibration-<judge>.json interval bars, false alarms, kappa), candidates (evolve/optimize JSON, Pareto marker, enter diffs vs baseline); store.root and openTrialById |
 | 2026-10-12 | T-506 | #54 | tui/forkRunner.ts forkTrial (resume or run with ctx.prefix, forked-from flag, meta.forkStep), fork screen (steps, inline edit, r run, d diff), hone tui loads config for fork options; global reload moved to R |
+| 2026-10-12 | T-507 | #55 | widgets/chart.ts sparkline, braillePlot, bar, detectGraphics, kittyImageEscape + dependency-free PNG encoder and rasterScatter; charts screen (history, Pareto scatter, Wilson bars). Pixel rendering inside the OpenTUI layout deferred: escape builder exists, screen uses cells |
