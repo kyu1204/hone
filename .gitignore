@@ -2,3 +2,6 @@
 # oh-my-harness
 .omh/state/
 .omh/loop/worktree/
+node_modules/
+dist/
+.hone/
