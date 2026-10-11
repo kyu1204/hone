@@ -44,7 +44,11 @@ describe("docker target: pure parts", () => {
     expect(agent?.join(" ")).toContain("Create a file at /app/hello.txt");
     const verifier = calls.find((c) => c[1] === "exec" && c.join(" ").includes("/tests/test.sh"));
     expect(verifier).toBeDefined();
+    // Files under /logs are root-owned on Linux hosts, so the container cleans them before it is removed.
+    const cleanup = calls.findIndex((c) => c[1] === "exec" && c.join(" ").includes("rm -rf /logs"));
+    expect(cleanup).toBeGreaterThan(0);
     expect(calls.at(-1)?.slice(0, 3)).toEqual(["docker", "rm", "-f"]);
+    expect(cleanup).toBeLessThan(calls.length - 1);
     expect(await t.version()).toMatch(/^[0-9a-f]{64}$/);
   });
 
