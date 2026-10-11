@@ -20,6 +20,10 @@
   },
   "scripts": {
     "build": "bun build src/cli.ts --target=bun --outfile=dist/cli.js && chmod +x dist/cli.js",
+    "build:binaries": "bun scripts/build-binaries.ts",
+    "release:check": "bun scripts/release-check.ts",
+    "docs:cli": "bun scripts/gen-cli-docs.ts",
+    "docs:links": "bun scripts/check-links.ts",
     "test": "bun test",
     "lint": "oxlint src",
     "typecheck": "tsc --noEmit",
