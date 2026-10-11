@@ -9,6 +9,7 @@ import { matrixCommand } from "./cli/commands/matrix";
 import { powerCommand } from "./cli/commands/power";
 import { reportCommand } from "./cli/commands/report";
 import { type CommandIo, runCommand } from "./cli/commands/run";
+import { serveCommand } from "./cli/commands/serve";
 import { tuiCommand } from "./cli/commands/tui";
 import { VERSION } from "./index";
 
@@ -18,6 +19,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   power: { run: powerCommand, summary: "cases needed for an effect, or the smallest detectable effect" },
   report: { run: reportCommand, summary: "write a self-contained HTML report for a run" },
   run: { run: runCommand, summary: "run every case against every target and summarise" },
+  serve: { run: serveCommand, summary: "serve the dashboard over ssh (hone serve ssh)" },
   tui: { run: tuiCommand, summary: "open the dashboard over the latest run (plain `hone` in a terminal)" },
   ci: { run: ciCommand, summary: "run and gate per axis for CI; writes JUnit and a PR comment" },
   compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
