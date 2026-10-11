@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { ablateCommand } from "./cli/commands/ablate";
 import { bisectCommand } from "./cli/commands/bisect";
+import { ciCommand } from "./cli/commands/ci";
 import { compareCommand } from "./cli/commands/compare";
 import { matrixCommand } from "./cli/commands/matrix";
 import { type CommandIo, runCommand } from "./cli/commands/run";
@@ -10,6 +11,7 @@ type Command = (argv: string[], io: CommandIo) => Promise<number>;
 
 const COMMANDS: Record<string, { run: Command; summary: string }> = {
   run: { run: runCommand, summary: "run every case against every target and summarise" },
+  ci: { run: ciCommand, summary: "run and gate per axis for CI; writes JUnit and a PR comment" },
   compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
   ablate: { run: ablateCommand, summary: "measure what each config component contributes" },
   bisect: { run: bisectCommand, summary: "find the commit that broke a case, with confidence intervals" },
