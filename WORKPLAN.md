@@ -8,7 +8,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 ## P0 Foundation
 
-- [ ] T-001 Repo toolchain: Bun 1.3.14+, tsconfig, oxlint, bun test, `bun run check`, CI workflow (S)
+- [x] T-001 Repo toolchain: Bun 1.3.14+, tsconfig, oxlint, bun test, `bun run check`, CI workflow (S)
 - [ ] T-002 `core/types.ts` data model + JSON schema export (S)
 - [ ] T-003 `core/config.ts` `defineConfig`, `hone.config.ts` loader, YAML/JSON case glob loader (M)
 - [ ] T-004 `core/cache.ts` content-addressed cache under `.hone/cache` (S)
@@ -110,3 +110,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | Date | Task | PR | Note |
 |---|---|---|---|
 | 2026-10-12 | bootstrap | #1 | harness guardrails, README, brand assets, Apache-2.0 + DCO |
+| 2026-10-12 | T-001 | #3 | toolchain, CI, cli --version; bun run check green |
