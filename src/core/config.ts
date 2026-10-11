@@ -35,6 +35,8 @@ export interface HoneConfig {
   ablations?: Record<string, (config: HoneConfig) => HoneConfig>;
   /** The mutable text `hone evolve` rewrites (a prompt, a rule file, a rubric) and how to put it into the config. */
   evolve?: { seed: string; apply: (config: HoneConfig, text: string) => HoneConfig; label?: string };
+  /** Named candidate configs `hone optimize` allocates trials across; the unmodified config is the `baseline` arm. */
+  optimize?: Record<string, (config: HoneConfig) => HoneConfig>;
 }
 
 /** Identity with types: lets hone.config.ts get completion and checking. */
