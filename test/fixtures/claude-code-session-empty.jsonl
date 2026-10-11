@@ -1,0 +1,2 @@
+{"type": "mode", "mode": "default", "sessionId": "zzz"}
+{"type": "user", "uuid": "m", "parentUuid": null, "timestamp": "2026-10-12T01:00:00.000Z", "message": {"role": "user", "content": "<meta>"}, "isMeta": true, "sessionId": "abcdef12-3456-7890-abcd-ef1234567890", "cwd": "/Users/me/proj", "gitBranch": "feat/x", "version": "2.1.300", "isSidechain": false, "userType": "external", "entrypoint": "cli"}
