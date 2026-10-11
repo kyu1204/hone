@@ -18,9 +18,18 @@ test("--version prints the package version", async () => {
   expect(stdout).toMatch(/^hone \d+\.\d+\.\d+/);
 });
 
-test("no arguments prints a one-line usage", async () => {
+test("no arguments prints usage listing the commands", async () => {
   const { code, stdout } = await run([]);
   expect(code).toBe(0);
-  expect(stdout.trim().split("\n")).toHaveLength(1);
   expect(stdout).toContain("hone");
+  expect(stdout).toMatch(/\brun\b/);
+});
+
+test("unknown commands exit 2 with usage on stderr; command --help exits 0", async () => {
+  const bad = await run(["nope"]);
+  expect(bad.code).toBe(2);
+  expect(bad.stderr).toMatch(/unknown command "nope"/);
+  const help = await run(["run", "--help"]);
+  expect(help.code).toBe(0);
+  expect(help.stdout).toMatch(/--adaptive/);
 });
