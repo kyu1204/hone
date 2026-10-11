@@ -36,7 +36,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-203 `scorers/rag/*` citation presence, claim faithfulness, context recall/precision (M)
 - [x] T-204 `scorers/consistency.ts` metamorphic scorer (M)
 - [x] T-205 `scorers/judge/jev.ts` noul/score/choice wrappers, per-step fan-out, thresholds (S)
-- [ ] T-206 `scorers/judge/llm.ts` rubric judge with Unknown option, split dimensions, pairwise order swap (M)
+- [x] T-206 `scorers/judge/llm.ts` rubric judge with Unknown option, split dimensions, pairwise order swap (M)
 - [ ] T-207 Scorer result caching (S)
 
 ## P3 Stats (after P0)
@@ -132,3 +132,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-203 | #25 | rag.context_recall/precision, rag.citations, rag.faithfulness (claim split, noul per claim, 256-batch), rag.answer_relevance (score levels) |
 | 2026-10-12 | T-204 | #26 | consistency scorer: paraphrase/reorder/noise mutations (deterministic, inapplicable ones skipped), exact or Jev comparison via ctx.runTarget |
 | 2026-10-12 | T-205 | #27 | jev.noul / jev.score / jev.choice / jev.steps (one noul per assistant step, 256-batch, min or mean); state builders output/messages/trace/function |
+| 2026-10-12 | T-206 | #28 | llm.rubric (dimensions, scale, unknown verdict, one JSON repair retry, fence stripping), llm.pairwise (swap orders, disagreement = tie) |
