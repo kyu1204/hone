@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 128" width="560" height="128" role="img" aria-label="hone">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9fd0f0"/>
+      <stop offset="1" stop-color="#2c6e9e"/>
+    </linearGradient>
+  </defs>
+  <rect width="128" height="128" rx="28" fill="#0f1216"/>
+  <polygon points="24,104 104,24 104,52 52,104" fill="url(#steel)"/>
+  <line x1="24" y1="104" x2="104" y2="24" stroke="#ffffff" stroke-opacity="0.9" stroke-width="2" stroke-linecap="round"/>
+  <g stroke="#6fb1dc" stroke-width="5" stroke-linecap="round">
+    <line x1="28" y1="44" x2="60" y2="44"/>
+    <line x1="28" y1="58" x2="52" y2="58"/>
+    <line x1="28" y1="72" x2="44" y2="72"/>
+  </g>
+  <text x="156" y="86" font-family="'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif" font-size="80" font-weight="700" letter-spacing="-3" fill="#e8ebf0">hone</text>
+  <text x="372" y="86" font-family="'JetBrains Mono',Menlo,monospace" font-size="18" fill="#6fb1dc">evaluate · correct · sharpen</text>
+</svg>

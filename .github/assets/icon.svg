@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" role="img" aria-label="hone icon: a blade edge being sharpened">
+  <defs>
+    <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#9fd0f0"/>
+      <stop offset="1" stop-color="#2c6e9e"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#0f1216"/>
+  <!-- blade: a wedge rising from bottom-left to top-right -->
+  <polygon points="48,208 208,48 208,104 104,208" fill="url(#steel)"/>
+  <!-- the edge itself: a thin bright line along the hypotenuse -->
+  <line x1="48" y1="208" x2="208" y2="48" stroke="url(#edge)" stroke-width="4" stroke-linecap="round"/>
+  <!-- sharpening strokes: three passes of the stone, each a little shorter -->
+  <g stroke="#6fb1dc" stroke-width="10" stroke-linecap="round" opacity="0.9">
+    <line x1="56" y1="88" x2="120" y2="88"/>
+    <line x1="56" y1="116" x2="104" y2="116"/>
+    <line x1="56" y1="144" x2="88" y2="144"/>
+  </g>
+</svg>
