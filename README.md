@@ -39,33 +39,38 @@ Most eval tools stop at a number. The number is usually a single run, graded by 
 
 ## What it looks like
 
+<p align="center"><img alt="hone ablate, hone optimize and the dashboard on the harness-ablation example" src=".github/assets/demo.gif" width="880"></p>
+
+`hone ablate` removes one component at a time and reports the paired delta per component; `hone optimize` spends a trial budget across candidates by Thompson sampling and then decides with a paired test; `hone` opens the dashboard over the latest run (captured from [`examples/harness-ablation`](./examples/harness-ablation)):
+
 ```
-hone                                                           .hone/runs/2026-10-12T09:41
+ablation      pass@1  delta    CI95            p        cost delta  verdict
+answerwith    0.00    -1.00    [-1.00, -1.00]   0.0e+0   +$0.0000   component helps
+roundto       0.75    -0.25    [-1.05, 0.55]   3.9e-1   +$0.0000   no measurable effect
+neverinclude  0.75    -0.25    [-1.05, 0.55]   3.9e-1   +$0.0000   no measurable effect
 
-  case \ target        rag@a3f1     rag@b7c2     claude-code    codex
-  ───────────────────  ───────────  ───────────  ─────────────  ───────────
-  citations-basic      ●●●●● 1.00   ●●●●○ 0.80   ·              ·
-  refusal-oos          ●●●●● 1.00   ●●●●● 1.00   ·              ·
-  multi-hop-3          ●●○○○ 0.40   ●●●○○ 0.60   ·              ·
-  fix-flaky-test       ·            ·            ●●●●○ 0.80 ⚑   ●●●○○ 0.60
-  add-migration        ·            ·            ●●●●● 1.00     ●●●●● 1.00
+  arm            trials   pass    95% CI        P(best)   cost
+  baseline            5   100%   [ 57%, 100%]     73%   $0.0000
+  no-units-rule       4    75%   [ 30%,  95%]     17%   $0.0000
+  no-rounding         3    67%   [ 21%,  94%]     11%   $0.0000
 
-  pass^3  0.71 [0.58, 0.81]   $/solve  0.042   tokens/solve  38k   ⚑ 1 reward-hack flag
-
-  j/k move   enter trace   d diff   c clusters   f fork   ? help   q quit
+spent 12 trials (stopped: budget)
+verdict: baseline holds; no candidate beats it
 ```
 
-The terminal UI is built on [OpenTUI](https://github.com/anomalyco/opentui). Drill from the matrix into a trial, step through messages and spans, diff two trajectories side by side, open the failure clusters, fork a step. `hone serve ssh` serves the same view read-only over SSH.
+The terminal UI is built on [OpenTUI](https://github.com/anomalyco/opentui): matrix, trace viewer with score context, side-by-side trajectory diff, failure clusters, judge calibration, candidates, fork, charts. `hone serve ssh` serves the same view read-only over SSH. Re-render the gif with `scripts/demo.sh`.
 
 ## Quick start
 
 ```bash
 # requires Bun >= 1.3.14
-bunx hone-eval init      # detects your project and writes hone.config.ts + example cases
-hone                     # opens the dashboard; existing Claude Code sessions show up immediately
-hone run --adaptive      # runs cases until confidence intervals are tight enough
-hone compare main..HEAD  # paired comparison with significance
-hone ci                  # per-axis thresholds, exit code, PR comment
+bunx hone-eval init          # detects your project, writes hone.config.ts + evals/cases.yaml, stores keys
+hone import claude-code      # existing Claude Code sessions show up in the matrix, no run needed
+hone run --adaptive          # runs cases until confidence intervals are tight enough
+hone                         # the dashboard
+hone cluster --induce        # name the failure modes
+hone compare rag@a rag@b     # paired comparison with significance
+hone ci                      # per-axis thresholds, exit code, JUnit, PR comment
 ```
 
 A config is a TypeScript file:
@@ -92,6 +97,7 @@ export default defineConfig({
 
 ## Documentation
 
+- [`docs/README.md`](./docs/README.md): index; [`docs/concepts.md`](./docs/concepts.md): the data model and the loop
 - [`docs/cli.md`](./docs/cli.md): every command, generated from `--help`
 - [`docs/config.md`](./docs/config.md): `hone.config.ts`, targets, scorers, gates, ablations, evolve, optimize
 - [`docs/analysis.md`](./docs/analysis.md): clustering, taxonomy, trajectory diff, judge calibration, branch points
