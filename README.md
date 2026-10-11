@@ -13,7 +13,7 @@
 
 <p align="center">
   <a href="https://github.com/kyu1204/hone/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/kyu1204/hone/ci.yml?style=flat-square&label=ci"></a>
-  <a href="https://www.npmjs.com/package/@hone/cli"><img alt="npm" src="https://img.shields.io/npm/v/%40hone%2Fcli?style=flat-square&color=2c6e9e"></a>
+  <a href="https://www.npmjs.com/package/hone-eval"><img alt="npm" src="https://img.shields.io/npm/v/hone-eval?style=flat-square&color=2c6e9e"></a>
   <a href="./LICENSE"><img alt="Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2c6e9e?style=flat-square"></a>
   <img alt="status" src="https://img.shields.io/badge/status-v0.1.0%20in%20progress-a86a12?style=flat-square">
 </p>
@@ -61,7 +61,7 @@ The terminal UI is built on [OpenTUI](https://github.com/anomalyco/opentui). Dri
 
 ```bash
 # requires Bun >= 1.3.14
-bunx @hone/cli init      # detects your project and writes hone.config.ts + example cases
+bunx hone-eval init      # detects your project and writes hone.config.ts + example cases
 hone                     # opens the dashboard; existing Claude Code sessions show up immediately
 hone run --adaptive      # runs cases until confidence intervals are tight enough
 hone compare main..HEAD  # paired comparison with significance
@@ -71,7 +71,7 @@ hone ci                  # per-axis thresholds, exit code, PR comment
 A config is a TypeScript file:
 
 ```ts
-import { defineConfig, http, process, jev, regex, rag, gates } from "hone";
+import { defineConfig, http, process, jev, regex, rag, gates } from "hone-eval";
 
 export default defineConfig({
   targets: {
