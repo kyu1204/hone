@@ -11,6 +11,7 @@ import { explainCommand } from "./cli/commands/explain";
 import { forkCommand } from "./cli/commands/fork";
 import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
+import { optimizeCommand } from "./cli/commands/optimize";
 import { powerCommand } from "./cli/commands/power";
 import { reportCommand } from "./cli/commands/report";
 import { type CommandIo, runCommand } from "./cli/commands/run";
@@ -21,6 +22,7 @@ import { VERSION } from "./index";
 type Command = (argv: string[], io: CommandIo) => Promise<number>;
 
 const COMMANDS: Record<string, { run: Command; summary: string }> = {
+  optimize: { run: optimizeCommand, summary: "spend a trial budget across candidates by Thompson sampling, decide paired" },
   power: { run: powerCommand, summary: "cases needed for an effect, or the smallest detectable effect" },
   report: { run: reportCommand, summary: "write a self-contained HTML report for a run" },
   run: { run: runCommand, summary: "run every case against every target and summarise" },
