@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 128" width="560" height="128" role="img" aria-label="hone">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 372 128" width="372" height="128" role="img" aria-label="hone">
   <defs>
     <linearGradient id="steel" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#9fd0f0"/>
@@ -13,6 +13,5 @@
     <line x1="28" y1="58" x2="52" y2="58"/>
     <line x1="28" y1="72" x2="44" y2="72"/>
   </g>
-  <text x="156" y="86" font-family="'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif" font-size="80" font-weight="700" letter-spacing="-3" fill="#e8ebf0">hone</text>
-  <text x="372" y="86" font-family="'JetBrains Mono',Menlo,monospace" font-size="18" fill="#6fb1dc">evaluate · correct · sharpen</text>
+  <text x="156" y="88" font-family="'Bricolage Grotesque','Helvetica Neue',Arial,sans-serif" font-size="84" font-weight="700" letter-spacing="-3" fill="#e8ebf0">hone</text>
 </svg>
