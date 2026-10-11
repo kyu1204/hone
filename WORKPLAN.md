@@ -67,7 +67,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-501 `tui/app.tsx` shell: layout, keymap, theme, event subscription (M)
 - [x] T-502 Matrix screen (M)
 - [x] T-503 Trace viewer (L)
-- [ ] T-504 Diff screen (M)
+- [x] T-504 Diff screen (M)
 - [ ] T-505 Clusters, Calibrate, Candidates screens (M)
 - [ ] T-506 Fork screen (M)
 - [ ] T-507 Charts: braille sparklines, Pareto, Kitty graphics upgrade (M)
@@ -154,3 +154,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-501 | #49 | OpenTUI 0.6 + React 19.3 deps, jsxImportSource; tui/state.ts external store (watch polling), app.tsx shell (header, footer keymap, help, screen keys, matrix preview), theme, hone tui + bare hone in a TTY; tests via @opentui/react/test-utils |
 | 2026-10-12 | T-502 | #50 | matrix screen: grid with cellLabel dots/flags, selection, enter to trace, d diff pairing, s sort cycle, / filter input (keyboard suspended), c summary row |
 | 2026-10-12 | T-503 | #51 | trace screen: traceEntries (scores, messages with tool calls, span tree with retrieval context), left list + right context pane, j/k/enter/e, / search with n, [ ] trials, f fork, D diff previous |
+| 2026-10-12 | T-504 | #52 | tui/align.ts LCS over role:tool signatures with divergence index; DiffScreen side by side with muted prefix, highlighted divergence, n jump, tab swap, enter expand |
