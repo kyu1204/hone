@@ -1,4 +1,5 @@
 // Barrel: importing this module registers every built-in target kind.
+import "./docker";
 import "./fn";
 import "./http";
 import "./mcp";
