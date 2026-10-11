@@ -15,6 +15,8 @@ export interface TuiCell {
 }
 
 export interface TuiSnapshot {
+  /** Store root (.hone) so screens can read analysis files next to the runs. */
+  root: string;
   runId: string | undefined;
   run: Run | undefined;
   cases: string[];
@@ -79,6 +81,8 @@ export interface TuiStore {
   toggleExpanded(): void;
   setSearch(text: string): void;
   toggleDiffSwap(): void;
+  /** Jump to the trace screen for a trial id (clears the case filter). */
+  openTrialById(id: string): void;
   dispose(): void;
 }
 
@@ -108,7 +112,7 @@ function load(root: string, runId: string | undefined): Pick<TuiSnapshot, "runId
 
 export function createTuiStore(opts: TuiStoreOptions): TuiStore {
   const listeners = new Set<() => void>();
-  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "", diffSwap: false };
+  let snap: TuiSnapshot = { root: opts.root, ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "", diffSwap: false };
   const emit = (): void => {
     for (const fn of listeners) fn();
   };
@@ -203,6 +207,13 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     },
     toggleDiffSwap() {
       set({ diffSwap: !snap.diffSwap });
+    },
+    openTrialById(id) {
+      const cell = snap.cells.find((c) => c.trials.some((t) => t.id === id));
+      if (!cell) return;
+      const trialIdx = cell.trials.findIndex((t) => t.id === id);
+      const cleared = { ...snap, filter: "", sort: "case" as SortMode };
+      set({ filter: "", sort: "case", selected: { caseIdx: visibleCases(cleared).indexOf(cell.caseId), targetIdx: snap.targets.indexOf(cell.targetId) }, trialIdx, screen: "trace", entryIdx: 0, expanded: [], search: "" });
     },
     dispose() {
       if (timer) clearInterval(timer);
