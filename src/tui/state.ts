@@ -36,7 +36,9 @@ export interface TuiSnapshot {
   summary: boolean;
   /** A text input owns the keyboard; global keys are suspended. */
   inputActive: boolean;
-  /** Trace screen: selected entry, expanded entries, search text. */
+  /** Diff screen: show the selected trial as A and diffWith as B. */
+  diffSwap: boolean;
+  /** Trace and diff screens: selected entry, expanded entries, search text. */
   entryIdx: number;
   expanded: number[];
   search: string;
@@ -76,6 +78,7 @@ export interface TuiStore {
   setEntryIdx(i: number): void;
   toggleExpanded(): void;
   setSearch(text: string): void;
+  toggleDiffSwap(): void;
   dispose(): void;
 }
 
@@ -105,7 +108,7 @@ function load(root: string, runId: string | undefined): Pick<TuiSnapshot, "runId
 
 export function createTuiStore(opts: TuiStoreOptions): TuiStore {
   const listeners = new Set<() => void>();
-  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "" };
+  let snap: TuiSnapshot = { ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "", diffSwap: false };
   const emit = (): void => {
     for (const fn of listeners) fn();
   };
@@ -158,7 +161,7 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
       else if (snap.screen !== "matrix") set({ screen: "matrix" });
     },
     setScreen(screen) {
-      set({ screen, help: false });
+      set({ screen, help: false, entryIdx: 0, expanded: [] });
     },
     toggleHelp() {
       set({ help: !snap.help });
@@ -197,6 +200,9 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     },
     setSearch(text) {
       set({ search: text });
+    },
+    toggleDiffSwap() {
+      set({ diffSwap: !snap.diffSwap });
     },
     dispose() {
       if (timer) clearInterval(timer);
