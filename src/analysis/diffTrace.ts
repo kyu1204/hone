@@ -1,4 +1,4 @@
-// Align two message lists by role and tool-call signature (LCS) so a diff can show where they part.
+// Align two message lists by role and tool-call signature (LCS) and classify where they part.
 import type { ChatMessage } from "../core/types";
 
 export function signature(m: ChatMessage): string {
@@ -36,4 +36,31 @@ export function alignTraces(a: ChatMessage[], b: ChatMessage[]): Alignment {
   while (j < m) pairs.push([null, j++]);
   const divergence = pairs.findIndex(([x, y]) => x === null || y === null);
   return { pairs, divergence: divergence === -1 ? null : divergence };
+}
+
+export type DivergenceKind = "identical" | "different-content" | "different-tool-args" | "missing-in-a" | "missing-in-b";
+
+export interface DivergenceRow {
+  /** Row index in the alignment (display order). */
+  step: number;
+  aMessage?: ChatMessage;
+  bMessage?: ChatMessage;
+  kind: DivergenceKind;
+}
+
+const argsOf = (m: ChatMessage): string => JSON.stringify(m.tool_calls?.map((c) => c.function.arguments) ?? []);
+const contentOf = (m: ChatMessage): string => (typeof m.content === "string" ? m.content : JSON.stringify(m.content));
+
+/** Alignment rows classified: gaps, same tool with other arguments, same shape with other content, identical. */
+export function divergenceReport(a: ChatMessage[], b: ChatMessage[]): DivergenceRow[] {
+  return alignTraces(a, b).pairs.map(([i, j], step) => {
+    const aMessage = i === null ? undefined : a[i];
+    const bMessage = j === null ? undefined : b[j];
+    let kind: DivergenceKind = "identical";
+    if (!aMessage) kind = "missing-in-a";
+    else if (!bMessage) kind = "missing-in-b";
+    else if (aMessage.tool_calls?.length && argsOf(aMessage) !== argsOf(bMessage)) kind = "different-tool-args";
+    else if (contentOf(aMessage) !== contentOf(bMessage)) kind = "different-content";
+    return { step, aMessage, bMessage, kind };
+  });
 }

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ChatMessage, Trial } from "../../core/types";
-import { alignTraces } from "../align";
+import { alignTraces } from "../../analysis/diffTrace";
 import { useTui } from "../app";
 import type { TuiStore } from "../state";
 import { useTheme } from "../theme";
