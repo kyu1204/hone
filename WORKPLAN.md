@@ -16,7 +16,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-006 `core/events.ts` typed progress event bus (S)
 - [x] T-007 `providers/jev.ts` System One client: noul/score/choice, batching, retry, timeout, rate limit, 3-level key resolution (M)
 - [x] T-008 `providers/llm.ts` OpenAI-compatible + Anthropic chat client with cost table (S)
-- [ ] T-009 Compatibility research into `docs/compat.md`: Harbor task and result format, verifiers v1 API, OTel GenAI attribute names, Docent license, Jev request limits (S)
+- [x] T-009 Compatibility research into `docs/compat.md`: Harbor task and result format, verifiers v1 API, OTel GenAI attribute names, Docent license, Jev request limits (S)
 
 ## P1 Targets (after P0)
 
@@ -118,3 +118,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-006 | #8 | HoneEvents: on/once/off/emit/iterate, listener errors become log events |
 | 2026-10-12 | T-007 | #9 | JevClient: noul/choice/score, 3-level key resolution, retry/backoff, timeout, semaphore |
 | 2026-10-12 | T-008 | #10 | chat(): openai + anthropic wire formats, retries, pricing table with unknownPricing flag |
+| 2026-10-12 | T-009 | #11 | docs/compat.md: ATIF-v1.7, verifiers v1 Taskset/Trace, OTel attribute table @6fd0d76, Docent Apache-2.0, Jev 400 questions ok, Inspect schema fixture |
