@@ -1,0 +1,26 @@
+{
+  "name": "hone-eval",
+  "version": "0.1.0-dev.0",
+  "description": "Evaluate. Correct. Sharpen. A terminal-first evaluation tool for RAG, agents, LLM QA and coding-agent harnesses.",
+  "license": "Apache-2.0",
+  "repository": { "type": "git", "url": "https://github.com/kyu1204/hone.git" },
+  "homepage": "https://github.com/kyu1204/hone",
+  "keywords": ["eval", "evaluation", "llm", "agents", "rag", "tui", "benchmark", "judge", "claude-code"],
+  "type": "module",
+  "bin": { "hone": "dist/cli.js" },
+  "main": "src/index.ts",
+  "files": ["dist", "docs", "skills", "README.md", "LICENSE", "NOTICE"],
+  "engines": { "bun": ">=1.3.14" },
+  "scripts": {
+    "build": "bun build src/cli.ts --target=bun --outfile=dist/cli.js && chmod +x dist/cli.js",
+    "test": "bun test",
+    "lint": "oxlint src",
+    "typecheck": "tsc --noEmit",
+    "check": "bun run lint && bun run typecheck && bun run test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "oxlint": "latest",
+    "typescript": "latest"
+  }
+}
