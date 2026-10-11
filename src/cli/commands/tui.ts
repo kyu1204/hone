@@ -32,11 +32,8 @@ export async function tuiCommand(argv: string[], io: CommandIo): Promise<number>
   const { App } = await import("../../tui/app");
   let fork: import("../../tui/state").ForkOptions | undefined;
   try {
-    const { loadCases, loadConfig } = await import("../../core/config");
-    const { createTargets } = await import("../../targets/index");
-    const { config } = await loadConfig(io.cwd);
-    const cases = await loadCases(config.cases, io.cwd);
-    fork = { targets: createTargets(config.targets), scorers: config.scorers, caseInputs: Object.fromEntries(cases.map((c) => [c.id, c.input])) };
+    const { loadForkDeps } = await import("../../correct/fork");
+    fork = await loadForkDeps(io.cwd);
   } catch {
     fork = undefined; // no config here: browsing works, forking is disabled
   }

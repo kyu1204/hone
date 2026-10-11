@@ -7,7 +7,7 @@ import { Store } from "../core/store";
 import type { ChatMessage, Trace, Trial } from "../core/types";
 import { createTargets } from "../targets/index";
 import type { FnContext } from "../targets/fn";
-import { forkTrial } from "./forkRunner";
+import { forkTrial, loadForkDeps } from "./fork";
 
 const base = valid as Trace;
 const dirs: string[] = [];
@@ -57,5 +57,15 @@ describe("forkTrial", () => {
     const forked = await forkTrial({ store, targets, scorers: [], caseInput: "q", original, step: 0, edited: { role: "user", content: "edited q" } });
     expect(forked.trace.output).toBe("replayed");
     expect(forked.flags).toContain(`forked-from:${original.id}`);
+  });
+
+  test("loadForkDeps builds targets, scorer specs and case inputs from the config", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hone-forkdeps-"));
+    dirs.push(dir);
+    fs.writeFileSync(path.join(dir, "hone.config.ts"), 'export default { targets: { t: { kind: "fn", fn: () => "x" } }, cases: [{ id: "c", input: "question" }], scorers: [{ name: "exact" }] };\n');
+    const deps = await loadForkDeps(dir);
+    expect(Object.keys(deps.targets)).toEqual(["t"]);
+    expect(deps.scorers).toEqual([{ name: "exact" }]);
+    expect(deps.caseInputs).toEqual({ c: "question" });
   });
 });
