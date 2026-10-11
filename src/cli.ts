@@ -7,6 +7,7 @@ import { clusterCommand } from "./cli/commands/cluster";
 import { compareCommand } from "./cli/commands/compare";
 import { diffCommand } from "./cli/commands/diff";
 import { explainCommand } from "./cli/commands/explain";
+import { forkCommand } from "./cli/commands/fork";
 import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
 import { powerCommand } from "./cli/commands/power";
@@ -32,6 +33,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   cluster: { run: clusterCommand, summary: "group the failed trials of a run into failure modes" },
   diff: { run: diffCommand, summary: "align two trajectories step by step and show where they diverge" },
   explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
+  fork: { run: forkCommand, summary: "re-run a trial from an edited message and compare the verdict" },
   init: { run: initCommand, summary: "detect the project and write hone.config.ts, example cases and keys" },
   matrix: { run: matrixCommand, summary: "per-target solve rate, cost, tokens, time and significance bands" },
 };
