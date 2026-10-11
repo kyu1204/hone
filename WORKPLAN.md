@@ -76,7 +76,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P6 Analysis (after P2 to P4)
 
 - [x] T-601 `analysis/cluster.ts` failure clustering (M)
-- [ ] T-602 `analysis/taxonomy.ts` taxonomy induction + Jev classification (L)
+- [x] T-602 `analysis/taxonomy.ts` taxonomy induction + Jev classification (L)
 - [ ] T-603 `analysis/diffTrace.ts` LCS alignment of tool-call signatures (S)
 - [ ] T-604 `analysis/calibrate.ts` fault injection per domain, detection rate, kappa (M)
 - [ ] T-605 `analysis/branchpoints.ts` fork candidate ranking (S)
@@ -160,3 +160,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-507 | #55 | widgets/chart.ts sparkline, braillePlot, bar, detectGraphics, kittyImageEscape + dependency-free PNG encoder and rasterScatter; charts screen (history, Pareto scatter, Wilson bars). Pixel rendering inside the OpenTUI layout deferred: escape builder exists, screen uses cells |
 | 2026-10-12 | T-508 | #56 | serve/ssh.ts: host key via ssh-keygen (OpenSSH format for ssh2), one TuiStore + React root per session, connection counting; hone serve ssh --port --host --run --read-only. P5 complete |
 | 2026-10-12 | T-601 | #58 | providers/embed.ts (OpenAI-compatible /embeddings or 512-dim hashed bag of words offline); analysis/cluster.ts summarise, k-means++ with cosine, TF-IDF top terms, chooseK; hone cluster writes analysis/clusters-<run>.json with provisional cluster-n codes |
+| 2026-10-12 | T-602 | #59 | analysis/taxonomy.ts: induceTaxonomy (one chat call per cluster, kebab codes, merge with existing by code or Jev noul >= 0.8), classify (one Jev choice per trial over codes + other), .hone/taxonomy.json; hone cluster --induce / --classify write real codes with classification counts |
