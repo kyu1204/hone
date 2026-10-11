@@ -59,6 +59,8 @@ describe("hone explain", () => {
     expect(o.out).toMatch(/c9/);
     expect(o.out).toMatch(/tool_calls|search\(/);
     expect(o.out).toMatch(/retrieval/);
+    expect(o.out).toMatch(/fork candidates: steps? \d/);
+    expect(o.out).toMatch(/last tool call before the final answer/);
     const j = io(dir);
     await explainCommand([trialId, "--json"], j);
     expect(JSON.parse(j.out)).toMatchObject({ id: trialId, pass: false });

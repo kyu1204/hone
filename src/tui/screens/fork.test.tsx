@@ -93,4 +93,33 @@ describe("fork screen", () => {
       setup.renderer.destroy();
     }
   });
+
+  test("marks the top branch points with ★ when a passing sibling exists", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "hone-forkstar-"));
+    dirs.push(root);
+    const store = new Store(root);
+    const run = store.createRun({ configHash: "h", targets: ["bad", "good"], caseIds: ["c"] });
+    const call = (name: string): ChatMessage => ({ role: "assistant", content: "", tool_calls: [{ id: `${name}0`, type: "function", function: { name, arguments: "{}" } }] });
+    const tool = (name: string, content: string): ChatMessage => ({ role: "tool", name, tool_call_id: `${name}0`, content });
+    const failed: ChatMessage[] = [{ role: "user", content: "fix" }, call("Bash"), tool("Bash", "2 failed"), { role: "assistant", content: "Fixed, done." }];
+    const passed: ChatMessage[] = [{ role: "user", content: "fix" }, call("Bash"), tool("Bash", "all passed"), { role: "assistant", content: "Fixed and verified." }];
+    store.saveTrial({ id: Store.trialId(run.id, "c", "bad", 0), runId: run.id, trace: { ...base, id: "f", caseId: "c", targetId: "bad", trial: 0, messages: failed }, scores: [], flags: [], pass: false, costUsd: 0 });
+    store.saveTrial({ id: Store.trialId(run.id, "c", "good", 0), runId: run.id, trace: { ...base, id: "p", caseId: "c", targetId: "good", trial: 0, messages: passed }, scores: [], flags: [], pass: true, costUsd: 0 });
+    store.finishRun(run.id, {});
+    store.close();
+    const s = createTuiStore({ root, readOnly: true });
+    stores.push(s);
+    s.enter();
+    s.setScreen("fork");
+    const setup = await testRender(<App store={s} onQuit={() => {}} />, { width: 110, height: 22 });
+    try {
+      await setup.renderOnce();
+      const frame = setup.captureCharFrame();
+      expect(frame).toMatch(/★\s+2\s+tool/);
+      expect(frame).toMatch(/★\s+3\s+assistant/);
+      expect(frame).not.toMatch(/★\s+0\s+user/);
+    } finally {
+      setup.renderer.destroy();
+    }
+  });
 });

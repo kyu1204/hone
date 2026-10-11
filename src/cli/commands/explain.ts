@@ -1,3 +1,4 @@
+import { pickSibling, rankBranchPoints, topSteps } from "../../analysis/branchpoints";
 import { Store } from "../../core/store";
 import type { ChatMessage, Span, Trial } from "../../core/types";
 import { ArgError, parseArgs } from "../args";
@@ -36,7 +37,15 @@ export function renderSpans(spans: Span[], width: number): string[] {
   return lines;
 }
 
-export function renderTrial(t: Trial, width = 100): string {
+export function renderBranchPoints(t: Trial, sibling?: Trial): string[] {
+  if (t.pass !== false) return [];
+  const ranked = rankBranchPoints(t, sibling);
+  const steps = topSteps(ranked, 3);
+  if (steps.length === 0) return [];
+  return ["", `fork candidates: step${steps.length > 1 ? "s" : ""} ${steps.join(", ")}`, ...steps.map((step) => `  ${String(step).padStart(3)}  ${ranked.find((r) => r.step === step)!.reasons.join("; ")}`)];
+}
+
+export function renderTrial(t: Trial, width = 100, sibling?: Trial): string {
   const verdict = t.pass === true ? "PASS" : t.pass === false ? "FAIL" : "UNDECIDED";
   const ms = Date.parse(t.trace.endedAt) - Date.parse(t.trace.startedAt);
   const lines = [
@@ -57,6 +66,7 @@ export function renderTrial(t: Trial, width = 100): string {
   }
   if (t.trace.spans.length) lines.push("", "spans:", ...renderSpans(t.trace.spans, width));
   if (t.trace.artifacts?.diff) lines.push("", "diff:", ...t.trace.artifacts.diff.split("\n").slice(0, 60).map((l) => `  ${l}`));
+  lines.push(...renderBranchPoints(t, sibling));
   return `${lines.join("\n")}\n`;
 }
 
@@ -85,7 +95,7 @@ export async function explainCommand(argv: string[], io: CommandIo): Promise<num
       return 2;
     }
     if (args.flags.json) io.stdout(`${JSON.stringify(trial, null, 2)}\n`);
-    else io.stdout(renderTrial(trial, args.numbers.width ?? 100));
+    else io.stdout(renderTrial(trial, args.numbers.width ?? 100, pickSibling(trial, store.queryTrials({ runId: trial.runId, caseId: trial.trace.caseId, pass: true }))));
     return 0;
   } finally {
     store.close();

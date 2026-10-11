@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { pickSibling, rankBranchPoints, topSteps } from "../../analysis/branchpoints";
 import type { ChatMessage } from "../../core/types";
 import { useTui } from "../app";
 import type { TuiStore } from "../state";
@@ -19,6 +20,7 @@ export function ForkScreen({ store }: { store: TuiStore }): ReactNode {
     );
   }
   const messages = trial.trace.messages;
+  const stars = new Set(trial.pass === false ? topSteps(rankBranchPoints(trial, pickSibling(trial, s.trials)), 3) : []);
   const current = s.forkEdit && s.forkStep < messages.length ? s.forkEdit : messages[s.forkStep];
   const result = s.forkResult;
   return (
@@ -34,7 +36,7 @@ export function ForkScreen({ store }: { store: TuiStore }): ReactNode {
           <scrollbox style={{ flexGrow: 1 }} focused={!s.inputActive}>
             {messages.map((m, i) => (
               <text key={i} fg={i === s.forkStep ? theme.accent : i < s.forkStep ? theme.muted : theme.fg}>
-                {(i === s.forkStep ? "▶ " : "  ") + String(i).padStart(2)} {m.role.padEnd(9)} {clip(body(m).replace(/\s+/g, " "), 40)}
+                {(i === s.forkStep ? "▶" : stars.has(i) ? "★" : " ") + " " + String(i).padStart(2)} {m.role.padEnd(9)} {clip(body(m).replace(/\s+/g, " "), 40)}
                 {m.tool_calls?.length ? ` → ${m.tool_calls.map((c) => c.function.name).join(",")}` : ""}
               </text>
             ))}
