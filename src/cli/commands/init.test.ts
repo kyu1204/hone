@@ -72,4 +72,28 @@ describe("hone init", () => {
     expect(fs.readFileSync(envFile, "utf8")).toContain("ANTHROPIC_API_KEY=sk-ant-test");
     expect((fs.statSync(envFile).mode & 0o777).toString(8)).toBe("600");
   });
+
+  test("--skills installs the hone skill for Claude Code (and Codex when .codex exists), never overwriting without --force", async () => {
+    const d = tmp();
+    const o = io(d);
+    expect(await initCommand(["--yes", "--no-keys", "--skills"], o)).toBe(0);
+    const file = path.join(d, ".claude", "skills", "hone", "SKILL.md");
+    const text = fs.readFileSync(file, "utf8");
+    expect(text).toMatch(/^---\nname: hone\n/);
+    expect(text).toContain("hone serve mcp");
+    expect(o.out).toMatch(/installed skill .*\.claude\/skills\/hone\/SKILL\.md/);
+    expect(fs.existsSync(path.join(d, ".codex"))).toBe(false);
+    fs.writeFileSync(file, "custom");
+    fs.mkdirSync(path.join(d, ".codex"));
+    const o2 = io(d);
+    expect(await initCommand(["--yes", "--no-keys", "--skills", "--force"], o2)).toBe(0);
+    expect(fs.readFileSync(file, "utf8")).not.toBe("custom");
+    expect(fs.existsSync(path.join(d, ".codex", "skills", "hone", "SKILL.md"))).toBe(true);
+    fs.writeFileSync(file, "custom");
+    const o3 = io(d);
+    expect(await initCommand(["--skills"], o3)).toBe(0);
+    expect(fs.readFileSync(file, "utf8")).toBe("custom");
+    expect(o3.out).toMatch(/kept existing/);
+    expect(fs.existsSync(path.join(d, "hone.config.ts"))).toBe(true);
+  });
 });
