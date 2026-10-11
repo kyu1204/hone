@@ -24,7 +24,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-102 `targets/fn.ts` TypeScript function target + `trace()` helper (S)
 - [x] T-103 `targets/python.ts` subprocess JSON-lines bridge + `hone_py` helper (M)
 - [x] T-104 `targets/process.ts` isolated workspace, agent presets, session log to messages, git diff capture, timeout (L)
-- [ ] T-105 `targets/mcp.ts` stdio MCP server target (M)
+- [x] T-105 `targets/mcp.ts` stdio MCP server target (M)
 - [ ] T-106 `targets/replay.ts` re-score existing traces (S)
 - [ ] T-107 `targets/docker.ts` Dockerfile or Harbor task directory (M)
 - [ ] T-108 `resume(prefix)` interface on fn/http/process targets (M)
@@ -123,3 +123,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-102 | #14 | fn target: FnContext span/message/usage recorder, TargetOutput merge, resume seeds prefix |
 | 2026-10-12 | T-103 | #15 | python target: long-lived `python -I hone_bridge.py` process, Context span/message/usage, restart on crash, bridge embedded as text import |
 | 2026-10-12 | T-104 | #17 | process target: copy/worktree/none isolation, git diff incl. untracked, timeout kill, presets claude-code/codex/opencode/aider/generic, NDJSON parsers |
+| 2026-10-12 | T-105 | #18 | mcp target: initialize handshake (2025-06-18), tools/call, structuredContent, isError, restart, version with serverInfo |
