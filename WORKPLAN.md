@@ -93,7 +93,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P8 Ecosystem (after P0, P2)
 
 - [x] T-801 Import Claude Code sessions as cases and traces (M)
-- [ ] T-802 Import Inspect, Docent, plugin-eval, Harbor, OTel (L)
+- [x] T-802 Import Inspect, Docent, plugin-eval, Harbor, OTel (L)
 - [ ] T-803 Export OTel GenAI, Docent, JUnit, HTML (M)
 - [ ] T-804 `skills/SKILL.md`, shipped `docs/`, init opt-in install (S)
 
@@ -171,3 +171,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-705 | #68 | serve/reward.ts: Bun.serve with GET /health, POST /score (messages or output + case -> reward/pass/scores, scorer exceptions -> 500), POST /batch (ordered, concurrency 4), 400 on bad bodies; hone serve reward --port --host --scorer (serve command split into ssh/reward modes with a non-blocking test hook) |
 | 2026-10-12 | T-706 | #69 | serve/mcp.ts: newline-delimited JSON-RPC 2.0 MCP server (initialize, ping, tools/list, tools/call; -32700/-32601/-32602; tool failures as isError) with tools hone_run, hone_list_runs, hone_matrix, hone_compare, hone_explain (+forkCandidates), hone_cluster, hone_fork, each delegating to the existing command with --json; serveStdio framing; hone serve mcp. P7 complete |
 | 2026-10-12 | T-801 | #71 | targets/parsers/claudeCode.ts: recordsToParsed shared by the stream parser and session import (human turns option, per-message usage, timestamps); io/import/claudeCode.ts parseSession (case from the first human prompt, trace with meta sessionId/cwd/gitBranch/version/model/turns, cost from cost-state, diff/files artifacts from Edit/Write inputs), importClaudeSessions (dir scan newest first, limit, since, skipped), defaultProjectDir; hone import claude-code [files] --project --limit --since --cases --json creates one run so sessions show in the matrix |
+| 2026-10-12 | T-802 | #72 | io/otelAttrs.ts (semconv names + commit); io/import/{common,inspect,docent,pluginEval,harbor,otel}.ts with hand-written fixtures under test/fixtures/import; inspect (tolerant JSON, C/I/P mapping, epoch -> trial), docent (AgentRun/array/agent_runs, metadata scores), plugin-eval (prompt + graders/*.md -> cases + scorer specs), harbor (results.json + ATIF + reward fallback, job dirs), otel (OTLP attrs, kinds by operation, evaluation events, usage); hone import <kind> <path> --target --cases --json one run per import |
