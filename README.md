@@ -90,6 +90,16 @@ export default defineConfig({
 });
 ```
 
+## Documentation
+
+- [`docs/cli.md`](./docs/cli.md): every command, generated from `--help`
+- [`docs/config.md`](./docs/config.md): `hone.config.ts`, targets, scorers, gates, ablations, evolve, optimize
+- [`docs/analysis.md`](./docs/analysis.md): clustering, taxonomy, trajectory diff, judge calibration, branch points
+- [`docs/correction.md`](./docs/correction.md): fork, evolve, optimize, ablate, bisect, compare, ci
+- [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
+- [`docs/formats.md`](./docs/formats.md) and [`docs/compat.md`](./docs/compat.md): import/export formats with sources
+- [`skills/hone/SKILL.md`](./skills/hone/SKILL.md): the skill `hone init --skills` installs for Claude Code and Codex
+
 ## How it compares
 
 | | hone | promptfoo | deepeval | inspect_ai | Harbor |
