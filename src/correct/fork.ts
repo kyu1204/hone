@@ -1,10 +1,23 @@
 // Re-run a target from an edited message prefix and store the result as a forked trial.
-// T-701 (correct/fork.ts) will absorb this; the TUI calls this function until then.
-import type { ScorerSpec } from "../core/config";
+import { loadCases, loadConfig, type ScorerSpec } from "../core/config";
 import { Store } from "../core/store";
 import type { ChatMessage, Score, Trial, TrialFlag } from "../core/types";
 import { createScorers, runScorer } from "../scorers/index";
+import { createTargets } from "../targets/index";
 import { type RunContext, type Target, toTrace } from "../targets/target";
+
+export interface ForkDeps {
+  targets: Record<string, Target>;
+  scorers: ScorerSpec[];
+  caseInputs: Record<string, unknown>;
+}
+
+/** Targets, scorer specs and case inputs from hone.config.ts: what every fork caller needs. */
+export async function loadForkDeps(cwd: string): Promise<ForkDeps> {
+  const { config } = await loadConfig(cwd);
+  const cases = await loadCases(config.cases, cwd);
+  return { targets: createTargets(config.targets), scorers: config.scorers, caseInputs: Object.fromEntries(cases.map((c) => [c.id, c.input])) };
+}
 
 export interface ForkRequest {
   store: Store;

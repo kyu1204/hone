@@ -5,7 +5,7 @@ import { Store } from "../core/store";
 import type { ChatMessage, Run, Trial, Verdict } from "../core/types";
 import { verdictFor } from "../stats/passk";
 import type { Target } from "../targets/target";
-import { forkTrial } from "./forkRunner";
+import { forkTrial } from "../correct/fork";
 
 export type Screen = "matrix" | "trace" | "diff" | "clusters" | "calibrate" | "candidates" | "fork" | "charts";
 export const SCREENS: Screen[] = ["matrix", "trace", "diff", "clusters", "calibrate", "candidates", "fork", "charts"];
