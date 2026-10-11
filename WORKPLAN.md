@@ -87,7 +87,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-702 `correct/evolve.ts` GEPA-lite (L)
 - [x] T-703 `correct/optimize.ts` bandit allocation + paired verdict (M)
 - [x] T-704 `io/export/rollouts.ts` (S)
-- [ ] T-705 `serve/reward.ts` HTTP reward server (S)
+- [x] T-705 `serve/reward.ts` HTTP reward server (S)
 - [ ] T-706 `serve/mcp.ts` stdio MCP server (M)
 
 ## P8 Ecosystem (after P0, P2)
@@ -168,3 +168,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-702 | #65 | config.evolve { seed, apply }; correct/evolve.ts reflect (one chat call per candidate, JSON proposal), minibatch = parent failures + n passes with rejection, full run, Pareto front over pass@1 x cost, paired verdict (beats baseline only when p < alpha), .hone/evolve/<id>.json + texts; runConfig exported from ablation with trials and caseIds; hone evolve --budget --minibatch --trials --max-cost --alpha --no-cache --json |
 | 2026-10-12 | T-703 | #66 | config.optimize named candidates; correct/optimize.ts: one run + executor per arm, Thompson rounds (allocate) on least-observed cells, stop on budget or P(best) >= confidence with minPerArm, verification top-up so baseline and the leader cover every case, paired verdict, .hone/optimize/<id>.json; hone optimize --budget --batch --confidence --alpha --min-per-arm --seed --no-cache --json |
 | 2026-10-12 | T-704 | #67 | io/export/rollouts.ts: splitPrompt (prompt up to the last user turn before the first assistant turn), toRollout (trl prompt/completion or openai messages, reward = verdict / mean-score / one scorer, info with ids, scores, flags, cost, injectedFault), writeRollouts JSONL; hone export rollouts --run --out --pass-only --reward --format (other kinds reserved for T-803) |
+| 2026-10-12 | T-705 | #68 | serve/reward.ts: Bun.serve with GET /health, POST /score (messages or output + case -> reward/pass/scores, scorer exceptions -> 500), POST /batch (ordered, concurrency 4), 400 on bad bodies; hone serve reward --port --host --scorer (serve command split into ssh/reward modes with a non-blocking test hook) |
