@@ -1,0 +1,123 @@
+import { afterAll, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { createTarget } from "./index";
+import { parseClaudeStream } from "./parsers/claudeCode";
+import { parseCodexStream } from "./parsers/codex";
+import { renderPrefix } from "./process";
+import type { RunContext } from "./target";
+
+const ctx: RunContext = { runId: "r", caseId: "c1", trial: 0 };
+const fixtures = new URL("../../test/fixtures/agents/", import.meta.url).pathname;
+const dirs: string[] = [];
+function workspace(): string {
+  const d = fs.mkdtempSync(path.join(os.tmpdir(), "hone-ws-"));
+  fs.writeFileSync(path.join(d, "README.md"), "# demo\n");
+  fs.mkdirSync(path.join(d, "node_modules", "x"), { recursive: true });
+  fs.writeFileSync(path.join(d, "node_modules", "x", "big.js"), "ignored");
+  dirs.push(d);
+  return d;
+}
+afterAll(() => {
+  for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });
+});
+
+const fakeAgent = ["bun", path.join(fixtures, "fake-agent.ts")];
+
+describe("process target (generic)", () => {
+  test("runs in an isolated copy, captures stdout JSON, diff, spans and leaves the source untouched", async () => {
+    const ws = workspace();
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, command: [...fakeAgent, "{prompt}"] });
+    const out = await t.run("add a greeting", ctx);
+    expect(out.error).toBeUndefined();
+    expect(out.output).toBe("done: add a greeting");
+    expect(out.messages?.at(-1)).toMatchObject({ role: "assistant", content: "done: add a greeting" });
+    expect(out.usage).toEqual({ inputTokens: 10, outputTokens: 4, costUsd: 0.002 });
+    expect(out.artifacts?.diff).toContain("+hello");
+    expect(out.artifacts?.diff).toContain("greeting.txt");
+    expect(out.artifacts?.stdout).toContain("done");
+    expect(out.spans?.[0]?.kind).toBe("agent");
+    expect(fs.existsSync(path.join(ws, "greeting.txt"))).toBe(false);
+    expect(fs.existsSync(path.join(ws, "README.md"))).toBe(true);
+    await t.close?.();
+  });
+
+  test("plain stdout becomes the output when it is not JSON", async () => {
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["echo", "plain {prompt}"] });
+    const out = await t.run("hi", ctx);
+    expect(out.output).toBe("plain hi");
+    expect(out.artifacts?.diff).toBe("");
+  });
+
+  test("a timeout kills the process and reports error=timeout", async () => {
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["sleep", "5"], timeoutMs: 100 });
+    const out = await t.run("x", ctx);
+    expect(out.error).toBe("timeout");
+  });
+
+  test("a non-zero exit is reported with stderr", async () => {
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["bash", "-c", "echo oops >&2; exit 3"] });
+    const out = await t.run("x", ctx);
+    expect(out.error).toMatch(/exit code 3/);
+    expect(out.artifacts?.stderr).toContain("oops");
+  });
+
+  test("isolate none runs in place inside a git repo and refuses without one", async () => {
+    const ws = workspace();
+    const noGit = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, isolate: "none", command: ["echo", "x"] });
+    expect((await noGit.run("x", ctx)).error).toMatch(/git repository/);
+    Bun.spawnSync(["git", "init", "-q"], { cwd: ws });
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, isolate: "none", command: ["bash", "-c", "echo x > inplace.txt; echo ok"] });
+    const out = await t.run("x", ctx);
+    expect(fs.existsSync(path.join(ws, "inplace.txt"))).toBe(true);
+    expect(out.artifacts?.diff).toContain("inplace.txt");
+  });
+
+  test("resume renders the prefix into the prompt", async () => {
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["bash", "-c", 'printf "%s" "$1"', "_", "{prompt}"] });
+    const out = await t.resume!([{ role: "user", content: "earlier question" }, { role: "assistant", content: "earlier answer" }], "now do this", ctx);
+    expect(out.output).toContain("### user\nearlier question");
+    expect(out.output).toContain("### assistant\nearlier answer");
+    expect(out.output).toContain("now do this");
+    expect(out.meta?.resumeMode).toBe("rendered-prefix");
+    expect(renderPrefix([{ role: "tool", tool_call_id: "t1", content: "result", name: "Read" }])).toContain("### tool Read");
+  });
+
+  test("version follows agent, command and model", async () => {
+    const ws = workspace();
+    const a = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, command: ["echo", "a"] });
+    const b = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, command: ["echo", "b"] });
+    expect(await a.version()).not.toBe(await b.version());
+    expect(await a.version()).toBe(await createTarget("agent", { kind: "process", agent: "generic", workspace: ws, command: ["echo", "a"] }).version());
+  });
+});
+
+describe("claude-code stream-json parser", () => {
+  test("maps assistant tool_use and user tool_result blocks, output and usage from the result record", () => {
+    const text = fs.readFileSync(path.join(fixtures, "claude-stream.jsonl"), "utf8");
+    const parsed = parseClaudeStream(text);
+    expect(parsed.output).toBe("Created hello.txt with the greeting.");
+    const roles = parsed.messages.map((m) => m.role);
+    expect(roles).toEqual(["system", "assistant", "tool", "assistant"]);
+    const call = parsed.messages[1]?.tool_calls?.[0];
+    expect(call).toMatchObject({ id: "toolu_1", type: "function", function: { name: "Write" } });
+    expect(JSON.parse(call!.function.arguments)).toEqual({ file_path: "/app/hello.txt", content: "hi" });
+    expect(parsed.messages[2]).toMatchObject({ role: "tool", tool_call_id: "toolu_1" });
+    expect(parsed.usage).toEqual({ inputTokens: 1200, outputTokens: 80, costUsd: 0.0123 });
+    expect(parsed.spans.filter((s) => s.kind === "tool")).toHaveLength(1);
+    expect(parsed.spans[0]?.name).toBe("Write");
+    expect(parsed.meta.model).toBe("claude-opus-5-5");
+  });
+});
+
+describe("codex exec --json parser", () => {
+  test("maps agent messages and command executions", () => {
+    const text = fs.readFileSync(path.join(fixtures, "codex-stream.jsonl"), "utf8");
+    const parsed = parseCodexStream(text);
+    expect(parsed.output).toBe("All done.");
+    expect(parsed.messages.map((m) => m.role)).toEqual(["assistant", "tool", "assistant"]);
+    expect(parsed.messages[0]?.tool_calls?.[0]?.function.name).toBe("shell");
+    expect(parsed.usage).toEqual({ inputTokens: 500, outputTokens: 40, costUsd: 0 });
+  });
+});
