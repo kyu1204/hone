@@ -41,6 +41,14 @@ export function parseNdjson(text: string): Record<string, unknown>[] {
 }
 
 export function parseClaudeStream(text: string): ParsedStream {
+  return recordsToParsed(parseNdjson(text));
+}
+
+/**
+ * Convert stream-json or session records (`type` user/assistant/system/result) to messages, spans and usage.
+ * `humanTurns` also keeps user text as `user` messages (session import); the stream parser gives the prompt itself.
+ */
+export function recordsToParsed(records: Record<string, unknown>[], opts: { humanTurns?: boolean } = {}): ParsedStream {
   const messages: ChatMessage[] = [];
   const spans: Span[] = [];
   const meta: Record<string, unknown> = {};
@@ -49,8 +57,8 @@ export function parseClaudeStream(text: string): ParsedStream {
   const openTools = new Map<string, Span>();
   let seq = 0;
 
-  for (const rec of parseNdjson(text)) {
-    const now = new Date().toISOString();
+  for (const rec of records) {
+    const now = typeof rec.timestamp === "string" && !Number.isNaN(Date.parse(rec.timestamp)) ? rec.timestamp : new Date().toISOString();
     if (rec.type === "system") {
       if (typeof rec.model === "string") meta.model = rec.model;
       if (typeof rec.session_id === "string") meta.sessionId = rec.session_id;
@@ -73,7 +81,17 @@ export function parseClaudeStream(text: string): ParsedStream {
         const m: ChatMessage = { role: "assistant", content: text };
         if (toolCalls.length) m.tool_calls = toolCalls;
         messages.push(m);
+        // per-message usage (sessions); a trailing `result` record overrides with the run total
+        const u = (msg as { usage?: { input_tokens?: number; output_tokens?: number } } | undefined)?.usage;
+        if (typeof u?.input_tokens === "number") usage.inputTokens = (usage.inputTokens ?? 0) + u.input_tokens;
+        if (typeof u?.output_tokens === "number") usage.outputTokens = (usage.outputTokens ?? 0) + u.output_tokens;
+        const model = (msg as { model?: unknown } | undefined)?.model;
+        if (typeof model === "string" && meta.model === undefined) meta.model = model;
       } else {
+        if (opts.humanTurns && !rec.isMeta && !rec.isSidechain) {
+          const text = blocks.filter((b) => b.type === "text").map((b) => b.text ?? "").join("\n").trim();
+          if (text) messages.push({ role: "user", content: text });
+        }
         for (const b of blocks) {
           if (b.type !== "tool_result") continue;
           const content = blockText(b.content);
