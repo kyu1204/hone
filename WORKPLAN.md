@@ -42,7 +42,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P3 Stats (after P0)
 
 - [x] T-301 Wilson and bootstrap intervals, pass@k and pass^k unbiased estimators (S)
-- [ ] T-302 Paired t, exact McNemar, CR1 clustered SE + ICC (M)
+- [x] T-302 Paired t, exact McNemar, CR1 clustered SE + ICC (M)
 - [ ] T-303 Holm-Bonferroni indistinguishable groups (S)
 - [ ] T-304 Power analysis (S)
 - [ ] T-305 Sequential stopping on interval width (S)
@@ -135,3 +135,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-206 | #28 | llm.rubric (dimensions, scale, unknown verdict, one JSON repair retry, fence stripping), llm.pairwise (swap orders, disagreement = tie) |
 | 2026-10-12 | T-207 | #29 | cachedScorer: key = spec + cacheKeyExtra + case(id, input, expected, rubric) + trace(output, messages, spans sans timestamps, artifacts, error); hits cost 0 and are marked. P2 complete |
 | 2026-10-12 | T-301 | #31 | dist (lgamma, inc. beta/gamma, AS241 quantile, t p/quantile), wilsonCi, meanCiClt, bootstrapCi (seeded), passAtK/passHatK, verdictFor; vectors match errorbars to 1e-9 |
+| 2026-10-12 | T-302 | #32 | pairedDifference (t, p, CI, corr, variance reduction), mcnemarExact, clusterRobustSe/ICC/designEffect/withinBetween, compareTargets composition |
