@@ -1,10 +1,45 @@
 #!/usr/bin/env bun
+import { type CommandIo, runCommand } from "./cli/commands/run";
 import { VERSION } from "./index";
 
-const args = process.argv.slice(2);
+type Command = (argv: string[], io: CommandIo) => Promise<number>;
 
-if (args.includes("--version") || args.includes("-v")) {
-  console.log(`hone ${VERSION}`);
-} else {
-  console.log(`hone ${VERSION}  usage: hone [--version]  (commands arrive with later work orders)`);
+const COMMANDS: Record<string, { run: Command; summary: string }> = {
+  run: { run: runCommand, summary: "run every case against every target and summarise" },
+};
+
+export function usage(): string {
+  const width = Math.max(...Object.keys(COMMANDS).map((c) => c.length)) + 2;
+  return `hone ${VERSION}\n\nusage: hone <command> [options]\n\ncommands:\n${Object.entries(COMMANDS)
+    .map(([name, c]) => `  ${name.padEnd(width)}${c.summary}`)
+    .join("\n")}\n\nhone <command> --help for options.\n`;
+}
+
+export async function main(argv: string[]): Promise<number> {
+  const io: CommandIo = { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s), cwd: process.cwd(), env: process.env };
+  const [name, ...rest] = argv;
+  if (!name || name === "--help" || name === "-h") {
+    io.stdout(usage());
+    return 0;
+  }
+  if (name === "--version" || name === "-v") {
+    io.stdout(`hone ${VERSION}\n`);
+    return 0;
+  }
+  const cmd = COMMANDS[name];
+  if (!cmd) {
+    io.stderr(`unknown command "${name}"\n\n${usage()}`);
+    return 2;
+  }
+  return cmd.run(rest, io);
+}
+
+if (import.meta.main) {
+  main(process.argv.slice(2)).then(
+    (code) => process.exit(code),
+    (e) => {
+      process.stderr.write(`${e instanceof Error ? (e.stack ?? e.message) : String(e)}\n`);
+      process.exit(2);
+    },
+  );
 }

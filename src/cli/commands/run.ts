@@ -1,0 +1,197 @@
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { Cache } from "../../core/cache";
+import { ConfigNotFound, type HoneConfig, loadCases, loadConfig } from "../../core/config";
+import { HoneEvents } from "../../core/events";
+import { createExecutor } from "../../core/executor";
+import { buildPlan, type Plan, type PlanFilter } from "../../core/plan";
+import { type RunSummary, runPlan } from "../../core/scheduler";
+import { Store } from "../../core/store";
+import type { Trial, Verdict } from "../../core/types";
+import { createScorers } from "../../scorers/index";
+import { createTargets } from "../../targets/index";
+import { ArgError, parseArgs, usageLine } from "../args";
+
+export interface CommandIo {
+  stdout: (s: string) => void;
+  stderr: (s: string) => void;
+  cwd: string;
+  env: Record<string, string | undefined>;
+}
+
+export const RUN_SPEC = {
+  flags: ["adaptive", "cache", "quiet"],
+  strings: ["target", "case", "tag", "json"],
+  numbers: ["trials", "ci-width", "max-trials", "concurrency", "max-cost"],
+  repeatable: ["target", "case", "tag"],
+  optionalValue: ["json"],
+} as const;
+
+const RUN_HELP: Record<string, string> = {
+  adaptive: "keep sampling cells until their confidence interval is narrow",
+  cache: "use the content-addressed cache (default on; --no-cache to disable)",
+  quiet: "no per-trial progress on stderr",
+  target: "only this target id (repeatable, globs ok)",
+  case: "only this case id (repeatable, globs ok)",
+  tag: "only cases with this tag (repeatable)",
+  json: "print the result document instead of the table (or write it to a path)",
+  trials: "trials per case x target (default from config, else 3)",
+  "ci-width": "adaptive: stop a cell when its Wilson interval is narrower than this",
+  "max-trials": "adaptive: cap per cell",
+  concurrency: "parallel trials",
+  "max-cost": "abort when accumulated cost (USD) exceeds this",
+};
+
+export function runUsage(): string {
+  return `usage: hone run [options]\n\nRun every case against every target, score, and summarise.\n\n${usageLine(RUN_SPEC, RUN_HELP)}\n`;
+}
+
+export interface GateResult {
+  name: string;
+  value: number;
+  threshold: number;
+  pass: boolean;
+}
+
+export function evaluateGates(config: HoneConfig, summary: RunSummary): GateResult[] {
+  const g = config.gates ?? {};
+  const out: GateResult[] = [];
+  if (g.passAt1) out.push({ name: "passAt1", value: summary.totals.passAt1, threshold: g.passAt1.min, pass: summary.totals.passAt1 >= g.passAt1.min });
+  if (g.passHatK) {
+    const k = g.passHatK.k;
+    const vals = summary.cells.map((c) => c.passHatK[k]).filter((v): v is number => v !== undefined);
+    const value = vals.length ? vals.reduce((a, b) => a + b, 0) / vals.length : 0;
+    out.push({ name: `passHatK[${k}]`, value, threshold: g.passHatK.min, pass: value >= g.passHatK.min });
+  }
+  if (g.costUsd) out.push({ name: "costUsd", value: summary.totals.costUsd, threshold: g.costUsd.max, pass: summary.totals.costUsd <= g.costUsd.max });
+  return out;
+}
+
+const dots = (trials: Trial[]): string => {
+  const shown = trials.slice(0, 5).map((t) => (t.pass === true ? "●" : "○")).join("");
+  return trials.length > 5 ? `${shown}+` : shown;
+};
+
+export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], targetIds: string[]): string {
+  const caseIds = [...new Set(plan.cells.map((c) => c.caseId))];
+  const byCell = new Map<string, Trial[]>();
+  for (const t of trials) {
+    const key = `${t.trace.caseId}\u0000${t.trace.targetId}`;
+    (byCell.get(key) ?? byCell.set(key, []).get(key)!).push(t);
+  }
+  const verdict = (caseId: string, targetId: string): Verdict | undefined => summary.cells.find((v) => v.caseId === caseId && v.targetId === targetId);
+  const caseWidth = Math.max(12, ...caseIds.map((c) => c.length)) + 2;
+  const colWidth = 14;
+  const lines: string[] = [];
+  lines.push(`${"case \\ target".padEnd(caseWidth)}${targetIds.map((t) => t.slice(0, colWidth - 1).padEnd(colWidth)).join("")}`);
+  lines.push(`${"-".repeat(caseWidth - 1)} ${targetIds.map(() => `${"-".repeat(colWidth - 1)} `).join("")}`);
+  for (const c of caseIds) {
+    const cells = targetIds.map((t) => {
+      const v = verdict(c, t);
+      if (!v || v.n === 0) return "·".padEnd(colWidth);
+      const flagged = (byCell.get(`${c}\u0000${t}`) ?? []).some((x) => x.flags.includes("reward-hack")) ? " ⚑" : "";
+      return `${dots(byCell.get(`${c}\u0000${t}`) ?? [])} ${v.passAt1.toFixed(2)}${flagged}`.padEnd(colWidth);
+    });
+    lines.push(`${c.slice(0, caseWidth - 2).padEnd(caseWidth)}${cells.join("")}`);
+  }
+  const k3 = summary.cells.map((c) => c.passHatK[3]).filter((v): v is number => v !== undefined);
+  const passHat3 = k3.length ? (k3.reduce((a, b) => a + b, 0) / k3.length).toFixed(2) : "n/a";
+  const tokens = trials.reduce((a, t) => a + t.trace.usage.inputTokens + t.trace.usage.outputTokens, 0);
+  const perSolve = summary.totals.passed ? Math.round(tokens / summary.totals.passed).toLocaleString("en-US") : "n/a";
+  const flagged = Object.entries(summary.totals.flagged)
+    .filter(([f]) => f !== "cached")
+    .map(([f, n]) => `${n} ${f}`)
+    .join(", ");
+  lines.push("");
+  lines.push(`pass@1 ${summary.totals.passAt1.toFixed(2)}   pass^3 ${passHat3}   trials ${summary.totals.trials} (${summary.totals.cached} cached)   cost $${summary.totals.costUsd.toFixed(4)}   tokens/solve ${perSolve}${flagged ? `   ${flagged}` : ""}`);
+  return `${lines.join("\n")}\n`;
+}
+
+export async function runCommand(argv: string[], io: CommandIo): Promise<number> {
+  let args: ReturnType<typeof parseArgs>;
+  try {
+    args = parseArgs(argv, RUN_SPEC);
+  } catch (e) {
+    io.stderr(`${e instanceof ArgError ? e.message : String(e)}\n${runUsage()}`);
+    return 2;
+  }
+  if (args.help) {
+    io.stdout(runUsage());
+    return 0;
+  }
+  let loaded: Awaited<ReturnType<typeof loadConfig>>;
+  try {
+    loaded = await loadConfig(io.cwd);
+  } catch (e) {
+    io.stderr(`${e instanceof ConfigNotFound ? e.message : `config error: ${e instanceof Error ? e.message : String(e)}`}\n`);
+    return 2;
+  }
+  const config = loaded.config;
+  const root = path.resolve(io.cwd, config.cacheDir ?? ".hone");
+  let cases;
+  let targets;
+  let scorers;
+  try {
+    cases = await loadCases(config.cases, io.cwd);
+    targets = createTargets(config.targets);
+    scorers = createScorers(config.scorers);
+  } catch (e) {
+    io.stderr(`config error: ${e instanceof Error ? e.message : String(e)}\n`);
+    return 2;
+  }
+
+  const filter: PlanFilter = {};
+  if (args.values.target) filter.targets = args.values.target;
+  if (args.values.case) filter.cases = args.values.case;
+  if (args.values.tag) filter.tags = args.values.tag;
+  const effective: HoneConfig = { ...config };
+  if (args.numbers.trials !== undefined) effective.trials = args.numbers.trials;
+  if (args.numbers.concurrency !== undefined) effective.concurrency = args.numbers.concurrency;
+  if (args.flags.adaptive) effective.adaptive = { ciWidth: args.numbers["ci-width"] ?? config.adaptive?.ciWidth ?? 0.2, maxTrials: args.numbers["max-trials"] ?? config.adaptive?.maxTrials ?? 12 };
+  let plan: Plan;
+  try {
+    plan = buildPlan({ config: effective, cases, targets: Object.keys(targets), filter });
+  } catch (e) {
+    io.stderr(`${e instanceof Error ? e.message : String(e)}\n`);
+    return 2;
+  }
+
+  const store = new Store(root);
+  const cache = new Cache(path.join(root, "cache"));
+  const events = new HoneEvents();
+  const run = store.createRun({ configHash: loaded.hash, targets: Object.keys(targets), caseIds: cases.map((c) => c.id) });
+  const ctrl = new AbortController();
+  const trials: Trial[] = [];
+  let cost = 0;
+  events.on("trial:done", ({ trial, cached }) => {
+    trials.push(trial);
+    cost += trial.costUsd;
+    if (args.numbers["max-cost"] !== undefined && cost > args.numbers["max-cost"]) ctrl.abort();
+    if (!args.flags.quiet) io.stderr(`${trial.pass === true ? "✓" : trial.pass === false ? "✗" : "·"} ${trial.trace.caseId} ${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}\n`);
+  });
+  const execute = createExecutor({ targets, scorers, scorerSpecs: config.scorers, cases, cache, store, events, gates: config.gates, runId: run.id, useCache: args.flags.cache !== false, signal: ctrl.signal });
+  const summary = await runPlan(plan, { runId: run.id, execute, events, signal: ctrl.signal });
+  store.finishRun(run.id, summary as unknown as Record<string, unknown>);
+  for (const t of Object.values(targets)) await t.close?.();
+  store.close();
+
+  const gates = evaluateGates(config, summary);
+  const targetIds = [...new Set(plan.cells.map((c) => c.targetId))];
+  if (args.values.json) {
+    const doc = JSON.stringify({ schemaVersion: 1, runId: run.id, summary, cells: summary.cells, gates, trialIds: trials.map((t) => t.id) }, null, 2);
+    const target = args.values.json[0];
+    if (target) fs.writeFileSync(path.resolve(io.cwd, target), doc);
+    else io.stdout(`${doc}\n`);
+  } else io.stdout(renderMatrix(plan, summary, trials, targetIds));
+
+  if (summary.aborted) {
+    io.stderr(`aborted: cost $${cost.toFixed(4)} exceeded --max-cost\n`);
+    return 3;
+  }
+  const failed = gates.find((g) => !g.pass);
+  if (failed) {
+    io.stderr(`gate ${failed.name} failed: ${failed.value.toFixed(3)} vs threshold ${failed.threshold}\n`);
+    return 1;
+  }
+  return 0;
+}
