@@ -9,6 +9,7 @@ import { matrixCommand } from "./cli/commands/matrix";
 import { powerCommand } from "./cli/commands/power";
 import { reportCommand } from "./cli/commands/report";
 import { type CommandIo, runCommand } from "./cli/commands/run";
+import { tuiCommand } from "./cli/commands/tui";
 import { VERSION } from "./index";
 
 type Command = (argv: string[], io: CommandIo) => Promise<number>;
@@ -17,6 +18,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   power: { run: powerCommand, summary: "cases needed for an effect, or the smallest detectable effect" },
   report: { run: reportCommand, summary: "write a self-contained HTML report for a run" },
   run: { run: runCommand, summary: "run every case against every target and summarise" },
+  tui: { run: tuiCommand, summary: "open the dashboard over the latest run (plain `hone` in a terminal)" },
   ci: { run: ciCommand, summary: "run and gate per axis for CI; writes JUnit and a PR comment" },
   compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
   ablate: { run: ablateCommand, summary: "measure what each config component contributes" },
@@ -36,6 +38,7 @@ export function usage(): string {
 export async function main(argv: string[]): Promise<number> {
   const io: CommandIo = { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s), cwd: process.cwd(), env: process.env };
   const [name, ...rest] = argv;
+  if (!name && process.stdout.isTTY && process.stdin.isTTY) return tuiCommand([], io);
   if (!name || name === "--help" || name === "-h") {
     io.stdout(usage());
     return 0;
