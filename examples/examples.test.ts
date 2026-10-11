@@ -1,0 +1,59 @@
+// Every example directory must be green under `hone ci`; this runs them the way CI does.
+import { afterEach, describe, expect, test } from "bun:test";
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { ciCommand } from "../src/cli/commands/ci";
+import type { CommandIo } from "../src/cli/commands/run";
+import { startRagServer } from "./rag-python/start";
+
+const here = new URL(".", import.meta.url).pathname;
+const cleanups: (() => void | Promise<void>)[] = [];
+afterEach(async () => {
+  for (const c of cleanups.splice(0)) await c();
+});
+function io(cwd: string, env: Record<string, string> = {}): CommandIo & { out: string; err: string } {
+  const o = { out: "", err: "", cwd, env: { ...process.env, ...env } as Record<string, string | undefined>, stdout: (s: string) => void (o.out += s), stderr: (s: string) => void (o.err += s) };
+  return o;
+}
+const examples = fs.readdirSync(here).filter((f) => fs.existsSync(path.join(here, f, "hone.config.ts"))).sort();
+
+describe("examples", () => {
+  test("there are five, each with a README and cases", () => {
+    expect(examples).toEqual(["agent-claude-code", "harness-ablation", "mcp-server", "qa-fn", "rag-python"]);
+    for (const e of examples) {
+      expect(fs.existsSync(path.join(here, e, "README.md"))).toBe(true);
+      expect(fs.readdirSync(path.join(here, e, "evals")).length).toBeGreaterThan(0);
+    }
+  });
+
+  for (const e of examples) {
+    test(`${e}: hone ci is green`, async () => {
+      const cwd = path.join(here, e);
+      const env: Record<string, string> = { CI: "1" };
+      const prevCi = process.env.CI;
+      process.env.CI = "1"; // configs read process.env (agent-claude-code picks replay)
+      cleanups.push(() => void (prevCi === undefined ? delete process.env.CI : (process.env.CI = prevCi)));
+      if (e === "rag-python") {
+        const server = await startRagServer(cwd);
+        cleanups.push(server.stop);
+        env.RAG_URL = server.url;
+        process.env.RAG_URL = server.url; // the config reads process.env at import time
+        cleanups.push(() => void delete process.env.RAG_URL);
+      }
+      cleanups.push(() => fs.rmSync(path.join(cwd, ".hone"), { recursive: true, force: true }));
+      const o = io(cwd, env);
+      const rc = await ciCommand(["--quiet", "--no-cache"], o);
+      expect(`${o.err}\n${o.out}`).not.toMatch(/config error|unknown/);
+      expect(rc).toBe(0);
+      expect(o.out).toMatch(/passAt1/);
+    }, 120_000);
+  }
+
+  test("agent-claude-code falls back to replay traces when claude is not installed", async () => {
+    const cwd = path.join(here, "agent-claude-code");
+    const { default: config } = (await import(path.join(cwd, "hone.config.ts"))) as { default: { targets: Record<string, { kind: string }> } };
+    const kind = config.targets.cc!.kind;
+    expect(["replay", "process"]).toContain(kind);
+    if (!Bun.which("claude") || process.env.CI) expect(kind).toBe("replay");
+  });
+});

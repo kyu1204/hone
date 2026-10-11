@@ -1,0 +1,9 @@
+- id: france
+  input: France
+  expected: Paris
+- id: japan
+  input: japan
+  expected: Tokyo
+- id: kenya
+  input: Kenya
+  expected: Nairobi

@@ -1,0 +1,12 @@
+- id: plain
+  input: 6 * 7
+  expected: "42"
+- id: decimal
+  input: 2.5 * 3
+  expected: "8"
+- id: units
+  input: 3 km * 4
+  expected: "12"
+- id: negative
+  input: -2 * 8
+  expected: "-16"

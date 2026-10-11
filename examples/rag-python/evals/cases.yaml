@@ -1,0 +1,9 @@
+- id: policy-start
+  input: When does the new parking policy start?
+  expected: { answer: "2026-07-01", chunks: [c1] }
+- id: visitor-fee
+  input: How much does a visitor permit cost?
+  expected: { answer: "10 EUR", chunks: [c2] }
+- id: recycling
+  input: When is the recycling schedule changing?
+  expected: { answer: "Tuesdays", chunks: [c3] }

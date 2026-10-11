@@ -1,0 +1,4 @@
+- id: fix-slug
+  input: The slug test fails. Fix slugify so it collapses separators and trims leading/trailing dashes. Do not change the test (src/slug.check.ts).
+- id: add-flag
+  input: Add an optional second parameter `separator` to slugify (default '-') and keep the tests passing.

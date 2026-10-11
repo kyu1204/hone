@@ -1,0 +1,15 @@
+- id: capital
+  input: What is the capital of France?
+  expected: Paris
+- id: planet
+  input: Which is the largest planet?
+  expected: Jupiter
+- id: boiling
+  input: What is the boiling point of water in celsius?
+  expected: "100"
+- id: sum
+  input: 12 + 30
+  expected: "42"
+- id: product
+  input: 6 * 7
+  expected: "42"
