@@ -15,10 +15,9 @@
   <a href="https://github.com/kyu1204/hone/actions"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/kyu1204/hone/ci.yml?style=flat-square&label=ci"></a>
   <a href="https://www.npmjs.com/package/hone-eval"><img alt="npm" src="https://img.shields.io/npm/v/hone-eval?style=flat-square&color=2c6e9e"></a>
   <a href="./LICENSE"><img alt="Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2c6e9e?style=flat-square"></a>
-  <img alt="status" src="https://img.shields.io/badge/status-v0.1.0%20in%20progress-a86a12?style=flat-square">
 </p>
 
-> **Status:** v0.1.0 is being built in public. Nothing is published yet. The plan is in [`WORKPLAN.md`](./WORKPLAN.md); every task lands as a pull request you can read.
+> **Status:** v0.1.0. Built in public: the plan is in [`WORKPLAN.md`](./WORKPLAN.md), every task landed as a pull request you can read, and [`CHANGELOG.md`](./CHANGELOG.md) lists what shipped.
 
 ---
 

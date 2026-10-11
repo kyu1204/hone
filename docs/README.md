@@ -10,7 +10,9 @@
 | [serve.md](./serve.md) | the SSH dashboard, the reward HTTP API, the MCP server |
 | [formats.md](./formats.md) | import and export formats |
 | [compat.md](./compat.md) | sources and dated decisions for every external format |
-| [release.md](./release.md) | how a release is cut (arrives with the release workflow) |
+| [release.md](./release.md) | how a release is cut: version, changelog, tag, workflow, trusted publishing |
+| [hardening.md](./hardening.md) | branch protection, repository settings, workflow permissions, and the live check |
+| [launch/](./launch/) | Show HN, thread and awesome-list drafts |
 | [work-orders/](./work-orders/) | the task-by-task build log behind `WORKPLAN.md` |
 
 Start with [concepts.md](./concepts.md), then the example closest to your system in [`examples/`](../examples/).
