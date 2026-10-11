@@ -6,5 +6,6 @@ import "./judge/jev";
 import "./judge/llm";
 import "./rag";
 
+export { cachedScorer, scorerCacheKey } from "./cached";
 export { createScorer, createScorers, knownScorerKinds, normalizeScore, registerScorerKind, runScorer } from "./scorer";
 export type { ScoreContext, Scorer } from "./scorer";
