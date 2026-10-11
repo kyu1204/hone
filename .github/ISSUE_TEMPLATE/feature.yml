@@ -1,0 +1,14 @@
+name: Feature request
+description: A target, scorer, import/export format or command hone should have
+labels: [enhancement]
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: What you are evaluating and what is missing
+    validations:
+      required: true
+  - type: textarea
+    id: shape
+    attributes:
+      label: What the config or command could look like

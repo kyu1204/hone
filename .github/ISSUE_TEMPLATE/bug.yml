@@ -1,0 +1,22 @@
+name: Bug report
+description: Something behaves wrongly
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: hone --version
+    validations:
+      required: true
+  - type: textarea
+    id: config
+    attributes:
+      label: hone.config.ts excerpt (targets and scorers involved)
+      render: ts
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps and output
+      description: The commands you ran and what hone printed
+    validations:
+      required: true
