@@ -12,7 +12,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-002 `core/types.ts` data model + JSON schema export (S)
 - [x] T-003 `core/config.ts` `defineConfig`, `hone.config.ts` loader, YAML/JSON case glob loader (M)
 - [x] T-004 `core/cache.ts` content-addressed cache under `.hone/cache` (S)
-- [ ] T-005 `core/store.ts` run JSON files + `bun:sqlite` index with rebuild (M)
+- [x] T-005 `core/store.ts` run JSON files + `bun:sqlite` index with rebuild (M)
 - [ ] T-006 `core/events.ts` typed progress event bus (S)
 - [ ] T-007 `providers/jev.ts` System One client: noul/score/choice, batching, retry, timeout, rate limit, 3-level key resolution (M)
 - [ ] T-008 `providers/llm.ts` OpenAI-compatible + Anthropic chat client with cost table (S)
@@ -114,3 +114,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-002 | #4 | types + assertTrace/assertCase guards, valid trace fixture |
 | 2026-10-12 | T-003 | #5 | defineConfig, loadConfig with sha256 hash, loadCases yaml/json/jsonl with stem ids |
 | 2026-10-12 | T-004 | #6 | canonicalJson, cacheKey, Cache.memo with atomic writes |
+| 2026-10-12 | T-005 | #7 | Store: runs/trials JSON, sqlite index auto-rebuilt when missing |
