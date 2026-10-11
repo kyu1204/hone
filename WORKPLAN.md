@@ -21,7 +21,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P1 Targets (after P0)
 
 - [x] T-101 `targets/http.ts` request template, response mapping, `x-hone-trace` server spans (S)
-- [ ] T-102 `targets/fn.ts` TypeScript function target + `trace()` helper (S)
+- [x] T-102 `targets/fn.ts` TypeScript function target + `trace()` helper (S)
 - [ ] T-103 `targets/python.ts` subprocess JSON-lines bridge + `hone_py` helper (M)
 - [ ] T-104 `targets/process.ts` isolated workspace, agent presets, session log to messages, git diff capture, timeout (L)
 - [ ] T-105 `targets/mcp.ts` stdio MCP server target (M)
@@ -120,3 +120,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-008 | #10 | chat(): openai + anthropic wire formats, retries, pricing table with unknownPricing flag |
 | 2026-10-12 | T-009 | #11 | docs/compat.md: ATIF-v1.7, verifiers v1 Taskset/Trace, OTel attribute table @6fd0d76, Docent Apache-2.0, Jev 400 questions ok, Inspect schema fixture |
 | 2026-10-12 | T-101 | #13 | Target/RunContext/TargetOutput, toTrace, registry, http target (_hone field, x-hone-trace header, timeouts, version hash) |
+| 2026-10-12 | T-102 | #14 | fn target: FnContext span/message/usage recorder, TargetOutput merge, resume seeds prefix |
