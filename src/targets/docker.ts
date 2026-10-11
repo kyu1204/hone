@@ -160,8 +160,14 @@ export function dockerTarget(id: string, spec: DockerTargetSpec, exec: Exec = de
       else if (reward === null) out.error = "verifier wrote no reward";
       return out;
     } finally {
+      // The container wrote /logs as root; delete from inside before dropping the mount.
+      await dexec(["sh", "-c", "rm -rf /logs/* 2>/dev/null || true"], 10_000);
       if (!spec.keep) await exec(["docker", "rm", "-f", cid]);
-      fs.rmSync(logsDir, { recursive: true, force: true });
+      try {
+        fs.rmSync(logsDir, { recursive: true, force: true });
+      } catch {
+        // best effort: a root-owned leftover is harmless in the temp dir
+      }
     }
   };
 
