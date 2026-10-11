@@ -60,7 +60,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-407 `hone ablate` component removal comparison (M)
 - [x] T-408 `hone ci` per-axis thresholds, exit code, JUnit, PR comment (M)
 - [x] T-409 `hone init` project detection scaffolding and key entry (M)
-- [ ] T-410 `hone power`, `hone explain`, `hone report` (M)
+- [x] T-410 `hone power`, `hone explain`, `hone report` (M)
 
 ## P5 TUI (after P4)
 
@@ -150,3 +150,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-407 | #44 | config.ablations transforms; correct/ablation.ts runs baseline + each ablation, paired compare per case, verdict helps/hurts/no effect, cost delta |
 | 2026-10-12 | T-408 | #45 | performRun extracted; hone ci: config + flag gates (min-pass-at-1, min-pass-hat-k, max-cost, max-regression vs baseline paired), .hone/ci/last.json, JUnit, gh pr comment or markdown |
 | 2026-10-12 | T-409 | #46 | detectProject (claude-code, fastapi, mcp, node-ai, fallback echo), renderConfig/renderCases, hone init with --yes/--no-keys/--force and key flags, ~/.config/hone/env 0600; index.ts exports defineConfig and types |
+| 2026-10-12 | T-410 | #47 | hone power (pairs or MDE with design adjustments), hone explain (verdict, scores, messages, span tree, diff), hone report (self-contained HTML with matrix and per-trial details). P4 complete |
