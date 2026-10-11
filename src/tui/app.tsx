@@ -1,7 +1,7 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { SCREENS, type Screen, type TuiStore } from "./state";
-import { alignTraces } from "./align";
+import { alignTraces } from "../analysis/diffTrace";
 import { CalibrateScreen } from "./screens/calibrate";
 import { CandidatesScreen } from "./screens/candidates";
 import { ChartsScreen } from "./screens/charts";
