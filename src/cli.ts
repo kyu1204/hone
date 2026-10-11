@@ -8,6 +8,7 @@ import { compareCommand } from "./cli/commands/compare";
 import { diffCommand } from "./cli/commands/diff";
 import { evolveCommand } from "./cli/commands/evolve";
 import { explainCommand } from "./cli/commands/explain";
+import { exportCommand } from "./cli/commands/export";
 import { forkCommand } from "./cli/commands/fork";
 import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
@@ -37,6 +38,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   diff: { run: diffCommand, summary: "align two trajectories step by step and show where they diverge" },
   evolve: { run: evolveCommand, summary: "propose text changes from failures, verify them, keep the Pareto front" },
   explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
+  export: { run: exportCommand, summary: "write trials as RL-ready rollouts JSONL (hone export rollouts)" },
   fork: { run: forkCommand, summary: "re-run a trial from an edited message and compare the verdict" },
   init: { run: initCommand, summary: "detect the project and write hone.config.ts, example cases and keys" },
   matrix: { run: matrixCommand, summary: "per-target solve rate, cost, tokens, time and significance bands" },
