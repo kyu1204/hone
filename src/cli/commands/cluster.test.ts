@@ -5,6 +5,8 @@ import * as path from "node:path";
 import valid from "../../../test/fixtures/trace.valid.json";
 import { Store } from "../../core/store";
 import type { Trace, Trial } from "../../core/types";
+import type { JevQuestion, JevResult } from "../../providers/jev";
+import { readTaxonomy } from "../../analysis/taxonomy";
 import { clusterCommand } from "./cluster";
 import type { CommandIo } from "./run";
 
@@ -81,5 +83,49 @@ describe("hone cluster", () => {
     const o = io(dir);
     expect(await clusterCommand(["--run", "nope", "--offline"], o)).toBe(2);
     expect(o.err).toMatch(/not found/);
+  });
+
+  test("--induce names the clusters with the LLM, classifies every failure with Jev, saves the taxonomy", async () => {
+    const { dir, runId } = project(6);
+    const o = io(dir);
+    const replies = [
+      { code: "timeout-no-progress", axis: "system", definition: "Runs past the limit.", evidencePatterns: ["exit code 124"] },
+      { code: "test-tampering", axis: "role", definition: "Skips tests.", evidencePatterns: ["skip-inserted"] },
+    ];
+    let i = 0;
+    const chat = async (): Promise<{ text: string }> => ({ text: JSON.stringify(replies[i++ % 2]) });
+    const jev = {
+      ask: async (state: unknown, q: Record<string, JevQuestion>): Promise<JevResult> => {
+        const pick = JSON.stringify(state).includes("timeout") ? "timeout-no-progress" : "test-tampering";
+        expect(Object.keys((q.code as { criteria: Record<string, unknown> }).criteria)).toContain("other");
+        return { answers: { code: { type: "choice", choice: pick, probabilities: { [pick]: 0.9 }, confidence: 0.9 } }, usage: { input_tokens: 1, output_tokens: 0 }, model: "jev", costUsd: 0 };
+      },
+    };
+    expect(await clusterCommand(["--k", "2", "--offline", "--induce"], o, { chat, jev })).toBe(0);
+    const file = JSON.parse(fs.readFileSync(path.join(dir, ".hone", "analysis", `clusters-${runId}.json`), "utf8"));
+    expect(file.codes.map((c: { code: string }) => c.code).sort()).toEqual(["test-tampering", "timeout-no-progress"]);
+    for (const c of file.codes) expect(c.count).toBe(3);
+    expect(readTaxonomy(path.join(dir, ".hone"))!.codes).toHaveLength(2);
+    expect(o.out).toMatch(/timeout-no-progress/);
+    expect(o.out).toMatch(/taxonomy\.json/);
+  });
+
+  test("--classify uses the saved taxonomy without inducing; fails without one", async () => {
+    const { dir, runId } = project(4);
+    const o = io(dir);
+    expect(await clusterCommand(["--classify", "--offline"], o, { jev: { ask: async () => ({ answers: {}, usage: { input_tokens: 0, output_tokens: 0 }, model: "jev", costUsd: 0 }) } })).toBe(2);
+    expect(o.err).toMatch(/no taxonomy/);
+    fs.writeFileSync(path.join(dir, ".hone", "taxonomy.json"), JSON.stringify({ schemaVersion: 1, updatedAt: "2026-10-12T00:00:00Z", codes: [{ code: "only-code", axis: "system", definition: "d", evidencePatterns: [] }] }));
+    let chats = 0;
+    const chat = async (): Promise<{ text: string }> => {
+      chats++;
+      return { text: "{}" };
+    };
+    const jev = { ask: async (): Promise<JevResult> => ({ answers: { code: { type: "choice", choice: "other", probabilities: { other: 1 }, confidence: 1 } }, usage: { input_tokens: 1, output_tokens: 0 }, model: "jev", costUsd: 0 }) };
+    const o2 = io(dir);
+    expect(await clusterCommand(["--classify", "--offline"], o2, { chat, jev })).toBe(0);
+    expect(chats).toBe(0);
+    const file = JSON.parse(fs.readFileSync(path.join(dir, ".hone", "analysis", `clusters-${runId}.json`), "utf8"));
+    expect(file.codes.map((c: { code: string; count: number }) => [c.code, c.count])).toEqual([["only-code", 0], ["other", 4]]);
   });
 });
