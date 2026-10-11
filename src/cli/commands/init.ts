@@ -2,12 +2,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { JevClient, noul } from "../../providers/jev";
+import skillSource from "../../../skills/hone/SKILL.md" with { type: "text" };
 import { ArgError, parseArgs, usageLine } from "../args";
 import { detectProject, renderCases, renderConfig } from "../detect";
 import type { CommandIo } from "./run";
 
 export const INIT_SPEC = {
-  flags: ["yes", "keys", "force"],
+  flags: ["yes", "keys", "force", "skills"],
   strings: ["typesafe-key", "openrouter-key", "anthropic-key", "openai-key"],
   numbers: [],
   repeatable: [],
@@ -16,7 +17,8 @@ export const INIT_SPEC = {
 const HELP: Record<string, string> = {
   yes: "no prompts; accept detection and skip interactive key entry",
   keys: "ask for API keys (default on; --no-keys to skip)",
-  force: "overwrite an existing hone.config.ts",
+  force: "overwrite an existing hone.config.ts (and an installed skill)",
+  skills: "install the hone skill into .claude/skills (and .codex/skills when .codex exists); alone, installs only the skill",
   "typesafe-key": "TYPESAFE_API_KEY to store",
   "openrouter-key": "OPENROUTER_API_KEY to store",
   "anthropic-key": "ANTHROPIC_API_KEY to store",
@@ -63,6 +65,10 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
     return 0;
   }
   const configPath = path.join(io.cwd, "hone.config.ts");
+  if (args.flags.skills && fs.existsSync(configPath) && !args.flags.force) {
+    installSkills(io, false);
+    return 0;
+  }
   if (fs.existsSync(configPath) && !args.flags.force) {
     io.stderr(`${configPath} already exists; pass --force to overwrite it\n`);
     return 2;
@@ -111,6 +117,25 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
       io.stdout(`stored ${Object.keys(vars).join(", ")} in ${file}\n`);
     }
   }
+  if (args.flags.skills) installSkills(io, args.flags.force === true);
   io.stdout("\nnext: hone run\n");
   return 0;
+}
+
+/** Copies the embedded skills/hone/SKILL.md into .claude/skills/hone (and .codex/skills/hone when .codex exists). */
+export function installSkills(io: CommandIo, force: boolean): string[] {
+  const roots = [".claude", ...(fs.existsSync(path.join(io.cwd, ".codex")) ? [".codex"] : [])];
+  const written: string[] = [];
+  for (const root of roots) {
+    const file = path.join(io.cwd, root, "skills", "hone", "SKILL.md");
+    if (fs.existsSync(file) && !force) {
+      io.stdout(`kept existing ${path.relative(io.cwd, file)} (pass --force to replace it)\n`);
+      continue;
+    }
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, skillSource);
+    written.push(file);
+    io.stdout(`installed skill ${path.relative(io.cwd, file)}\n`);
+  }
+  return written;
 }
