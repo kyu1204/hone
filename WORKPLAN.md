@@ -77,7 +77,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 - [x] T-601 `analysis/cluster.ts` failure clustering (M)
 - [x] T-602 `analysis/taxonomy.ts` taxonomy induction + Jev classification (L)
-- [ ] T-603 `analysis/diffTrace.ts` LCS alignment of tool-call signatures (S)
+- [x] T-603 `analysis/diffTrace.ts` LCS alignment of tool-call signatures (S)
 - [ ] T-604 `analysis/calibrate.ts` fault injection per domain, detection rate, kappa (M)
 - [ ] T-605 `analysis/branchpoints.ts` fork candidate ranking (S)
 
@@ -161,3 +161,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-508 | #56 | serve/ssh.ts: host key via ssh-keygen (OpenSSH format for ssh2), one TuiStore + React root per session, connection counting; hone serve ssh --port --host --run --read-only. P5 complete |
 | 2026-10-12 | T-601 | #58 | providers/embed.ts (OpenAI-compatible /embeddings or 512-dim hashed bag of words offline); analysis/cluster.ts summarise, k-means++ with cosine, TF-IDF top terms, chooseK; hone cluster writes analysis/clusters-<run>.json with provisional cluster-n codes |
 | 2026-10-12 | T-602 | #59 | analysis/taxonomy.ts: induceTaxonomy (one chat call per cluster, kebab codes, merge with existing by code or Jev noul >= 0.8), classify (one Jev choice per trial over codes + other), .hone/taxonomy.json; hone cluster --induce / --classify write real codes with classification counts |
+| 2026-10-12 | T-603 | #60 | tui/align.ts moved to analysis/diffTrace.ts; divergenceReport classifies aligned rows (identical, different-content, different-tool-args, missing-in-a/b); hone diff <a> <b> prints side-by-side rows with gap markers or --json |
