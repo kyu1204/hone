@@ -31,14 +31,18 @@ export interface AblationResult {
   ablations: AblationReport[];
 }
 
-interface RunOutcome {
+export interface RunOutcome {
   runId: string;
   summary: RunSummary;
+  /** Pass rate per case over its trials. */
   perCase: Map<string, number>;
+  trials: Trial[];
 }
 
-async function runConfig(config: HoneConfig, label: string, deps: { cwd: string; store: Store; cache: Cache; hash: string; trials?: number; useCache: boolean; log?: (s: string) => void }): Promise<RunOutcome> {
-  const cases = await loadCases(config.cases, deps.cwd);
+/** Run one config (optionally only `caseIds`) into a fresh run; shared by ablate, evolve and optimize. */
+export async function runConfig(config: HoneConfig, label: string, deps: { cwd: string; store: Store; cache: Cache; hash: string; trials?: number; useCache: boolean; caseIds?: string[]; log?: (s: string) => void }): Promise<RunOutcome> {
+  const all = await loadCases(config.cases, deps.cwd);
+  const cases = deps.caseIds ? all.filter((c) => deps.caseIds!.includes(c.id)) : all;
   const targets = createTargets(config.targets);
   const scorers = createScorers(config.scorers);
   const effective = deps.trials !== undefined ? { ...config, trials: deps.trials } : config;
@@ -56,7 +60,7 @@ async function runConfig(config: HoneConfig, label: string, deps: { cwd: string;
   const byCase = new Map<string, Trial[]>();
   for (const t of trials) (byCase.get(t.trace.caseId) ?? byCase.set(t.trace.caseId, []).get(t.trace.caseId)!).push(t);
   for (const [id, ts] of byCase) perCase.set(id, ts.filter((t) => t.pass === true).length / ts.length);
-  return { runId: run.id, summary, perCase };
+  return { runId: run.id, summary, perCase, trials };
 }
 
 export async function runAblations(opts: { config: HoneConfig; hash: string; cwd: string; names?: string[]; trials?: number; alpha?: number; useCache?: boolean; log?: (s: string) => void }): Promise<AblationResult> {
