@@ -1,0 +1,13 @@
+{
+  "generatedAt": "2026-10-11T15:00:34.710Z",
+  "omhVersion": "0.25.0",
+  "hooks": [
+    "catalog-branch-guard.sh",
+    "catalog-tdd-guard.sh",
+    "catalog-no-verify-guard.sh",
+    "catalog-force-push-guard.sh",
+    "catalog-harness-guard.sh",
+    "catalog-loop-guard.sh",
+    "catalog-stop-uncommitted-warn.sh"
+  ]
+}

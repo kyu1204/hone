@@ -1,0 +1,71 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-branch-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-tdd-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-no-verify-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-force-push-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-harness-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-loop-guard.sh'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-stop-uncommitted-warn.sh'"
+          }
+        ]
+      }
+    ]
+  }
+}

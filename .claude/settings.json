@@ -1,0 +1,114 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git status*)",
+      "Bash(git branch*)",
+      "Bash(git switch*)",
+      "Bash(git checkout -b*)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)"
+    ],
+    "deny": [
+      "Bash(git commit --no-verify*)",
+      "Bash(git commit -n*)",
+      "Bash(git push --no-verify*)",
+      "Bash(git push -f*)",
+      "Bash(git push --force*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-branch-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-tdd-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-no-verify-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-force-push-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-harness-guard.sh'"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-loop-guard.sh'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash '/Users/minkyu/Documents/evaluation/.omh/hooks/catalog-stop-uncommitted-warn.sh'"
+          }
+        ]
+      }
+    ]
+  },
+  "_ohMyHarness": {
+    "managedAt": "2026-10-11T15:00:34.711Z",
+    "presets": [
+      "harness"
+    ],
+    "managedPermissions": {
+      "allow": [
+        "Bash(git status*)",
+        "Bash(git branch*)",
+        "Bash(git switch*)",
+        "Bash(git checkout -b*)",
+        "Bash(git diff*)",
+        "Bash(git log*)",
+        "Bash(git add*)",
+        "Bash(git commit*)"
+      ],
+      "deny": [
+        "Bash(git commit --no-verify*)",
+        "Bash(git commit -n*)",
+        "Bash(git push --no-verify*)",
+        "Bash(git push -f*)",
+        "Bash(git push --force*)"
+      ]
+    }
+  }
+}

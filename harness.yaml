@@ -1,0 +1,91 @@
+version: '1.0'
+project:
+  description: TDD, 원자적 커밋, 브랜치 기반 개발을 따르는 프로젝트
+  stacks: []
+rules:
+  - id: branch-workflow
+    title: 브랜치 작업 규칙
+    content: |
+      ## 브랜치 작업 규칙
+      - 모든 변경은 새 작업 브랜치에서 진행한다.
+      - main 또는 master 브랜치에 직접 커밋하지 않는다.
+      - 작업을 시작하거나 커밋하기 전에 현재 브랜치가 이미 머지되었는지 확인한다.
+      - 이미 머지된 브랜치에서는 추가 작업이나 커밋을 하지 않고 새 브랜치를 만든다.
+    priority: 10
+  - id: tdd-workflow
+    title: TDD 규칙
+    content: |
+      ## TDD 규칙
+      - 구현 코드를 수정하기 전에 실패하는 테스트를 먼저 작성하거나 수정한다.
+      - 테스트 실패를 확인한 뒤 테스트를 통과시키는 최소한의 구현만 추가한다.
+      - 테스트가 통과한 상태에서만 리팩터링한다.
+      - 버그 수정 시에는 해당 버그를 재현하는 회귀 테스트를 먼저 추가한다.
+    priority: 20
+  - id: atomic-commits
+    title: 원자적 커밋 규칙
+    content: |
+      ## 원자적 커밋 규칙
+      - 각 커밋은 하나의 논리적 변경만 포함한다.
+      - 기능 변경, 리팩터링, 포맷팅, 문서 변경을 가능하면 별도 커밋으로 분리한다.
+      - 모든 커밋은 독립적으로 이해할 수 있고 테스트 가능한 상태여야 한다.
+      - 관련 없는 파일이나 변경을 같은 커밋에 포함하지 않는다.
+      - 커밋 메시지는 변경의 목적을 명확하게 설명한다.
+    priority: 30
+enforcement:
+  preCommit: []
+  blockedPaths: []
+  blockedCommands: []
+  postSave: []
+hooks:
+  - block: branch-guard
+    params:
+      mainBranch: main
+    mode: block
+  - block: tdd-guard
+    params: {}
+    mode: block
+  - block: no-verify-guard
+    params: {}
+    mode: block
+  - block: force-push-guard
+    params:
+      protected: main,master
+      allowLease: true
+    mode: block
+  - block: stop-uncommitted-warn
+    params: {}
+    mode: block
+  - block: harness-guard
+    params: {}
+    mode: block
+loop:
+  enabled: true
+  ledger: WORKPLAN.md
+  workOrders: docs/work-orders
+  model: sonnet
+  sentinel: OMH_GOAL_COMPLETE
+  interval: 120
+  blockedBackoff: 1800
+  limitBackoff: 1800
+  emptyBackoff: 300
+  stallStreak: 3
+  turnTimeout: 7200
+  architectOnly: []
+  isolate: true
+  runtime: claude
+permissions:
+  allow:
+    - Bash(git status*)
+    - Bash(git branch*)
+    - Bash(git switch*)
+    - Bash(git checkout -b*)
+    - Bash(git diff*)
+    - Bash(git log*)
+    - Bash(git add*)
+    - Bash(git commit*)
+  deny:
+    - Bash(git commit --no-verify*)
+    - Bash(git commit -n*)
+    - Bash(git push --no-verify*)
+    - Bash(git push -f*)
+    - Bash(git push --force*)
