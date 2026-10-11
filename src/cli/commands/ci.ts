@@ -3,6 +3,7 @@ import * as path from "node:path";
 import { Store } from "../../core/store";
 import type { Trial } from "../../core/types";
 import { pairedDifference } from "../../stats/paired";
+import { junitXml } from "../../io/export/junit";
 import { ArgError, parseArgs, usageLine } from "../args";
 import type { PlanFilter } from "../../core/plan";
 import { type CommandIo, type GateResult, performRun, RunError, type RunOutcome } from "./run";
@@ -54,25 +55,6 @@ export function regressionGate(current: Trial[], baseline: Trial[], maxRegressio
   return { name: "regression", value: drop, threshold: maxRegression, pass: drop <= maxRegression };
 }
 
-const esc = (s: string): string => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-
-export function junitXml(outcome: RunOutcome): string {
-  const cells = outcome.summary.cells;
-  const byCell = new Map<string, Trial[]>();
-  for (const t of outcome.trials) {
-    const k = `${t.trace.caseId}\u0000${t.trace.targetId}`;
-    (byCell.get(k) ?? byCell.set(k, []).get(k)!).push(t);
-  }
-  const cases = cells.map((v) => {
-    const ts = byCell.get(`${v.caseId}\u0000${v.targetId}`) ?? [];
-    const failed = ts.filter((t) => t.pass !== true);
-    const reasons = failed.flatMap((t) => [t.trace.error, ...t.scores.filter((s) => s.pass === false).map((s) => `${s.scorer}: ${s.reason ?? "failed"}`)]).filter(Boolean).join("; ");
-    const body = v.passAt1 < 1 ? `<failure message="${esc(`${failed.length}/${ts.length} trials failed: ${reasons}`)}"/>` : "";
-    return `    <testcase classname="${esc(v.targetId)}" name="${esc(v.caseId)}" time="0">${body}</testcase>`;
-  });
-  const failures = cells.filter((v) => v.passAt1 < 1).length;
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<testsuites>\n  <testsuite name="hone" tests="${cells.length}" failures="${failures}" errors="0" time="${(outcome.summary.totals.durationMs / 1000).toFixed(3)}">\n${cases.join("\n")}\n  </testsuite>\n</testsuites>\n`;
-}
 
 export function commentMarkdown(outcome: RunOutcome, gates: GateResult[]): string {
   const t = outcome.summary.totals;
@@ -137,7 +119,7 @@ export async function ciCommand(argv: string[], io: CommandIo): Promise<number> 
   fs.mkdirSync(ciDir, { recursive: true });
   fs.writeFileSync(path.join(ciDir, "last.json"), JSON.stringify(doc, null, 2));
   if (args.values.json?.[0]) fs.writeFileSync(path.resolve(io.cwd, args.values.json[0]), JSON.stringify(doc, null, 2));
-  if (args.values.junit?.[0]) fs.writeFileSync(path.resolve(io.cwd, args.values.junit[0]), junitXml(outcome));
+  if (args.values.junit?.[0]) fs.writeFileSync(path.resolve(io.cwd, args.values.junit[0]), junitXml(outcome.trials, { durationMs: outcome.summary.totals.durationMs }));
 
   for (const g of gates) io.stdout(`${g.pass ? "✓" : "✗"} ${g.name} ${g.value.toFixed(3)} (threshold ${g.threshold})\n`);
   if (args.flags.comment) {
