@@ -32,7 +32,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P2 Scorers (after P0, parts of P1)
 
 - [x] T-201 Deterministic scorers: exact, contains, regex, json-schema, tool_used, tool_order, step_count, cost, latency, file_exists, test_command (M)
-- [ ] T-202 `scorers/hack.ts` reward-hack detector: diff rules + Jev confirmation (M)
+- [x] T-202 `scorers/hack.ts` reward-hack detector: diff rules + Jev confirmation (M)
 - [ ] T-203 `scorers/rag/*` citation presence, claim faithfulness, context recall/precision (M)
 - [ ] T-204 `scorers/consistency.ts` metamorphic scorer (M)
 - [ ] T-205 `scorers/judge/jev.ts` noul/score/choice wrappers, per-step fan-out, thresholds (S)
@@ -128,3 +128,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-107 | #20 | docker target: build env, run with /tests and /logs mounts, agent exec, verifier, reward.txt/json; io/atif.ts ATIF-v1.7 both directions |
 | 2026-10-12 | T-108 | #21 | resume(prefix): fn/http/python exact, process rendered-prefix; http test added, others landed with their targets. P1 complete |
 | 2026-10-12 | T-201 | #23 | Scorer/ScoreContext contract, registry, runScorer; exact, contains, regex, json-schema (subset validator), tool_used, tool_order, step_count, cost, latency, file_exists, test_command |
+| 2026-10-12 | T-202 | #24 | hack scorer: diff parser + rules test-modified/deleted, skip-inserted, assertion-weakened, expected-hardcoded, verifier-touched; Jev confirm -> undecided below threshold |
