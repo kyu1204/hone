@@ -31,7 +31,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 ## P2 Scorers (after P0, parts of P1)
 
-- [ ] T-201 Deterministic scorers: exact, contains, regex, json-schema, tool_used, tool_order, step_count, cost, latency, file_exists, test_command (M)
+- [x] T-201 Deterministic scorers: exact, contains, regex, json-schema, tool_used, tool_order, step_count, cost, latency, file_exists, test_command (M)
 - [ ] T-202 `scorers/hack.ts` reward-hack detector: diff rules + Jev confirmation (M)
 - [ ] T-203 `scorers/rag/*` citation presence, claim faithfulness, context recall/precision (M)
 - [ ] T-204 `scorers/consistency.ts` metamorphic scorer (M)
@@ -127,3 +127,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-106 | #19 | replay target: inline or glob traces (json/jsonl), trial or random selection, version from file stats |
 | 2026-10-12 | T-107 | #20 | docker target: build env, run with /tests and /logs mounts, agent exec, verifier, reward.txt/json; io/atif.ts ATIF-v1.7 both directions |
 | 2026-10-12 | T-108 | #21 | resume(prefix): fn/http/python exact, process rendered-prefix; http test added, others landed with their targets. P1 complete |
+| 2026-10-12 | T-201 | #23 | Scorer/ScoreContext contract, registry, runScorer; exact, contains, regex, json-schema (subset validator), tool_used, tool_order, step_count, cost, latency, file_exists, test_command |
