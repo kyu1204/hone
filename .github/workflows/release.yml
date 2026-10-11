@@ -1,0 +1,68 @@
+name: release
+on:
+  push:
+    tags: ["v*"]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run check
+      - run: bun scripts/release-check.ts "${GITHUB_REF_NAME}"
+  binaries:
+    needs: check
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [bun-linux-x64, bun-linux-x64-musl, bun-linux-arm64, bun-darwin-x64, bun-darwin-arm64, bun-windows-x64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun scripts/build-binaries.ts --only ${{ matrix.target }} --out dist/bin
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/bin/hone-*
+          if-no-files-found: error
+  publish:
+    needs: [check, binaries]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # npm trusted publishing (OIDC); no NPM_TOKEN secret
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - run: bun publish --access public --provenance
+  release:
+    needs: [binaries, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+      - name: collect binaries and checksums
+        run: |
+          mkdir -p dist/bin
+          find artifacts -type f -name 'hone-*' -exec cp {} dist/bin/ \;
+          (cd dist/bin && sha256sum hone-* > SHA256SUMS && cat SHA256SUMS)
+      - name: create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${GITHUB_REF_NAME}" dist/bin/* --title "hone ${GITHUB_REF_NAME}" --generate-notes
