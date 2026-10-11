@@ -1,0 +1,151 @@
+{
+ "version": 2,
+ "status": "success",
+ "eval": {
+  "task": "policy_qa",
+  "task_id": "t1",
+  "run_id": "run-7",
+  "model": "openai/gpt-5",
+  "created": "2026-10-12T00:00:00Z",
+  "dataset": {
+   "name": "policy"
+  }
+ },
+ "results": {
+  "total_samples": 2,
+  "scores": [
+   {
+    "name": "match",
+    "metrics": {
+     "accuracy": {
+      "value": 0.5
+     }
+    }
+   }
+  ]
+ },
+ "samples": [
+  {
+   "id": "q1",
+   "epoch": 1,
+   "input": "When does the policy start?",
+   "target": "2026-07-01",
+   "messages": [
+    {
+     "role": "system",
+     "content": "Answer briefly."
+    },
+    {
+     "role": "user",
+     "content": "When does the policy start?"
+    },
+    {
+     "role": "assistant",
+     "content": "",
+     "tool_calls": [
+      {
+       "id": "c1",
+       "function": "search",
+       "arguments": {
+        "q": "policy start"
+       },
+       "type": "function"
+      }
+     ]
+    },
+    {
+     "role": "tool",
+     "tool_call_id": "c1",
+     "function": "search",
+     "content": "The policy starts on 2026-07-01."
+    },
+    {
+     "role": "assistant",
+     "content": [
+      {
+       "type": "text",
+       "text": "2026-07-01"
+      }
+     ]
+    }
+   ],
+   "output": {
+    "model": "gpt-5",
+    "choices": [
+     {
+      "message": {
+       "role": "assistant",
+       "content": "2026-07-01"
+      },
+      "stop_reason": "stop"
+     }
+    ],
+    "usage": {
+     "input_tokens": 120,
+     "output_tokens": 8,
+     "total_cost": 0.0012
+    },
+    "time": 1.2
+   },
+   "scores": {
+    "match": {
+     "value": "C",
+     "explanation": "exact"
+    },
+    "faith": {
+     "value": 0.9,
+     "explanation": "supported"
+    }
+   },
+   "started_at": "2026-10-12T00:00:01Z",
+   "completed_at": "2026-10-12T00:00:03Z"
+  },
+  {
+   "id": "q2",
+   "epoch": 2,
+   "input": [
+    {
+     "role": "user",
+     "content": "Fees?"
+    }
+   ],
+   "target": [
+    "10 EUR"
+   ],
+   "messages": [
+    {
+     "role": "user",
+     "content": "Fees?"
+    },
+    {
+     "role": "assistant",
+     "content": "Unknown"
+    }
+   ],
+   "output": {
+    "model": "gpt-5",
+    "choices": [
+     {
+      "message": {
+       "role": "assistant",
+       "content": "Unknown"
+      }
+     }
+    ],
+    "usage": {
+     "input_tokens": 20,
+     "output_tokens": 2
+    }
+   },
+   "scores": {
+    "match": {
+     "value": "I",
+     "explanation": "wrong"
+    },
+    "faith": {
+     "value": NaN
+    }
+   }
+  }
+ ]
+}

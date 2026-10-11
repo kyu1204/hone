@@ -1,0 +1,230 @@
+{
+ "resourceSpans": [
+  {
+   "resource": {
+    "attributes": [
+     {
+      "key": "service.name",
+      "value": {
+       "stringValue": "rag-api"
+      }
+     }
+    ]
+   },
+   "scopeSpans": [
+    {
+     "scope": {
+      "name": "app"
+     },
+     "spans": [
+      {
+       "traceId": "a1",
+       "spanId": "r1",
+       "name": "invoke_agent policy-bot",
+       "kind": 1,
+       "startTimeUnixNano": "1791770400000000000",
+       "endTimeUnixNano": "1791770402000000000",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "invoke_agent"
+         }
+        },
+        {
+         "key": "gen_ai.agent.name",
+         "value": {
+          "stringValue": "policy-bot"
+         }
+        },
+        {
+         "key": "gen_ai.conversation.id",
+         "value": {
+          "stringValue": "conv-9"
+         }
+        },
+        {
+         "key": "gen_ai.input.messages",
+         "value": {
+          "stringValue": "[{\"role\": \"user\", \"content\": \"Summarise the policy\"}]"
+         }
+        },
+        {
+         "key": "gen_ai.output.messages",
+         "value": {
+          "stringValue": "[{\"role\": \"assistant\", \"content\": \"The policy starts on 2026-07-01 [c1].\"}]"
+         }
+        }
+       ],
+       "events": [
+        {
+         "name": "gen_ai.evaluation.result",
+         "timeUnixNano": "1791770402000000000",
+         "attributes": [
+          {
+           "key": "gen_ai.evaluation.name",
+           "value": {
+            "stringValue": "faithfulness"
+           }
+          },
+          {
+           "key": "gen_ai.evaluation.score.value",
+           "value": {
+            "doubleValue": 0.9
+           }
+          },
+          {
+           "key": "gen_ai.evaluation.score.label",
+           "value": {
+            "stringValue": "pass"
+           }
+          }
+         ]
+        },
+        {
+         "name": "gen_ai.evaluation.result",
+         "timeUnixNano": "1791770402000000000",
+         "attributes": [
+          {
+           "key": "gen_ai.evaluation.name",
+           "value": {
+            "stringValue": "citations"
+           }
+          },
+          {
+           "key": "gen_ai.evaluation.score.value",
+           "value": {
+            "doubleValue": 0.0
+           }
+          },
+          {
+           "key": "gen_ai.evaluation.score.label",
+           "value": {
+            "stringValue": "fail"
+           }
+          }
+         ]
+        }
+       ]
+      },
+      {
+       "traceId": "a1",
+       "spanId": "s2",
+       "parentSpanId": "r1",
+       "name": "retrieval docs",
+       "kind": 3,
+       "startTimeUnixNano": "1791770400100000000",
+       "endTimeUnixNano": "1791770400400000000",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "retrieval"
+         }
+        },
+        {
+         "key": "gen_ai.data_source.id",
+         "value": {
+          "stringValue": "docs"
+         }
+        },
+        {
+         "key": "gen_ai.retrieval.query.text",
+         "value": {
+          "stringValue": "policy start"
+         }
+        },
+        {
+         "key": "gen_ai.retrieval.documents",
+         "value": {
+          "stringValue": "[{\"id\": \"c1\", \"text\": \"The policy starts on 2026-07-01.\"}]"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "a1",
+       "spanId": "s3",
+       "parentSpanId": "r1",
+       "name": "chat gpt-5",
+       "kind": 3,
+       "startTimeUnixNano": "1791770400500000000",
+       "endTimeUnixNano": "1791770401900000000",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "chat"
+         }
+        },
+        {
+         "key": "gen_ai.request.model",
+         "value": {
+          "stringValue": "gpt-5"
+         }
+        },
+        {
+         "key": "gen_ai.usage.input_tokens",
+         "value": {
+          "intValue": "300"
+         }
+        },
+        {
+         "key": "gen_ai.usage.output_tokens",
+         "value": {
+          "intValue": "40"
+         }
+        }
+       ]
+      },
+      {
+       "traceId": "a1",
+       "spanId": "s4",
+       "parentSpanId": "r1",
+       "name": "execute_tool calc",
+       "kind": 1,
+       "startTimeUnixNano": "1791770401000000000",
+       "endTimeUnixNano": "1791770401100000000",
+       "attributes": [
+        {
+         "key": "gen_ai.operation.name",
+         "value": {
+          "stringValue": "execute_tool"
+         }
+        },
+        {
+         "key": "gen_ai.tool.name",
+         "value": {
+          "stringValue": "calc"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.id",
+         "value": {
+          "stringValue": "tc1"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.arguments",
+         "value": {
+          "stringValue": "{\"x\":1}"
+         }
+        },
+        {
+         "key": "gen_ai.tool.call.result",
+         "value": {
+          "stringValue": "2"
+         }
+        }
+       ],
+       "status": {
+        "code": 2,
+        "message": "boom"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

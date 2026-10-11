@@ -1,0 +1,81 @@
+{
+ "agent_runs": [
+  {
+   "id": "run-a",
+   "transcripts": [
+    {
+     "id": "tr-1",
+     "messages": [
+      {
+       "role": "user",
+       "content": "Fix the bug"
+      },
+      {
+       "role": "assistant",
+       "content": "",
+       "tool_calls": [
+        {
+         "id": "t1",
+         "type": "function",
+         "function": {
+          "name": "Bash",
+          "arguments": {
+           "cmd": "bun test"
+          }
+         }
+        }
+       ]
+      },
+      {
+       "role": "tool",
+       "tool_call_id": "t1",
+       "content": "ok"
+      },
+      {
+       "role": "assistant",
+       "content": "Done."
+      }
+     ],
+     "metadata": {}
+    }
+   ],
+   "metadata": {
+    "task_id": "bug-1",
+    "model": "claude-opus-5-5",
+    "scores": {
+     "correct": 1,
+     "no_hack": true
+    },
+    "cost_usd": 0.2
+   }
+  },
+  {
+   "id": "run-b",
+   "transcript_groups": [
+    {
+     "id": "g",
+     "transcripts": [
+      {
+       "messages": [
+        {
+         "role": "user",
+         "content": "Hi"
+        },
+        {
+         "role": "assistant",
+         "content": "Hello"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "metadata": {
+    "model": "claude-sonnet-5-5",
+    "scores": {
+     "correct": 0
+    }
+   }
+  }
+ ]
+}
