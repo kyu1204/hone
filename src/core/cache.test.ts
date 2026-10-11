@@ -44,7 +44,7 @@ describe("Cache", () => {
     const key = cacheKey("stable");
     new Cache(d).set(key, "v");
     expect(fs.existsSync(path.join(d, key.slice(0, 2), `${key}.json`))).toBe(true);
-    expect(new Cache(d).get(key)).toBe("v");
+    expect(new Cache(d).get<string>(key)).toBe("v");
   });
 
   test("a corrupt file is treated as a miss and removed", () => {
