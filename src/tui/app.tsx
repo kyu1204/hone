@@ -2,6 +2,9 @@ import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { SCREENS, type Screen, type TuiStore } from "./state";
 import { alignTraces } from "./align";
+import { CalibrateScreen } from "./screens/calibrate";
+import { CandidatesScreen } from "./screens/candidates";
+import { ClustersScreen } from "./screens/clusters";
 import { DiffScreen, diffSides } from "./screens/diff";
 import { MatrixScreen } from "./screens/matrix";
 import { TraceScreen, traceEntries } from "./screens/trace";
@@ -143,7 +146,7 @@ export function App({ store, onQuit }: AppProps): ReactNode {
       }
     }
   });
-  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : s.screen === "diff" ? <DiffScreen store={store} /> : <Placeholder name={s.screen} />;
+  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : s.screen === "diff" ? <DiffScreen store={store} /> : s.screen === "clusters" ? <ClustersScreen store={store} /> : s.screen === "calibrate" ? <CalibrateScreen store={store} /> : s.screen === "candidates" ? <CandidatesScreen store={store} /> : <Placeholder name={s.screen} />;
   return (
     <box style={{ flexDirection: "column", height, width: "100%" }}>
       <Header store={store} />
