@@ -1,4 +1,5 @@
 #!/usr/bin/env bun
+import { bisectCommand } from "./cli/commands/bisect";
 import { compareCommand } from "./cli/commands/compare";
 import { matrixCommand } from "./cli/commands/matrix";
 import { type CommandIo, runCommand } from "./cli/commands/run";
@@ -9,6 +10,7 @@ type Command = (argv: string[], io: CommandIo) => Promise<number>;
 const COMMANDS: Record<string, { run: Command; summary: string }> = {
   run: { run: runCommand, summary: "run every case against every target and summarise" },
   compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
+  bisect: { run: bisectCommand, summary: "find the commit that broke a case, with confidence intervals" },
   matrix: { run: matrixCommand, summary: "per-target solve rate, cost, tokens, time and significance bands" },
 };
 
