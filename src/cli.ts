@@ -4,6 +4,7 @@ import { bisectCommand } from "./cli/commands/bisect";
 import { ciCommand } from "./cli/commands/ci";
 import { clusterCommand } from "./cli/commands/cluster";
 import { compareCommand } from "./cli/commands/compare";
+import { diffCommand } from "./cli/commands/diff";
 import { explainCommand } from "./cli/commands/explain";
 import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
@@ -27,6 +28,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   ablate: { run: ablateCommand, summary: "measure what each config component contributes" },
   bisect: { run: bisectCommand, summary: "find the commit that broke a case, with confidence intervals" },
   cluster: { run: clusterCommand, summary: "group the failed trials of a run into failure modes" },
+  diff: { run: diffCommand, summary: "align two trajectories step by step and show where they diverge" },
   explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
   init: { run: initCommand, summary: "detect the project and write hone.config.ts, example cases and keys" },
   matrix: { run: matrixCommand, summary: "per-target solve rate, cost, tokens, time and significance bands" },
