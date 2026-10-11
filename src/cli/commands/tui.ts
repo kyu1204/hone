@@ -30,7 +30,17 @@ export async function tuiCommand(argv: string[], io: CommandIo): Promise<number>
   }
   const { createTuiStore } = await import("../../tui/state");
   const { App } = await import("../../tui/app");
-  const store = createTuiStore({ root: await storeRoot(io), runId: args.values.run?.[0], watch: args.flags.watch !== false, readOnly: args.flags["read-only"] === true });
+  let fork: import("../../tui/state").ForkOptions | undefined;
+  try {
+    const { loadCases, loadConfig } = await import("../../core/config");
+    const { createTargets } = await import("../../targets/index");
+    const { config } = await loadConfig(io.cwd);
+    const cases = await loadCases(config.cases, io.cwd);
+    fork = { targets: createTargets(config.targets), scorers: config.scorers, caseInputs: Object.fromEntries(cases.map((c) => [c.id, c.input])) };
+  } catch {
+    fork = undefined; // no config here: browsing works, forking is disabled
+  }
+  const store = createTuiStore({ root: await storeRoot(io), runId: args.values.run?.[0], watch: args.flags.watch !== false, readOnly: args.flags["read-only"] === true, fork });
   const renderer = await createCliRenderer({ exitOnCtrlC: true });
   await new Promise<void>((resolve) => {
     const root = createRoot(renderer);

@@ -1,8 +1,11 @@
 // External store for the TUI: a snapshot of one run (cells, trials, selection, screen) that React
 // reads through useSyncExternalStore and that the matrix, trace and other screens mutate via actions.
+import type { ScorerSpec } from "../core/config";
 import { Store } from "../core/store";
-import type { Run, Trial, Verdict } from "../core/types";
+import type { ChatMessage, Run, Trial, Verdict } from "../core/types";
 import { verdictFor } from "../stats/passk";
+import type { Target } from "../targets/target";
+import { forkTrial } from "./forkRunner";
 
 export type Screen = "matrix" | "trace" | "diff" | "clusters" | "calibrate" | "candidates" | "fork" | "charts";
 export const SCREENS: Screen[] = ["matrix", "trace", "diff", "clusters", "calibrate", "candidates", "fork", "charts"];
@@ -40,6 +43,12 @@ export interface TuiSnapshot {
   inputActive: boolean;
   /** Diff screen: show the selected trial as A and diffWith as B. */
   diffSwap: boolean;
+  /** Fork screen state. */
+  forkStep: number;
+  forkEdit?: ChatMessage;
+  forkResult?: Trial;
+  forkRunning: boolean;
+  forkError?: string;
   /** Trace and diff screens: selected entry, expanded entries, search text. */
   entryIdx: number;
   expanded: number[];
@@ -49,12 +58,20 @@ export interface TuiSnapshot {
 export type SortMode = "case" | "passAsc" | "passDesc" | "cost";
 export const SORT_MODES: SortMode[] = ["case", "passAsc", "passDesc", "cost"];
 
+export interface ForkOptions {
+  targets: Record<string, Target>;
+  scorers: ScorerSpec[];
+  caseInputs: Record<string, unknown>;
+}
+
 export interface TuiStoreOptions {
   root: string;
   runId?: string;
   watch?: boolean;
   pollMs?: number;
   readOnly?: boolean;
+  /** Needed to run forks from the TUI (loaded from hone.config.ts by `hone tui`). */
+  fork?: ForkOptions;
 }
 
 export interface TuiStore {
@@ -83,6 +100,11 @@ export interface TuiStore {
   toggleDiffSwap(): void;
   /** Jump to the trace screen for a trial id (clears the case filter). */
   openTrialById(id: string): void;
+  setForkStep(i: number): void;
+  beginForkEdit(): void;
+  setForkEditContent(text: string): void;
+  commitForkEdit(): void;
+  runFork(): Promise<void>;
   dispose(): void;
 }
 
@@ -112,7 +134,7 @@ function load(root: string, runId: string | undefined): Pick<TuiSnapshot, "runId
 
 export function createTuiStore(opts: TuiStoreOptions): TuiStore {
   const listeners = new Set<() => void>();
-  let snap: TuiSnapshot = { root: opts.root, ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "", diffSwap: false };
+  let snap: TuiSnapshot = { root: opts.root, ...load(opts.root, opts.runId), selected: { caseIdx: 0, targetIdx: 0 }, screen: "matrix", trialIdx: 0, help: false, readOnly: opts.readOnly ?? false, loadedAt: Date.now(), filter: "", sort: "case", summary: false, inputActive: false, entryIdx: 0, expanded: [], search: "", diffSwap: false, forkStep: 0, forkRunning: false };
   const emit = (): void => {
     for (const fn of listeners) fn();
   };
@@ -165,7 +187,9 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
       else if (snap.screen !== "matrix") set({ screen: "matrix" });
     },
     setScreen(screen) {
-      set({ screen, help: false, entryIdx: 0, expanded: [] });
+      const patch: Partial<TuiSnapshot> = { screen, help: false, entryIdx: 0, expanded: [] };
+      if (screen === "fork") Object.assign(patch, { forkStep: Math.min(snap.entryIdx, Math.max(0, (cellAt(snap)?.trials[snap.trialIdx]?.trace.messages.length ?? 1) - 1)), forkEdit: undefined, forkResult: undefined, forkError: undefined });
+      set(patch);
     },
     toggleHelp() {
       set({ help: !snap.help });
@@ -207,6 +231,49 @@ export function createTuiStore(opts: TuiStoreOptions): TuiStore {
     },
     toggleDiffSwap() {
       set({ diffSwap: !snap.diffSwap });
+    },
+    setForkStep(i) {
+      const total = cellAt(snap)?.trials[snap.trialIdx]?.trace.messages.length ?? 0;
+      set({ forkStep: clamp(i, total), forkEdit: undefined });
+    },
+    beginForkEdit() {
+      if (snap.readOnly) return;
+      const m = cellAt(snap)?.trials[snap.trialIdx]?.trace.messages[snap.forkStep];
+      if (!m) return;
+      set({ forkEdit: snap.forkEdit ?? { ...m }, inputActive: true });
+    },
+    setForkEditContent(text) {
+      if (!snap.forkEdit) return;
+      set({ forkEdit: { ...snap.forkEdit, content: text } });
+    },
+    commitForkEdit() {
+      set({ inputActive: false });
+    },
+    async runFork() {
+      if (snap.readOnly) {
+        set({ forkError: "read-only mode" });
+        return;
+      }
+      const original = cellAt(snap)?.trials[snap.trialIdx];
+      const edited = snap.forkEdit ?? original?.trace.messages[snap.forkStep];
+      if (!original || !edited) return;
+      if (!opts.fork) {
+        set({ forkError: "no config loaded; start with `hone tui` in the project" });
+        return;
+      }
+      set({ forkRunning: true, forkError: undefined });
+      const store = new Store(opts.root);
+      try {
+        const result = await forkTrial({ store, targets: opts.fork.targets, scorers: opts.fork.scorers, caseInput: opts.fork.caseInputs[original.trace.caseId], original, step: snap.forkStep, edited });
+        store.close();
+        reload();
+        const cell = cellAt(snap);
+        const idx = cell ? cell.trials.findIndex((t) => t.id === result.id) : -1;
+        set({ forkResult: result, forkRunning: false, trialIdx: idx >= 0 ? idx : snap.trialIdx, diffWith: { caseId: original.trace.caseId, targetId: original.trace.targetId, trialIdx: original.trace.trial } });
+      } catch (e) {
+        store.close();
+        set({ forkRunning: false, forkError: e instanceof Error ? e.message : String(e) });
+      }
     },
     openTrialById(id) {
       const cell = snap.cells.find((c) => c.trials.some((t) => t.id === id));
