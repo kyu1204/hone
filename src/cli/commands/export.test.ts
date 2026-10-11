@@ -55,7 +55,26 @@ describe("hone export rollouts", () => {
     expect(await exportCommand(["rollouts", "--run", "nope"], o2)).toBe(2);
     expect(o2.err).toMatch(/not found/);
     const o3 = io(dir);
-    expect(await exportCommand(["otel"], o3)).toBe(2);
-    expect(o3.err).toMatch(/not yet available/);
+    expect(await exportCommand(["parquet"], o3)).toBe(2);
+    expect(o3.err).toMatch(/export kind required/);
+  });
+});
+
+describe("hone export otel|docent|junit|html", () => {
+  test("each kind writes its default file for the latest run", async () => {
+    const { dir, runId } = project();
+    for (const [kind, file, probe] of [["otel", "otel.json", /"resourceSpans"/], ["docent", "docent.json", /"agent_runs"/], ["junit", "junit.xml", /<testsuite name="hone /], ["html", "report.html", /<!doctype html>/]] as const) {
+      const o = io(dir);
+      expect(await exportCommand([kind], o)).toBe(0);
+      expect(o.out).toMatch(new RegExp(`wrote 3 trials as ${kind} to ${file}`));
+      const text = fs.readFileSync(path.join(dir, file), "utf8");
+      expect(text).toMatch(probe);
+      if (kind === "otel") expect(JSON.parse(text).resourceSpans[0].scopeSpans[0].spans.length).toBeGreaterThanOrEqual(3);
+      if (kind === "junit") expect(text).toContain('tests="3" failures="1"');
+      if (kind === "html") expect(text).toContain(runId);
+    }
+    const o = io(dir);
+    expect(await exportCommand(["docent", "--out", "custom.json", "--run", runId], o)).toBe(0);
+    expect(JSON.parse(fs.readFileSync(path.join(dir, "custom.json"), "utf8")).agent_runs).toHaveLength(3);
   });
 });
