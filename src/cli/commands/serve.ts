@@ -10,13 +10,15 @@ export const REWARD_SPEC = { flags: [], strings: ["host", "scorer"], numbers: ["
 const REWARD_HELP: Record<string, string> = { host: "bind address (default 127.0.0.1)", port: "port (default 8787)", scorer: "scorer name to serve (repeatable; default all configured)" };
 
 export function serveUsage(): string {
-  return `usage: hone serve ssh [--port 2222] [--host 127.0.0.1] [--run id] [--read-only]\n       hone serve reward [--port 8787] [--host 127.0.0.1] [--scorer name]...\n\nssh serves the dashboard (connect: ssh -p <port> <host>); reward serves the configured scorers over HTTP (GET /health, POST /score, POST /batch).\n\nssh options:\n${usageLine(SERVE_SPEC, HELP)}\nreward options:\n${usageLine(REWARD_SPEC, REWARD_HELP)}\n`;
+  return `usage: hone serve ssh [--port 2222] [--host 127.0.0.1] [--run id] [--read-only]\n       hone serve reward [--port 8787] [--host 127.0.0.1] [--scorer name]...\n       hone serve mcp\n\nssh serves the dashboard (connect: ssh -p <port> <host>); reward serves the configured scorers over HTTP (GET /health, POST /score, POST /batch); mcp speaks MCP over stdio for agents (tools: hone_run, hone_list_runs, hone_matrix, hone_compare, hone_explain, hone_cluster, hone_fork).\n\nssh options:\n${usageLine(SERVE_SPEC, HELP)}\nreward options:\n${usageLine(REWARD_SPEC, REWARD_HELP)}\n`;
 }
 
 export interface ServeDeps {
   /** false returns right after the server starts (tests); default blocks until SIGINT/SIGTERM. */
   block?: boolean;
   started?: (stop: () => Promise<void>, info: { port: number; host: string }) => void;
+  /** MCP input stream (tests); default process stdin. */
+  stdin?: ReadableStream<Uint8Array>;
 }
 
 async function waitForSignal(stop: () => Promise<void>): Promise<void> {
@@ -37,7 +39,8 @@ export async function serveCommand(argv: string[], io: CommandIo, deps: ServeDep
   }
   if (mode === "ssh") return serveSsh(rest, io, deps);
   if (mode === "reward") return serveReward(rest, io, deps);
-  io.stderr(`unknown serve mode "${mode}"; modes: ssh, reward (mcp arrives with T-706)\n${serveUsage()}`);
+  if (mode === "mcp") return serveMcp(rest, io, deps);
+  io.stderr(`unknown serve mode "${mode}"; modes: ssh, reward, mcp\n${serveUsage()}`);
   return 2;
 }
 
@@ -94,5 +97,22 @@ async function serveReward(rest: string[], io: CommandIo, deps: ServeDeps): Prom
   io.stdout(`hone reward server on http://${server.host}:${server.port}\n  scorers: ${(scorers as NonNullable<(typeof scorers)[number]>[]).map((s) => s.name).join(", ")}\n  POST /score {messages|output, case?}   POST /batch {items: [...]}   GET /health\n  ctrl+c stops the server\n`);
   deps.started?.(server.stop, { port: server.port, host: server.host });
   if (deps.block !== false) await waitForSignal(server.stop);
+  return 0;
+}
+
+async function serveMcp(rest: string[], io: CommandIo, deps: ServeDeps): Promise<number> {
+  if (rest.includes("--help") || rest.includes("-h")) {
+    io.stdout(serveUsage());
+    return 0;
+  }
+  if (rest.length) {
+    io.stderr(`hone serve mcp takes no options\n${serveUsage()}`);
+    return 2;
+  }
+  const { createMcpServer, serveStdio } = await import("../../serve/mcp");
+  const server = createMcpServer({ cwd: io.cwd, env: io.env, log: (l) => io.stderr(`mcp: ${l}\n`) });
+  const input = deps.stdin ?? (Bun.stdin.stream() as ReadableStream<Uint8Array>);
+  // protocol frames go to stdout only; io.stdout may be a test capture
+  await serveStdio(server, input, (line) => io.stdout(line));
   return 0;
 }
