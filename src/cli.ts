@@ -6,6 +6,7 @@ import { ciCommand } from "./cli/commands/ci";
 import { clusterCommand } from "./cli/commands/cluster";
 import { compareCommand } from "./cli/commands/compare";
 import { diffCommand } from "./cli/commands/diff";
+import { evolveCommand } from "./cli/commands/evolve";
 import { explainCommand } from "./cli/commands/explain";
 import { forkCommand } from "./cli/commands/fork";
 import { initCommand } from "./cli/commands/init";
@@ -32,6 +33,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   calibrate: { run: calibrateCommand, summary: "measure what a judge catches by injecting faults into passing trials" },
   cluster: { run: clusterCommand, summary: "group the failed trials of a run into failure modes" },
   diff: { run: diffCommand, summary: "align two trajectories step by step and show where they diverge" },
+  evolve: { run: evolveCommand, summary: "propose text changes from failures, verify them, keep the Pareto front" },
   explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
   fork: { run: forkCommand, summary: "re-run a trial from an edited message and compare the verdict" },
   init: { run: initCommand, summary: "detect the project and write hone.config.ts, example cases and keys" },
