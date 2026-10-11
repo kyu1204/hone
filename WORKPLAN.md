@@ -103,7 +103,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-902 README demo gif, docs pages (M)
 - [x] T-903 `release.yml`: trusted publishing, compiled binaries, GitHub Release (M)
 - [x] T-904 Repository hardening (S)
-- [ ] T-905 v0.1.0 tag, npm publish, launch posts (S)
+- [ ] T-905 v0.1.0 tag, npm publish, launch posts (S) BLOCKED: npm publish needs the maintainer (no npm login on this machine; trusted publishing not configured). Prepared: CHANGELOG 0.1.0, version 0.1.0, launch drafts, README badge. Remaining for a human: configure npm trusted publishing or `npm login`, then `git tag v0.1.0 && git push origin v0.1.0`, verify the release, submit the awesome-list PRs.
 
 ## Progress log
 
@@ -178,3 +178,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-902 | #77 | .github/assets/demo.tape + demo.gif (VHS over examples/harness-ablation: ablate, optimize, dashboard) and scripts/demo.sh; README: gif, real captured outputs, current quick start, docs index; docs/README.md index, docs/concepts.md, docs/release.md placeholder; scripts/check-links.ts with a test over every relative Markdown link |
 | 2026-10-12 | T-903 | #78 | scripts/build-binaries.ts (six bun --compile targets, SHA256SUMS, --only/--out; darwin-arm64 verified locally: binary runs the CLI), scripts/release-check.ts (semver, tag match, CHANGELOG section, clean tree), .github/workflows/release.yml (check -> binaries matrix -> publish with npm provenance via OIDC -> GitHub Release with assets), CHANGELOG.md, docs/release.md, package scripts build:binaries/release:check/docs:cli/docs:links |
 | 2026-10-12 | T-904 | #79 | ruleset verified and recorded (test/fixtures/ruleset.protect-main.json), wiki/projects off, vulnerability alerts + Dependabot security updates on; ci.yml least privilege + concurrency, actions pinned to SHAs in both workflows; dependabot.yml, SECURITY.md, CODEOWNERS, PR and issue templates; scripts/check-hardening.ts with a fixture test; docs/hardening.md with the live check output |
+| 2026-10-12 | T-905 | #80 | CHANGELOG 0.1.0, package version 0.1.0, README status line and badge, docs index entries (release, hardening, launch), docs/launch/{hn,x,awesome}.md. BLOCKED on npm credentials: tag not pushed; release.yml will publish once the maintainer configures trusted publishing (docs/release.md) |
