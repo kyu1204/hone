@@ -83,7 +83,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 ## P7 Correction (after T-108, P3, P6)
 
-- [ ] T-701 `correct/fork.ts` prefix-pinned re-run (M)
+- [x] T-701 `correct/fork.ts` prefix-pinned re-run (M)
 - [ ] T-702 `correct/evolve.ts` GEPA-lite (L)
 - [ ] T-703 `correct/optimize.ts` bandit allocation + paired verdict (M)
 - [ ] T-704 `io/export/rollouts.ts` (S)
@@ -164,3 +164,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-603 | #60 | tui/align.ts moved to analysis/diffTrace.ts; divergenceReport classifies aligned rows (identical, different-content, different-tool-args, missing-in-a/b); hone diff <a> <b> prints side-by-side rows with gap markers or --json |
 | 2026-10-12 | T-604 | #61 | analysis/calibrate.ts: fault injectors per domain (rag unsupported-claim/wrong-citation, qa answer-swapped/negated, agent verification-removed/tool-result-swapped/premature-done), calibrate with Wilson detection rates, clean re-score false alarms, Cohen kappa vs labels; hone calibrate --scorer --domain --run --n --seed --labels --json writes analysis/calibration-<scorer>.json |
 | 2026-10-12 | T-605 | #62 | analysis/branchpoints.ts rankBranchPoints (error spans, divergence from a passing sibling, differing tool results, last tool call, completion claim, early-step penalty), topSteps, pickSibling; fork screen marks the top 3 with ★; hone explain prints fork candidates with reasons. P6 complete |
+| 2026-10-12 | T-701 | #64 | tui/forkRunner.ts moved to correct/fork.ts; loadForkDeps shared by hone tui and hone fork; hone fork <trial> [--step n --content/--file] [--json] re-runs from the edited prefix and prints verdict change, scores and divergence rows; without --step lists T-605 fork candidates |
