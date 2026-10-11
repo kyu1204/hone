@@ -107,53 +107,72 @@ export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], t
   return `${lines.join("\n")}\n`;
 }
 
-export async function runCommand(argv: string[], io: CommandIo): Promise<number> {
-  let args: ReturnType<typeof parseArgs>;
-  try {
-    args = parseArgs(argv, RUN_SPEC);
-  } catch (e) {
-    io.stderr(`${e instanceof ArgError ? e.message : String(e)}\n${runUsage()}`);
-    return 2;
+export interface RunOptions {
+  cwd: string;
+  filter?: PlanFilter;
+  trials?: number;
+  concurrency?: number;
+  adaptive?: boolean;
+  ciWidth?: number;
+  maxTrials?: number;
+  useCache?: boolean;
+  maxCost?: number;
+  quiet?: boolean;
+  stderr: (s: string) => void;
+}
+
+export interface RunOutcome {
+  config: HoneConfig;
+  configHash: string;
+  plan: Plan;
+  summary: RunSummary;
+  trials: Trial[];
+  gates: GateResult[];
+  runId: string;
+  cost: number;
+  targetIds: string[];
+  storeRoot: string;
+}
+
+/** Thrown by performRun with the exit code the CLI should use. */
+export class RunError extends Error {
+  constructor(
+    message: string,
+    public readonly code: number,
+  ) {
+    super(message);
+    this.name = "RunError";
   }
-  if (args.help) {
-    io.stdout(runUsage());
-    return 0;
-  }
+}
+
+export async function performRun(opts: RunOptions): Promise<RunOutcome> {
   let loaded: Awaited<ReturnType<typeof loadConfig>>;
   try {
-    loaded = await loadConfig(io.cwd);
+    loaded = await loadConfig(opts.cwd);
   } catch (e) {
-    io.stderr(`${e instanceof ConfigNotFound ? e.message : `config error: ${e instanceof Error ? e.message : String(e)}`}\n`);
-    return 2;
+    throw new RunError(e instanceof ConfigNotFound ? e.message : `config error: ${e instanceof Error ? e.message : String(e)}`, 2);
   }
   const config = loaded.config;
-  const root = path.resolve(io.cwd, config.cacheDir ?? ".hone");
+  const root = path.resolve(opts.cwd, config.cacheDir ?? ".hone");
   let cases;
   let targets;
   let scorers;
   try {
-    cases = await loadCases(config.cases, io.cwd);
+    cases = await loadCases(config.cases, opts.cwd);
     targets = createTargets(config.targets);
     scorers = createScorers(config.scorers);
   } catch (e) {
-    io.stderr(`config error: ${e instanceof Error ? e.message : String(e)}\n`);
-    return 2;
+    throw new RunError(`config error: ${e instanceof Error ? e.message : String(e)}`, 2);
   }
-
-  const filter: PlanFilter = {};
-  if (args.values.target) filter.targets = args.values.target;
-  if (args.values.case) filter.cases = args.values.case;
-  if (args.values.tag) filter.tags = args.values.tag;
   const effective: HoneConfig = { ...config };
-  if (args.numbers.trials !== undefined) effective.trials = args.numbers.trials;
-  if (args.numbers.concurrency !== undefined) effective.concurrency = args.numbers.concurrency;
-  if (args.flags.adaptive) effective.adaptive = { ciWidth: args.numbers["ci-width"] ?? config.adaptive?.ciWidth ?? 0.2, maxTrials: args.numbers["max-trials"] ?? config.adaptive?.maxTrials ?? 12 };
+  if (opts.trials !== undefined) effective.trials = opts.trials;
+  if (opts.concurrency !== undefined) effective.concurrency = opts.concurrency;
+  if (opts.adaptive) effective.adaptive = { ciWidth: opts.ciWidth ?? config.adaptive?.ciWidth ?? 0.2, maxTrials: opts.maxTrials ?? config.adaptive?.maxTrials ?? 12 };
   let plan: Plan;
   try {
-    plan = buildPlan({ config: effective, cases, targets: Object.keys(targets), filter });
+    plan = buildPlan({ config: effective, cases, targets: Object.keys(targets), filter: opts.filter ?? {} });
   } catch (e) {
-    io.stderr(`${e instanceof Error ? e.message : String(e)}\n`);
-    return 2;
+    throw new RunError(e instanceof Error ? e.message : String(e), 2);
   }
 
   const store = new Store(root);
@@ -166,19 +185,55 @@ export async function runCommand(argv: string[], io: CommandIo): Promise<number>
   events.on("trial:done", ({ trial, cached }) => {
     trials.push(trial);
     cost += trial.costUsd;
-    if (args.numbers["max-cost"] !== undefined && cost > args.numbers["max-cost"]) ctrl.abort();
-    if (!args.flags.quiet) io.stderr(`${trial.pass === true ? "✓" : trial.pass === false ? "✗" : "·"} ${trial.trace.caseId} ${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}\n`);
+    if (opts.maxCost !== undefined && cost > opts.maxCost) ctrl.abort();
+    if (!opts.quiet) opts.stderr(`${trial.pass === true ? "✓" : trial.pass === false ? "✗" : "·"} ${trial.trace.caseId} ${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}\n`);
   });
-  const execute = createExecutor({ targets, scorers, scorerSpecs: config.scorers, cases, cache, store, events, gates: config.gates, runId: run.id, useCache: args.flags.cache !== false, signal: ctrl.signal });
+  const execute = createExecutor({ targets, scorers, scorerSpecs: config.scorers, cases, cache, store, events, gates: config.gates, runId: run.id, useCache: opts.useCache ?? true, signal: ctrl.signal });
   const summary = await runPlan(plan, { runId: run.id, execute, events, signal: ctrl.signal });
   store.finishRun(run.id, summary as unknown as Record<string, unknown>);
   for (const t of Object.values(targets)) await t.close?.();
   store.close();
+  return { config, configHash: loaded.hash, plan, summary, trials, gates: evaluateGates(config, summary), runId: run.id, cost, targetIds: [...new Set(plan.cells.map((c) => c.targetId))], storeRoot: root };
+}
 
-  const gates = evaluateGates(config, summary);
-  const targetIds = [...new Set(plan.cells.map((c) => c.targetId))];
+export async function runCommand(argv: string[], io: CommandIo): Promise<number> {
+  let args: ReturnType<typeof parseArgs>;
+  try {
+    args = parseArgs(argv, RUN_SPEC);
+  } catch (e) {
+    io.stderr(`${e instanceof ArgError ? e.message : String(e)}\n${runUsage()}`);
+    return 2;
+  }
+  if (args.help) {
+    io.stdout(runUsage());
+    return 0;
+  }
+  const filter: PlanFilter = {};
+  if (args.values.target) filter.targets = args.values.target;
+  if (args.values.case) filter.cases = args.values.case;
+  if (args.values.tag) filter.tags = args.values.tag;
+  let outcome: RunOutcome;
+  try {
+    outcome = await performRun({
+      cwd: io.cwd,
+      filter,
+      trials: args.numbers.trials,
+      concurrency: args.numbers.concurrency,
+      adaptive: args.flags.adaptive,
+      ciWidth: args.numbers["ci-width"],
+      maxTrials: args.numbers["max-trials"],
+      useCache: args.flags.cache !== false,
+      maxCost: args.numbers["max-cost"],
+      quiet: args.flags.quiet,
+      stderr: io.stderr,
+    });
+  } catch (e) {
+    io.stderr(`${e instanceof Error ? e.message : String(e)}\n`);
+    return e instanceof RunError ? e.code : 2;
+  }
+  const { summary, trials, gates, runId, cost, plan, targetIds } = outcome;
   if (args.values.json) {
-    const doc = JSON.stringify({ schemaVersion: 1, runId: run.id, summary, cells: summary.cells, gates, trialIds: trials.map((t) => t.id) }, null, 2);
+    const doc = JSON.stringify({ schemaVersion: 1, runId, summary, cells: summary.cells, gates, trialIds: trials.map((t) => t.id) }, null, 2);
     const target = args.values.json[0];
     if (target) fs.writeFileSync(path.resolve(io.cwd, target), doc);
     else io.stdout(`${doc}\n`);
