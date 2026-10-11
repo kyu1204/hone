@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { ablateCommand } from "./cli/commands/ablate";
 import { bisectCommand } from "./cli/commands/bisect";
+import { calibrateCommand } from "./cli/commands/calibrate";
 import { ciCommand } from "./cli/commands/ci";
 import { clusterCommand } from "./cli/commands/cluster";
 import { compareCommand } from "./cli/commands/compare";
@@ -27,6 +28,7 @@ const COMMANDS: Record<string, { run: Command; summary: string }> = {
   compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
   ablate: { run: ablateCommand, summary: "measure what each config component contributes" },
   bisect: { run: bisectCommand, summary: "find the commit that broke a case, with confidence intervals" },
+  calibrate: { run: calibrateCommand, summary: "measure what a judge catches by injecting faults into passing trials" },
   cluster: { run: clusterCommand, summary: "group the failed trials of a run into failure modes" },
   diff: { run: diffCommand, summary: "align two trajectories step by step and show where they diverge" },
   explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
