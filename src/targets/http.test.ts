@@ -97,6 +97,26 @@ describe("http target", () => {
     }
   });
 
+  test("resume sends the prefix in the default body and prefixes the returned messages", async () => {
+    let seen: Record<string, unknown> | undefined;
+    const s = serve(async (req) => {
+      seen = (await req.json()) as Record<string, unknown>;
+      return Response.json({ answer: "continued" });
+    });
+    try {
+      const prefix = [{ role: "user" as const, content: "earlier" }, { role: "assistant" as const, content: "reply" }];
+      const t = createTarget("t", { kind: "http", url: s.url, output: "answer" });
+      const out = await t.resume!(prefix, "next", ctx);
+      expect(seen).toEqual({ input: "next", prefix });
+      expect(out.output).toBe("continued");
+      expect(out.messages).toEqual(prefix);
+      const viaCtx = await t.run("next", { ...ctx, prefix });
+      expect(viaCtx.messages).toEqual(prefix);
+    } finally {
+      s.stop();
+    }
+  });
+
   test("version is stable for the same spec and changes with it; explicit version wins", async () => {
     const a = createTarget("t", { kind: "http", url: "http://x/ask", body: (c: { input: unknown }) => ({ q: c.input }) });
     const b = createTarget("t", { kind: "http", url: "http://x/ask", body: (c: { input: unknown }) => ({ q: c.input }) });
