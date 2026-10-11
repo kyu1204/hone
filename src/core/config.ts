@@ -33,6 +33,8 @@ export interface HoneConfig {
   cacheDir?: string;
   /** Named pure transforms of the config, measured by `hone ablate`. */
   ablations?: Record<string, (config: HoneConfig) => HoneConfig>;
+  /** The mutable text `hone evolve` rewrites (a prompt, a rule file, a rubric) and how to put it into the config. */
+  evolve?: { seed: string; apply: (config: HoneConfig, text: string) => HoneConfig; label?: string };
 }
 
 /** Identity with types: lets hone.config.ts get completion and checking. */
