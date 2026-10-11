@@ -34,7 +34,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-201 Deterministic scorers: exact, contains, regex, json-schema, tool_used, tool_order, step_count, cost, latency, file_exists, test_command (M)
 - [x] T-202 `scorers/hack.ts` reward-hack detector: diff rules + Jev confirmation (M)
 - [x] T-203 `scorers/rag/*` citation presence, claim faithfulness, context recall/precision (M)
-- [ ] T-204 `scorers/consistency.ts` metamorphic scorer (M)
+- [x] T-204 `scorers/consistency.ts` metamorphic scorer (M)
 - [ ] T-205 `scorers/judge/jev.ts` noul/score/choice wrappers, per-step fan-out, thresholds (S)
 - [ ] T-206 `scorers/judge/llm.ts` rubric judge with Unknown option, split dimensions, pairwise order swap (M)
 - [ ] T-207 Scorer result caching (S)
@@ -130,3 +130,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-201 | #23 | Scorer/ScoreContext contract, registry, runScorer; exact, contains, regex, json-schema (subset validator), tool_used, tool_order, step_count, cost, latency, file_exists, test_command |
 | 2026-10-12 | T-202 | #24 | hack scorer: diff parser + rules test-modified/deleted, skip-inserted, assertion-weakened, expected-hardcoded, verifier-touched; Jev confirm -> undecided below threshold |
 | 2026-10-12 | T-203 | #25 | rag.context_recall/precision, rag.citations, rag.faithfulness (claim split, noul per claim, 256-batch), rag.answer_relevance (score levels) |
+| 2026-10-12 | T-204 | #26 | consistency scorer: paraphrase/reorder/noise mutations (deterministic, inapplicable ones skipped), exact or Jev comparison via ctx.runTarget |
