@@ -57,7 +57,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-404 `hone compare` paired report (S)
 - [x] T-405 `hone matrix` harness x model aggregation (S)
 - [x] T-406 `hone bisect` git bisection with per-commit trials (M)
-- [ ] T-407 `hone ablate` component removal comparison (M)
+- [x] T-407 `hone ablate` component removal comparison (M)
 - [ ] T-408 `hone ci` per-axis thresholds, exit code, JUnit, PR comment (M)
 - [ ] T-409 `hone init` project detection scaffolding and key entry (M)
 - [ ] T-410 `hone power`, `hone explain`, `hone report` (M)
@@ -147,3 +147,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-404 | #42 | hone compare: two targets in a run or one target across runs, paired diff/CI/p, McNemar, cluster-robust CI, verdict, --json |
 | 2026-10-12 | T-405 | #42 | hone matrix: pass@1, pass^3, $/tokens/s per solve, timeouts, hacks, cached, Holm bands, --by model|agent |
 | 2026-10-12 | T-406 | #43 | correct/bisect.ts: endpoints first, midpoint threshold, Wilson-based verdicts with extra rounds, worktree per probe; hone bisect runs the plan uncached inside each worktree |
+| 2026-10-12 | T-407 | #44 | config.ablations transforms; correct/ablation.ts runs baseline + each ablation, paired compare per case, verdict helps/hurts/no effect, cost delta |
