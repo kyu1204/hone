@@ -26,7 +26,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-104 `targets/process.ts` isolated workspace, agent presets, session log to messages, git diff capture, timeout (L)
 - [x] T-105 `targets/mcp.ts` stdio MCP server target (M)
 - [x] T-106 `targets/replay.ts` re-score existing traces (S)
-- [ ] T-107 `targets/docker.ts` Dockerfile or Harbor task directory (M)
+- [x] T-107 `targets/docker.ts` Dockerfile or Harbor task directory (M)
 - [ ] T-108 `resume(prefix)` interface on fn/http/process targets (M)
 
 ## P2 Scorers (after P0, parts of P1)
@@ -125,3 +125,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-104 | #17 | process target: copy/worktree/none isolation, git diff incl. untracked, timeout kill, presets claude-code/codex/opencode/aider/generic, NDJSON parsers |
 | 2026-10-12 | T-105 | #18 | mcp target: initialize handshake (2025-06-18), tools/call, structuredContent, isError, restart, version with serverInfo |
 | 2026-10-12 | T-106 | #19 | replay target: inline or glob traces (json/jsonl), trial or random selection, version from file stats |
+| 2026-10-12 | T-107 | #20 | docker target: build env, run with /tests and /logs mounts, agent exec, verifier, reward.txt/json; io/atif.ts ATIF-v1.7 both directions |
