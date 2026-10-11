@@ -1,6 +1,8 @@
 import { useKeyboard, useTerminalDimensions } from "@opentui/react";
 import { type ReactNode, useSyncExternalStore } from "react";
 import { SCREENS, type Screen, type TuiStore } from "./state";
+import { alignTraces } from "./align";
+import { DiffScreen, diffSides } from "./screens/diff";
 import { MatrixScreen } from "./screens/matrix";
 import { TraceScreen, traceEntries } from "./screens/trace";
 import { useTheme } from "./theme";
@@ -121,6 +123,17 @@ export function App({ store, onQuit }: AppProps): ReactNode {
         const next = hits.find((i) => i > s.entryIdx) ?? hits[0];
         if (next !== undefined) store.setEntryIdx(next);
       } else if (key.name === "f") store.setScreen("fork");
+    } else if (s.screen === "diff") {
+      const sides = diffSides(store);
+      const total = sides ? alignTraces(sides.a.trace.messages, sides.b.trace.messages).pairs.length : 0;
+      if (key.name === "j" || key.name === "down") store.moveEntry(1, total);
+      else if (key.name === "k" || key.name === "up") store.moveEntry(-1, total);
+      else if (key.name === "return") store.toggleExpanded();
+      else if (key.name === "tab") store.toggleDiffSwap();
+      else if (key.name === "n" && sides) {
+        const d = alignTraces(sides.a.trace.messages, sides.b.trace.messages).divergence;
+        if (d !== null) store.setEntryIdx(d);
+      }
       else if (key.name === "D" || (key.shift && key.name === "d")) {
         const cell = store.selectedCell();
         if (cell && s.trialIdx > 0) {
@@ -130,7 +143,7 @@ export function App({ store, onQuit }: AppProps): ReactNode {
       }
     }
   });
-  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : <Placeholder name={s.screen} />;
+  const body = s.help ? <HelpOverlay /> : s.screen === "matrix" ? <MatrixScreen store={store} /> : s.screen === "trace" ? <TraceScreen store={store} /> : s.screen === "diff" ? <DiffScreen store={store} /> : <Placeholder name={s.screen} />;
   return (
     <box style={{ flexDirection: "column", height, width: "100%" }}>
       <Header store={store} />
