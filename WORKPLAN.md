@@ -52,7 +52,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P4 Runner and CLI (after P0 to P3)
 
 - [x] T-401 `core/plan.ts` + `core/scheduler.ts` concurrency pool, isolation, retries, adaptive queue (L)
-- [ ] T-402 `core/executor.ts` cache, scorers, store wiring, flags (M)
+- [x] T-402 `core/executor.ts` cache, scorers, store wiring, flags (M)
 - [ ] T-403 `hone run` table, JSON, exit codes (S)
 - [ ] T-404 `hone compare` paired report (S)
 - [ ] T-405 `hone matrix` harness x model aggregation (S)
@@ -142,3 +142,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-306 | #36 | fit2pl joint MAP, fisherInformation, orderCasesByInformation, caseNoise |
 | 2026-10-12 | T-307 | #37 | BetaBandit Thompson sampling, allocate(). P3 complete |
 | 2026-10-12 | T-401 | #39 | buildPlan (id/glob/tag filters), runPlan: worker pool, trial-major order, transient retries, adaptive widest-cell sampling with case:stopped, abort, RunSummary |
+| 2026-10-12 | T-402 | #40 | createExecutor: target cache (input + version), toTrace, cached scorers with runTarget hook, flags cached/timeout/reward-hack, gate modes fail/warn/ignore, store.saveTrial |
