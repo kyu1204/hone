@@ -85,7 +85,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 - [x] T-701 `correct/fork.ts` prefix-pinned re-run (M)
 - [x] T-702 `correct/evolve.ts` GEPA-lite (L)
-- [ ] T-703 `correct/optimize.ts` bandit allocation + paired verdict (M)
+- [x] T-703 `correct/optimize.ts` bandit allocation + paired verdict (M)
 - [ ] T-704 `io/export/rollouts.ts` (S)
 - [ ] T-705 `serve/reward.ts` HTTP reward server (S)
 - [ ] T-706 `serve/mcp.ts` stdio MCP server (M)
@@ -166,3 +166,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-605 | #62 | analysis/branchpoints.ts rankBranchPoints (error spans, divergence from a passing sibling, differing tool results, last tool call, completion claim, early-step penalty), topSteps, pickSibling; fork screen marks the top 3 with ★; hone explain prints fork candidates with reasons. P6 complete |
 | 2026-10-12 | T-701 | #64 | tui/forkRunner.ts moved to correct/fork.ts; loadForkDeps shared by hone tui and hone fork; hone fork <trial> [--step n --content/--file] [--json] re-runs from the edited prefix and prints verdict change, scores and divergence rows; without --step lists T-605 fork candidates |
 | 2026-10-12 | T-702 | #65 | config.evolve { seed, apply }; correct/evolve.ts reflect (one chat call per candidate, JSON proposal), minibatch = parent failures + n passes with rejection, full run, Pareto front over pass@1 x cost, paired verdict (beats baseline only when p < alpha), .hone/evolve/<id>.json + texts; runConfig exported from ablation with trials and caseIds; hone evolve --budget --minibatch --trials --max-cost --alpha --no-cache --json |
+| 2026-10-12 | T-703 | #66 | config.optimize named candidates; correct/optimize.ts: one run + executor per arm, Thompson rounds (allocate) on least-observed cells, stop on budget or P(best) >= confidence with minPerArm, verification top-up so baseline and the leader cover every case, paired verdict, .hone/optimize/<id>.json; hone optimize --budget --batch --confidence --alpha --min-per-arm --seed --no-cache --json |
