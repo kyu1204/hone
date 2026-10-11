@@ -98,6 +98,7 @@ export default defineConfig({
 - [`docs/correction.md`](./docs/correction.md): fork, evolve, optimize, ablate, bisect, compare, ci
 - [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
 - [`docs/formats.md`](./docs/formats.md) and [`docs/compat.md`](./docs/compat.md): import/export formats with sources
+- [`examples/`](./examples/): qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation, each green under `hone ci`
 - [`skills/hone/SKILL.md`](./skills/hone/SKILL.md): the skill `hone init --skills` installs for Claude Code and Codex
 
 ## How it compares
