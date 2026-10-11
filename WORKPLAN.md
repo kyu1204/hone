@@ -65,7 +65,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 ## P5 TUI (after P4)
 
 - [x] T-501 `tui/app.tsx` shell: layout, keymap, theme, event subscription (M)
-- [ ] T-502 Matrix screen (M)
+- [x] T-502 Matrix screen (M)
 - [ ] T-503 Trace viewer (L)
 - [ ] T-504 Diff screen (M)
 - [ ] T-505 Clusters, Calibrate, Candidates screens (M)
@@ -152,3 +152,4 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 | 2026-10-12 | T-409 | #46 | detectProject (claude-code, fastapi, mcp, node-ai, fallback echo), renderConfig/renderCases, hone init with --yes/--no-keys/--force and key flags, ~/.config/hone/env 0600; index.ts exports defineConfig and types |
 | 2026-10-12 | T-410 | #47 | hone power (pairs or MDE with design adjustments), hone explain (verdict, scores, messages, span tree, diff), hone report (self-contained HTML with matrix and per-trial details). P4 complete |
 | 2026-10-12 | T-501 | #49 | OpenTUI 0.6 + React 19.3 deps, jsxImportSource; tui/state.ts external store (watch polling), app.tsx shell (header, footer keymap, help, screen keys, matrix preview), theme, hone tui + bare hone in a TTY; tests via @opentui/react/test-utils |
+| 2026-10-12 | T-502 | #50 | matrix screen: grid with cellLabel dots/flags, selection, enter to trace, d diff pairing, s sort cycle, / filter input (keyboard suspended), c summary row |
