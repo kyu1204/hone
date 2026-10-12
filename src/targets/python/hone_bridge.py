@@ -101,6 +101,10 @@ def _load(module: str, fn: str):
         sys.modules["hone_user_module"] = mod
         spec.loader.exec_module(mod)
     else:
+        # the bridge runs with -I, which drops the working directory from sys.path; put it back so `module: "answer"` finds ./answer.py
+        cwd = os.getcwd()
+        if cwd not in sys.path:
+            sys.path.insert(0, cwd)
         mod = importlib.import_module(module)
     return getattr(mod, fn)
 

@@ -34,6 +34,17 @@ afterAll(() => {
 });
 
 describe.skipIf(!hasPython)("python target", () => {
+  test("a module name resolves from cwd even though the bridge runs with -I", async () => {
+    const d = fs.mkdtempSync(path.join(os.tmpdir(), "hone-pymod-"));
+    dirs.push(d);
+    fs.writeFileSync(path.join(d, "answer.py"), "def answer(input, ctx=None):\n    return 'Paris' if 'france' in str(input) else 'unknown'\n");
+    const t = createTarget("py", { kind: "python", module: "answer", fn: "answer", cwd: d });
+    targets.push(t);
+    const out = await t.run("capital of france?", { runId: "r", caseId: "c", trial: 0 });
+    expect(out.error).toBeUndefined();
+    expect(out.output).toBe("Paris");
+  });
+
   test("sync handler: plain return, spans, messages, usage", async () => {
     const file = handler(`
 def handler(input, ctx):
