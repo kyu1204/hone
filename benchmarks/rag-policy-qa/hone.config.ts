@@ -28,7 +28,7 @@ export const PROMPT_V1 = `당신은 정부 정책 안내 문서를 근거로 답
 3. 출처로 답할 수 없으면 다른 말 없이 정확히 [[NO_ANSWER]] 만 출력한다.
 4. 한국어로 간결하게 답한다.`;
 
-function ragTarget(env: Record<string, string>, version: string) {
+export function ragTarget(env: Record<string, string>, version: string) {
   return { kind: "python", module: `${here}hone_rag.py`, fn: "handler", python: `${RAG_REPO}/.venv/bin/python`, cwd: RAG_REPO, env: { ...BASE_ENV, ...env }, timeoutMs: 180_000, version };
 }
 

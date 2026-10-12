@@ -1,0 +1,15 @@
+running baseline (43 cells x 2)
+running cand-1 minibatch (15 cells x 2)
+running cand-1 (43 cells x 2)
+running cand-2 minibatch (15 cells x 2)
+running cand-2 (43 cells x 2)
+running cand-3 minibatch (15 cells x 2)
+running cand-3 (43 cells x 2)
+  candidate   pass@1   95% CI        cost     pareto  note
+  baseline       79%   [ 69%,  86%]  $0.0320    ★     
+  cand-1         81%   [ 72%,  88%]  $0.0509          오거절을 줄이도록 NO_ANSWER 조건을 '관련 내용이 전혀 없을 때'로 좁히고, 커버…
+  cand-2         84%   [ 75%,  90%]  $0.0493    ★     제도 누락(커버리지 부족)을 막기 위해 한 출처 내 복수 제도 확인, 부분 일치 제도 포…
+  cand-3         83%   [ 73%,  89%]  $0.0409    ★     답변이 일부 제도만 다루어 커버리지가 낮았고 한 건은 오거절이었으므로, 출처 전체를 훑어…
+
+verdict: no measurable effect
+wrote .hone/evolve/20261012132457.json

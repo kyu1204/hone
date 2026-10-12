@@ -1,0 +1,61 @@
+=== confirm Mon Oct 12 23:20:32 KST 2026
+quant-10-user     ○○○ 0.00      ○○○ 0.00      ○○○ 0.00      
+
+pass@1 0.09   pass^3 0.00   trials 387 (0 cached)   cost $0.0390   tokens/solve 22,094
+target    band  cases  trials  pass@1  pass^3  $/solve   tokens/solve  s/solve  timeouts  hacks  cached  undecided
+v3-k30    A     43     129     0.09    0.00    $0.0014   28,623        12.8     0         0      0%
+evolved   A     43     129     0.09    0.00    $0.0015   28,544        16.5     0         0      0%
+baseline  A     43     129     0.08    0.00    $0.0004   6,519         11.1     0         0      0%
+
+--- v3-k30 baseline (pass = useful)
+  v3-k30                   mean 0.093
+  baseline                 mean 0.078
+  difference +0.016  CI95% [-0.006, 0.037]  t=1.43  p=1.60e-1
+  pairing reduced variance by 88% (corr 0.88)
+  verdict: no significant difference at alpha 0.05
+--- v3-k30 baseline (mean 0/1/2 score)
+  v3-k30                   mean 0.101
+  baseline                 mean 0.097
+  difference +0.004  CI95% [-0.010, 0.018]  t=0.57  p=5.70e-1
+  pairing reduced variance by 95% (corr 0.96)
+  verdict: no significant difference at alpha 0.05
+--- evolved baseline (pass = useful)
+  evolved                  mean 0.093
+  baseline                 mean 0.078
+  difference +0.016  CI95% [-0.016, 0.047]  t=1.00  p=3.23e-1
+  pairing reduced variance by 76% (corr 0.76)
+  verdict: no significant difference at alpha 0.05
+--- evolved baseline (mean 0/1/2 score)
+  evolved                  mean 0.101
+  baseline                 mean 0.097
+  difference +0.004  CI95% [-0.017, 0.025]  t=0.37  p=7.10e-1
+  pairing reduced variance by 89% (corr 0.89)
+  verdict: no significant difference at alpha 0.05
+--- evolved v3-k30 (pass = useful)
+  evolved                  mean 0.093
+  v3-k30                   mean 0.093
+  difference +0.000  CI95% [-0.022, 0.022]  t=0.00  p=1.00e+0
+  pairing reduced variance by 88% (corr 0.88)
+  verdict: no significant difference at alpha 0.05
+--- evolved v3-k30 (mean 0/1/2 score)
+  evolved                  mean 0.101
+  v3-k30                   mean 0.101
+  difference +0.000  CI95% [-0.022, 0.022]  t=0.00  p=1.00e+0
+  pairing reduced variance by 88% (corr 0.88)
+  verdict: no significant difference at alpha 0.05
+--- breakdown baseline
+baseline 답 없음·함정    n= 30  useful  30.0%  safe  33.3%  2/1/0 9/1/20
+baseline 전체         n=129  useful   7.8%  safe  11.6%  2/1/0 10/5/114
+baseline 정성         n= 39  useful   2.6%  safe  12.8%  2/1/0 1/4/34
+baseline 정량         n= 60  useful   0.0%  safe   0.0%  2/1/0 0/0/60
+--- breakdown v3-k30
+v3-k30   답 없음·함정    n= 30  useful  33.3%  safe  33.3%  2/1/0 10/0/20
+v3-k30   전체         n=129  useful   9.3%  safe  10.9%  2/1/0 12/2/115
+v3-k30   정성         n= 39  useful   5.1%  safe  10.3%  2/1/0 2/2/35
+v3-k30   정량         n= 60  useful   0.0%  safe   0.0%  2/1/0 0/0/60
+--- breakdown evolved
+evolved  답 없음·함정    n= 30  useful  33.3%  safe  33.3%  2/1/0 10/0/20
+evolved  전체         n=129  useful   9.3%  safe  10.9%  2/1/0 12/2/115
+evolved  정성         n= 39  useful   5.1%  safe  10.3%  2/1/0 2/2/35
+evolved  정량         n= 60  useful   0.0%  safe   0.0%  2/1/0 0/0/60
+=== done Mon Oct 12 23:28:31 KST 2026
