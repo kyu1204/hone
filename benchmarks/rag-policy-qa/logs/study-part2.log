@@ -1,0 +1,26 @@
+=== evolve Mon Oct 12 22:16:34 KST 2026
+running baseline (43 cells x 2)
+  candidate   pass@1   95% CI        cost     pareto  note
+  baseline       79%   [ 69%,  86%]  $0.0324    ★     
+  cand-1          0%   [  0%,   0%]  $0.0000          reply not JSON
+  cand-2          0%   [  0%,   0%]  $0.0000          reply not JSON
+  cand-3          0%   [  0%,   0%]  $0.0000          reply not JSON
+
+verdict: no measurable effect
+wrote .hone/evolve/20261012131634.json
+=== ablate Mon Oct 12 22:23:48 KST 2026
+running baseline (43 cells x 2)
+running no-citation-rule (43 cells x 2)
+baseline pass@1 0.78 cost $0.0322 (run 2026-10-12T13-23-49.028Z-cf90)
+
+ablation          pass@1  delta    CI95            p        cost delta  verdict
+no-citation-rule  0.34    -0.44    [-0.60, -0.28]   1.3e-6   +$0.0001   component helps
+
+delta = ablation minus baseline; a negative delta with a small p means the removed component was helping.
+=== confirm Mon Oct 12 22:37:06 KST 2026
+error: Module not found "../../src/cli.ts"
+--- v3-k30 vs baseline
+--- evolved vs baseline
+--- evolved vs v3-k30
+--- mean score, evolved vs baseline
+=== done Mon Oct 12 22:37:06 KST 2026
