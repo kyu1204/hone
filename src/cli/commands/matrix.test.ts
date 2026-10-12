@@ -108,4 +108,22 @@ describe("hone matrix", () => {
     expect(t.out).toMatch(/undecided/);
     expect(t.out).toMatch(/imported\s+\S+\s+2\s+2\s+n\/a/);
   });
+
+  test("trials whose target errored are counted in an errors column, not hidden inside pass@1", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hone-matrix-errors-"));
+    dirs.push(dir);
+    const store = new Store(path.join(dir, ".hone"));
+    const run = store.createRun({ configHash: "h", targets: ["dead"], caseIds: ["a", "b"] });
+    for (const c of ["a", "b"]) store.saveTrial({ id: Store.trialId(run.id, c, "dead", 0), runId: run.id, trace: { ...base, id: `${c}-e`, caseId: c, targetId: "dead", output: null, error: "HTTP 400: usage limit" }, scores: [], flags: [], pass: false, costUsd: 0 });
+    store.finishRun(run.id, {});
+    store.close();
+    const o = io(dir);
+    expect(await matrixCommand(["--json"], o)).toBe(0);
+    expect((JSON.parse(o.out) as { rows: { errors: number }[] }).rows[0]!.errors).toBe(2);
+    const t = io(dir);
+    await matrixCommand([], t);
+    expect(t.out).toMatch(/errors/);
+    expect(t.out).toMatch(/dead\s+\S+\s+2\s+2\s+0\.00.*\s2\s*$/m);
+    expect(t.out).toMatch(/2 of 2 trials errored/);
+  });
 });
