@@ -9,3 +9,9 @@ export type { GateSpec, HoneConfig, ScorerSpec, TargetSpec } from "./core/config
 export type { Case, ChatMessage, Score, Span, Trace, Trial, Verdict } from "./core/types";
 export type { FnContext } from "./targets/fn";
 export type { RunContext, Target, TargetOutput } from "./targets/target";
+export type { ScoreContext, Scorer } from "./scorers/scorer";
+export type { FnScorerSpec } from "./scorers/fn";
+// Judges, for inline scorers and custom tooling
+export { choice, JevClient, noul, score as scoreQuestion } from "./providers/jev";
+export type { JevAnswer, JevQuestion, JevResult } from "./providers/jev";
+export { chat, resolveLlmProvider } from "./providers/llm";
