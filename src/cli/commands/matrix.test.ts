@@ -83,4 +83,29 @@ describe("hone matrix", () => {
     expect(await matrixCommand([], o)).toBe(2);
     expect(o.err).toMatch(/no runs/);
   });
+
+  test("undecided trials (imported sessions, judge-less runs) are counted, not treated as failures", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hone-matrix-undecided-"));
+    dirs.push(dir);
+    const store = new Store(path.join(dir, ".hone"));
+    const run = store.createRun({ configHash: "h", targets: ["imported", "judged"], caseIds: ["a", "b"] });
+    for (const c of ["a", "b"]) {
+      store.saveTrial({ id: Store.trialId(run.id, c, "imported", 0), runId: run.id, trace: { ...base, id: `${c}-i`, caseId: c, targetId: "imported" }, scores: [], flags: [], pass: null, costUsd: 1 });
+      store.saveTrial({ id: Store.trialId(run.id, c, "judged", 0), runId: run.id, trace: { ...base, id: `${c}-j`, caseId: c, targetId: "judged" }, scores: [{ scorer: "exact", value: c === "a" ? 1 : 0, pass: c === "a" }], flags: [], pass: c === "a", costUsd: 1 });
+    }
+    store.saveTrial({ id: Store.trialId(run.id, "a", "judged", 1), runId: run.id, trace: { ...base, id: "a-j1", caseId: "a", targetId: "judged", trial: 1 }, scores: [], flags: [], pass: null, costUsd: 1 });
+    store.finishRun(run.id, {});
+    store.close();
+    const o = io(dir);
+    expect(await matrixCommand(["--json"], o)).toBe(0);
+    const rows = JSON.parse(o.out) as { rows: { id: string; passAt1: number | null; undecided: number; trials: number }[] };
+    const imported = rows.rows.find((r) => r.id === "imported")!;
+    expect(imported).toMatchObject({ trials: 2, undecided: 2, passAt1: null });
+    const judged = rows.rows.find((r) => r.id === "judged")!;
+    expect(judged).toMatchObject({ trials: 3, undecided: 1, passAt1: 0.5 });
+    const t = io(dir);
+    await matrixCommand([], t);
+    expect(t.out).toMatch(/undecided/);
+    expect(t.out).toMatch(/imported\s+\S+\s+2\s+2\s+n\/a/);
+  });
 });
