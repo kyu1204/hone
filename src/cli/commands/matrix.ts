@@ -20,6 +20,8 @@ export interface MatrixRow {
   passed: number;
   /** Trials with no verdict (no scorer decided); excluded from pass@1. */
   undecided: number;
+  /** Trials whose target failed (trace.error); they count as failures in pass@1. */
+  errors: number;
   /** Pass rate over decided trials; null when no trial was decided. */
   passAt1: number | null;
   passHat3: number | null;
@@ -57,6 +59,7 @@ export function buildMatrix(trials: Trial[], by: "target" | "model" | "agent"): 
       trials: ts.length,
       passed,
       undecided,
+      errors: ts.filter((t) => t.trace.error !== undefined).length,
       passAt1: decided ? passed / decided : null,
       passHat3: k3.length ? k3.reduce((a, b) => a + b, 0) / k3.length : null,
       costPerSolve: passed ? cost / passed : null,
@@ -89,12 +92,14 @@ const fmtInt = (n: number | null): string => (n === null ? "n/a" : Math.round(n)
 
 export function renderMatrixRows(rows: MatrixRow[]): string {
   const idWidth = Math.max(8, ...rows.map((r) => r.id.length)) + 2;
-  const head = `${"target".padEnd(idWidth)}band  cases  trials  pass@1  pass^3  $/solve   tokens/solve  s/solve  timeouts  hacks  cached  undecided`;
+  const head = `${"target".padEnd(idWidth)}band  cases  trials  pass@1  pass^3  $/solve   tokens/solve  s/solve  timeouts  hacks  cached  undecided  errors`;
   const lines = rows.map(
     (r) =>
-      `${r.id.padEnd(idWidth)}${r.band.padEnd(6)}${String(r.cases).padEnd(7)}${String(r.trials).padEnd(8)}${fmt(r.passAt1).padEnd(8)}${fmt(r.passHat3).padEnd(8)}${fmt(r.costPerSolve, 4, "$").padEnd(10)}${fmtInt(r.tokensPerSolve).padEnd(14)}${fmt(r.msPerSolve === null ? null : r.msPerSolve / 1000, 1).padEnd(9)}${String(r.timeouts).padEnd(10)}${String(r.rewardHacks).padEnd(7)}${`${(r.cachedShare * 100).toFixed(0)}%`.padEnd(8)}${r.undecided ? String(r.undecided) : ""}`.trimEnd(),
+      `${r.id.padEnd(idWidth)}${r.band.padEnd(6)}${String(r.cases).padEnd(7)}${String(r.trials).padEnd(8)}${fmt(r.passAt1).padEnd(8)}${fmt(r.passHat3).padEnd(8)}${fmt(r.costPerSolve, 4, "$").padEnd(10)}${fmtInt(r.tokensPerSolve).padEnd(14)}${fmt(r.msPerSolve === null ? null : r.msPerSolve / 1000, 1).padEnd(9)}${String(r.timeouts).padEnd(10)}${String(r.rewardHacks).padEnd(7)}${`${(r.cachedShare * 100).toFixed(0)}%`.padEnd(8)}${(r.undecided ? String(r.undecided) : "").padEnd(11)}${r.errors ? String(r.errors) : ""}`.trimEnd(),
   );
-  return `${[head, ...lines].join("\n")}\n\nband: targets sharing a letter are not significantly different (Holm-adjusted paired tests).\n`;
+  const errored = rows.filter((r) => r.errors);
+  const warn = errored.length ? `\n${errored.map((r) => `warning: ${r.id}: ${r.errors} of ${r.trials} trials errored (the target failed, not the answer); check \`hone explain\` before reading pass@1`).join("\n")}\n` : "";
+  return `${[head, ...lines].join("\n")}\n${warn}\nband: targets sharing a letter are not significantly different (Holm-adjusted paired tests).\n`;
 }
 
 export async function matrixCommand(argv: string[], io: CommandIo): Promise<number> {
