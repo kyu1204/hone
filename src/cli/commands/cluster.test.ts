@@ -128,4 +128,14 @@ describe("hone cluster", () => {
     const file = JSON.parse(fs.readFileSync(path.join(dir, ".hone", "analysis", `clusters-${runId}.json`), "utf8"));
     expect(file.codes.map((c: { code: string; count: number }) => [c.code, c.count])).toEqual([["only-code", 0], ["other", 4]]);
   });
+
+  test("--induce reports an LLM failure as a clean error", async () => {
+    const { dir } = project(2);
+    const o = io(dir);
+    const chat = async (): Promise<{ text: string }> => {
+      throw new Error("llm: HTTP 400: bad request");
+    };
+    expect(await clusterCommand(["--offline", "--induce"], o, { chat })).toBe(1);
+    expect(o.err).toMatch(/cluster failed: llm: HTTP 400/);
+  });
 });
