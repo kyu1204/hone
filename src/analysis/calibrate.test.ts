@@ -114,4 +114,28 @@ describe("calibrate", () => {
     expect(file.faults.find((f) => f.type === "negated")).toMatchObject({ injected: 2, detected: 0, rate: 0, lo: 0 });
     expect(file.kappa).toBeUndefined();
   });
+
+  test("scorers get the real Case (expected and all) and the sample is spread over cases, not the first n", async () => {
+    const trials = ["a", "b", "c", "d", "e", "f"].map((id) => qaTrial(id, `The answer is ${id}.`));
+    const seen: string[] = [];
+    const scorer: Scorer = {
+      name: "needs-expected",
+      score({ case: c, trace }) {
+        seen.push(c.id);
+        if (c.expected === undefined) throw new Error("no expected");
+        const pass = String(trace.output).includes(String(c.expected));
+        return { scorer: "", value: pass ? 1 : 0, pass };
+      },
+    };
+    const cases = trials.map((t) => ({ id: t.trace.caseId, input: "q", expected: `is ${t.trace.caseId}.` }));
+    const file = await calibrate({ trials, scorer, domain: "qa", n: 3, seed: 2, cases });
+    expect(file.falseAlarms).toEqual({ n: 3, flagged: 0, rate: 0 });
+    expect(file.faults.find((f) => f.type === "answer-swapped")).toMatchObject({ injected: 3, detected: 3 });
+    const sampled = [...new Set(seen)];
+    expect(sampled).toHaveLength(3);
+    expect(sampled).not.toEqual(["a", "b", "c"]); // seeded shuffle, not the first three
+    const without = await calibrate({ trials, scorer, domain: "qa", n: 2, seed: 2 });
+    expect(without.falseAlarms.flagged).toBe(0); // undecided (scorer error) is not a false alarm
+    expect(without.faults.find((f) => f.type === "answer-swapped")!.detected).toBe(0);
+  });
 });

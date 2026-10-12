@@ -1,5 +1,5 @@
 // Judge calibration: inject silent faults into passing trials, re-score, report detection rates and false alarms.
-import type { Trace, Trial } from "../core/types";
+import type { Case, Trace, Trial } from "../core/types";
 import { retrievedDocs } from "../scorers/rag";
 import { runScorer, type Scorer } from "../scorers/scorer";
 import { wilsonCi } from "../stats/interval";
@@ -133,13 +133,26 @@ export interface CalibrateOptions {
   seed?: number;
   /** trialId -> true when the trial is genuinely good; enables kappa on the clean re-score. */
   labels?: Map<string, boolean>;
+  /** The run's cases, so scorers see `expected`, `rubric` and the rest; a minimal case is built when missing. */
+  cases?: Case[];
+}
+
+function shuffled<T>(xs: T[], r: Rng): T[] {
+  const out = [...xs];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(r() * (i + 1));
+    [out[i], out[j]] = [out[j]!, out[i]!];
+  }
+  return out;
 }
 
 export async function calibrate(opts: CalibrateOptions): Promise<CalibrationFile> {
   const r = rng(opts.seed ?? 1);
-  const passing = opts.trials.filter((t) => t.pass === true).slice(0, opts.n ?? 20);
   const pool = opts.trials.filter((t) => t.pass === true);
-  const score = async (t: Trial): Promise<boolean | null> => (await runScorer(opts.scorer, { case: { id: t.trace.caseId, input: t.trace.messages[0]?.content }, trace: t.trace, trial: t.trace.trial })).pass;
+  // a seeded shuffle so the sample covers many cases instead of the first n in store order
+  const passing = shuffled(pool, r).slice(0, opts.n ?? 20);
+  const caseById = new Map((opts.cases ?? []).map((c) => [c.id, c]));
+  const score = async (t: Trial): Promise<boolean | null> => (await runScorer(opts.scorer, { case: caseById.get(t.trace.caseId) ?? { id: t.trace.caseId, input: t.trace.messages[0]?.content }, trace: t.trace, trial: t.trace.trial })).pass;
   const faults: CalibrationFile["faults"] = [];
   for (const [type, inject] of Object.entries(FAULTS[opts.domain])) {
     let injected = 0;
