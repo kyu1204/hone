@@ -23,7 +23,7 @@ const t = (id: string, name: string, c = "ok"): ChatMessage => ({ role: "tool", 
 function project(): { dir: string; runId: string; ids: string[] } {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hone-calib-"));
   dirs.push(dir);
-  fs.writeFileSync(path.join(dir, "hone.config.ts"), 'export default { targets: {}, cases: [], scorers: [{ name: "contains", id: "says-verified", text: "verified" }, { name: "tool_used", tool: "Bash" }] };\n');
+  fs.writeFileSync(path.join(dir, "hone.config.ts"), 'export default { targets: {}, cases: [], scorers: [{ name: "contains", id: "says-verified", text: "verified" }, { name: "tool_used", tool: "Bash" }, { name: "exact" }], cases: [{ id: "a", input: "fix", expected: "Fixed and verified." }, { id: "b", input: "fix", expected: "Fixed and verified." }, { id: "c", input: "fix", expected: "Fixed and verified." }] };\n');
   const store = new Store(path.join(dir, ".hone"));
   const run = store.createRun({ configHash: "h", targets: ["agent"], caseIds: [] });
   const ids: string[] = [];
@@ -69,5 +69,14 @@ describe("hone calibrate", () => {
     const o2 = io(dir);
     expect(await calibrateCommand(["--scorer", "nope"], o2)).toBe(2);
     expect(o2.err).toMatch(/scorer nope not found.*says-verified/);
+  });
+
+  test("scorers that need case.expected get it from the config's cases", async () => {
+    const { dir } = project();
+    const o = io(dir);
+    expect(await calibrateCommand(["--scorer", "exact", "--n", "3", "--json"], o)).toBe(0);
+    const file = JSON.parse(o.out) as { falseAlarms: { flagged: number }; faults: { type: string; detected: number; injected: number }[] };
+    expect(file.falseAlarms.flagged).toBe(0);
+    expect(file.faults.find((f) => f.type === "premature-done")).toMatchObject({ injected: 3, detected: 3 });
   });
 });

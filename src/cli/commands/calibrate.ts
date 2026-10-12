@@ -1,8 +1,9 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { calibrate, type Domain, inferDomain } from "../../analysis/calibrate";
-import { ConfigNotFound, loadConfig } from "../../core/config";
+import { ConfigNotFound, loadCases, loadConfig } from "../../core/config";
 import { Store } from "../../core/store";
+import type { Case } from "../../core/types";
 import { createScorers } from "../../scorers/index";
 import type { CalibrationFile } from "../../tui/screens/calibrate";
 import { ArgError, parseArgs, usageLine } from "../args";
@@ -90,8 +91,14 @@ export async function calibrateCommand(argv: string[], io: CommandIo): Promise<n
       return 2;
     }
     const trials = store.queryTrials({ runId, pass: true });
+    let cases: Case[];
+    try {
+      cases = await loadCases(config.cases, io.cwd);
+    } catch {
+      cases = []; // imported runs may have no case files; scorers then get a minimal case
+    }
     const domain = (domainArg as Domain | undefined) ?? inferDomain(trials);
-    const file = await calibrate({ trials, scorer, domain, n: args.numbers.n, seed: args.numbers.seed, labels });
+    const file = await calibrate({ trials, scorer, domain, n: args.numbers.n, seed: args.numbers.seed, labels, cases });
     const out = path.join(root, "analysis", `calibration-${scorer.name}.json`);
     fs.mkdirSync(path.dirname(out), { recursive: true });
     fs.writeFileSync(out, `${JSON.stringify(file, null, 2)}\n`);
