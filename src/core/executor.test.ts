@@ -32,7 +32,7 @@ function setup(opts: { targets: Record<string, TargetSpec>; scorers: ScorerSpec[
 }
 
 describe("executor", () => {
-  test("runs target and scorers, stores the trial, and serves the second identical trial from cache", async () => {
+  test("runs target and scorers, stores the trial; a later trial is a fresh sample but re-running the same trial index hits the cache", async () => {
     let calls = 0;
     const { execute, store, events } = setup({
       targets: { t: { kind: "fn", fn: (input: unknown) => { calls++; return `echo ${String(input)}`; } } },
@@ -47,10 +47,13 @@ describe("executor", () => {
     expect(first.scores.map((s) => s.pass)).toEqual([true, true]);
     expect(scored).toEqual(["exact", "contains"]);
     const second = await execute({ caseId: "c1", targetId: "t" }, 1);
-    expect(calls).toBe(1);
-    expect(second.flags).toContain("cached");
-    expect(second.trace.output).toBe("echo hi");
-    expect(store.queryTrials({ caseId: "c1" })).toHaveLength(2);
+    expect(calls).toBe(2); // n trials means n samples, not one sample copied n times
+    expect(second.flags).not.toContain("cached");
+    const again = await execute({ caseId: "c1", targetId: "t" }, 0);
+    expect(calls).toBe(2);
+    expect(again.flags).toContain("cached");
+    expect(again.trace.output).toBe("echo hi");
+    expect(store.queryTrials({ caseId: "c1" })).toHaveLength(2); // the re-run overwrites trial 0
     expect(second.id).toBe(Store.trialId(second.runId, "c1", "t", 1));
   });
 

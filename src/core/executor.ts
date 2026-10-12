@@ -47,7 +47,8 @@ export function createExecutor(deps: ExecutorDeps): Execute {
   const hackMode = deps.gates?.rewardHack ?? "fail";
 
   const runTarget = async (target: Target, targetId: string, input: unknown, ctx: RunContext): Promise<CachedRun & { cached: boolean }> => {
-    const key = cacheKey({ input, targetVersion: await version(targetId, target), targetId });
+    // the trial index is part of the key: trial k of the same input is a fresh sample, re-scoring trial k later reuses it
+    const key = cacheKey({ input, targetVersion: await version(targetId, target), targetId, trial: ctx.trial });
     if (useCache) {
       const hit = deps.cache.get<CachedRun>(key);
       if (hit) return { ...hit, cached: true };
