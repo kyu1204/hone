@@ -22,10 +22,11 @@ function config(seed: string): HoneConfig {
   };
 }
 
-function stubChat(replies: string[]): { chat: (req: { messages: { content: unknown }[] }) => Promise<{ text: string }>; prompts: string[] } {
+function stubChat(replies: string[]): { chat: (req: { messages: { content: unknown }[]; maxTokens?: number }) => Promise<{ text: string }>; prompts: string[]; maxTokens: number[] } {
   const prompts: string[] = [];
+  const maxTokens: number[] = [];
   let i = 0;
-  return { prompts, chat: async (req) => (prompts.push(JSON.stringify(req.messages)), { text: replies[Math.min(i++, replies.length - 1)]! }) };
+  return { prompts, maxTokens, chat: async (req) => (prompts.push(JSON.stringify(req.messages)), maxTokens.push(req.maxTokens ?? 0), { text: replies[Math.min(i++, replies.length - 1)]! }) };
 }
 
 describe("parseProposal and isDominated", () => {
@@ -48,8 +49,9 @@ describe("evolve", () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "hone-evolve-"));
     dirs.push(cwd);
     const cfg = config("Answer the question.");
-    const { chat, prompts } = stubChat(['{"text":"Answer in UPPERCASE.","rationale":"outputs were lowercase"}', "I cannot help"]);
+    const { chat, prompts, maxTokens } = stubChat(['{"text":"Answer in UPPERCASE.","rationale":"outputs were lowercase"}', "I cannot help"]);
     const r = await evolve({ config: cfg, hash: "h", cwd, chat, budget: 2, minibatch: 4, useCache: false });
+    expect(Math.min(...maxTokens)).toBeGreaterThanOrEqual(4096); // long rewrites must not be truncated into invalid JSON
     expect(r.file.kind).toBe("evolve");
     expect(r.file.baseline.passAt1).toBe(0);
     expect(r.file.candidates).toHaveLength(2);
