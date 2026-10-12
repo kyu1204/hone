@@ -114,7 +114,7 @@ function buildRequest(p: LlmProvider, req: ChatRequest): { url: string; headers:
         model: p.model,
         max_tokens: req.maxTokens ?? 1024,
         ...(system ? { system } : {}),
-        ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
+        // temperature is not sent: Claude 5 models reject it as deprecated
         messages: req.messages.filter((m) => m.role !== "system").map((m) => ({ role: m.role, content: m.content })),
       }),
     };

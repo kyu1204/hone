@@ -81,10 +81,11 @@ describe("chat", () => {
     });
     try {
       const res = await chat(
-        { system: "sys", messages: [{ role: "user", content: "hi" }], maxTokens: 50 },
+        { system: "sys", messages: [{ role: "user", content: "hi" }], maxTokens: 50, temperature: 0 },
         { provider: { kind: "anthropic", apiKey: "k", baseUrl: s.base, model: "claude-x" } },
       );
       expect(seen?.url).toBe("/v1/messages");
+      expect(seen?.body).not.toHaveProperty("temperature"); // Claude 5 models reject it
       expect(seen?.key).toBe("k");
       expect(seen?.version).toBe("2023-06-01");
       expect(seen?.body.system).toBe("sys");
