@@ -52,6 +52,16 @@ export function toTrace(out: TargetOutput, ctx: RunContext, targetId: string, st
   return trace;
 }
 
+const asText = (x: unknown): string => (typeof x === "string" ? x : x === undefined || x === null ? "" : JSON.stringify(x));
+
+/** Targets that record no messages (a plain fn, an http endpoint without a trace field) still get a user/assistant pair so forks, diffs, judges and rollouts have something to read. */
+export function ensureMessages(trace: Trace, input: unknown): Trace {
+  if (trace.messages.length > 0 || trace.error !== undefined) return trace;
+  trace.messages = [{ role: "user", content: asText(input) }, { role: "assistant", content: asText(trace.output) }];
+  trace.meta = { ...trace.meta, synthesizedMessages: true };
+  return trace;
+}
+
 // ---------------------------------------------------------------------------
 // Registry. Adapter modules call registerTargetKind at import time.
 

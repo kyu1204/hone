@@ -54,6 +54,20 @@ describe("executor", () => {
     expect(second.id).toBe(Store.trialId(second.runId, "c1", "t", 1));
   });
 
+  test("a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work", async () => {
+    const { execute } = setup({
+      targets: { plain: { kind: "fn", fn: (input: unknown) => ({ answer: String(input).toUpperCase() }) }, rich: { kind: "fn", fn: (_i: unknown, ctx: { message: (m: { role: "user" | "assistant"; content: string }) => void }) => { ctx.message({ role: "user", content: "custom" }); ctx.message({ role: "assistant", content: "reply" }); return "reply"; } } },
+      scorers: [],
+      cases: [{ id: "c1", input: "hi" }],
+    });
+    const plain = await execute({ caseId: "c1", targetId: "plain" }, 0);
+    expect(plain.trace.messages).toEqual([{ role: "user", content: "hi" }, { role: "assistant", content: '{"answer":"HI"}' }]);
+    expect(plain.trace.meta?.synthesizedMessages).toBe(true);
+    const rich = await execute({ caseId: "c1", targetId: "rich" }, 0);
+    expect(rich.trace.messages.map((m) => m.content)).toEqual(["custom", "reply"]);
+    expect(rich.trace.meta?.synthesizedMessages).toBeUndefined();
+  });
+
   test("useCache: false calls the target every time", async () => {
     let calls = 0;
     const { execute } = setup({ targets: { t: { kind: "fn", fn: () => { calls++; return "x"; } } }, scorers: [], cases: [{ id: "c", input: 1 }], useCache: false });

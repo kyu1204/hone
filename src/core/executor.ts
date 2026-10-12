@@ -1,6 +1,6 @@
 import { cachedScorer } from "../scorers/cached";
 import { runScorer, type ScoreContext, type Scorer } from "../scorers/scorer";
-import { type RunContext, type Target, type TargetOutput, toTrace } from "../targets/target";
+import { ensureMessages, type RunContext, type Target, type TargetOutput, toTrace } from "../targets/target";
 import { type Cache, cacheKey } from "./cache";
 import type { GateSpec, ScorerSpec } from "./config";
 import type { HoneEvents } from "./events";
@@ -74,7 +74,7 @@ export function createExecutor(deps: ExecutorDeps): Execute {
     const run = await runTarget(target, cell.targetId, c.input, ctx);
     let trace: Trace;
     try {
-      trace = toTrace(run.output, ctx, cell.targetId, new Date(run.startedAt), new Date(run.endedAt));
+      trace = ensureMessages(toTrace(run.output, ctx, cell.targetId, new Date(run.startedAt), new Date(run.endedAt)), c.input);
     } catch (e) {
       trace = toTrace({ output: null, error: `target returned an invalid trace: ${e instanceof Error ? e.message : String(e)}` }, ctx, cell.targetId, new Date(run.startedAt), new Date(run.endedAt));
     }
