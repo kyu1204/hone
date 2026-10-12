@@ -68,4 +68,17 @@ describe("forkTrial", () => {
     expect(deps.scorers).toEqual([{ name: "exact" }]);
     expect(deps.caseInputs).toEqual({ c: "question" });
   });
+
+  test("editing the first user message re-runs a plain target with that text as the input", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "hone-fork3-"));
+    dirs.push(root);
+    const store = new Store(root);
+    const run = store.createRun({ configHash: "h", targets: ["p"], caseIds: ["c"] });
+    const original: Trial = { id: Store.trialId(run.id, "c", "p", 0), runId: run.id, trace: { ...base, id: "o", caseId: "c", targetId: "p", trial: 0, messages: [{ role: "user", content: "japan" }, { role: "assistant", content: "Kyoto" }] }, scores: [], flags: [], pass: false, costUsd: 0 };
+    const targets = createTargets({ p: { kind: "fn", fn: (i: unknown) => (String(i) === "korea" ? "Seoul" : "Kyoto") } });
+    const forked = await forkTrial({ store, targets, scorers: [{ name: "contains", text: "Seoul" }], caseInput: "japan", original, step: 0, edited: { role: "user", content: "korea" } });
+    expect(forked.trace.output).toBe("Seoul");
+    expect(forked.pass).toBe(true);
+    expect(forked.trace.messages).toEqual([{ role: "user", content: "korea" }, { role: "assistant", content: "Seoul" }]);
+  });
 });
