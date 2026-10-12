@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "judge": "grade",
+  "domain": "rag",
+  "faults": [
+    {
+      "type": "unsupported-claim",
+      "injected": 12,
+      "detected": 11,
+      "rate": 0.9166666666666666,
+      "lo": 0.6461200888588832,
+      "hi": 0.9851349055950829
+    },
+    {
+      "type": "wrong-citation",
+      "injected": 11,
+      "detected": 0,
+      "rate": 0,
+      "lo": 0,
+      "hi": 0.25883296696803165
+    }
+  ],
+  "falseAlarms": {
+    "n": 12,
+    "flagged": 0,
+    "rate": 0
+  }
+}
