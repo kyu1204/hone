@@ -105,7 +105,8 @@ export async function evolve(opts: EvolveOptions): Promise<EvolveResult> {
       const parent = pareto[i % pareto.length]!;
       const failures = parent.run.trials.filter((t) => t.pass === false).slice(0, 6).map((t, k) => `--- failure ${k + 1} (case ${t.trace.caseId}) ---\n${summarise(t)}`);
       const user = `Current text:\n"""\n${parent.text}\n"""\n\nScorers: ${opts.config.scorers.map((s) => String(s.id ?? s.name)).join(", ")}\n\n${failures.length ? failures.join("\n\n") : "No failing cases. Propose a shorter text that keeps the behaviour."}`;
-      const reply = await opts.chat({ system: REFLECT_SYSTEM, json: true, temperature: 0.7, messages: [{ role: "user", content: user }] });
+      // a rewritten prompt can be long (Korean rules run past 1k tokens); never let the default max_tokens truncate the JSON
+      const reply = await opts.chat({ system: REFLECT_SYSTEM, json: true, temperature: 0.7, maxTokens: Math.max(4096, parent.text.length * 2), messages: [{ role: "user", content: user }] });
       const cid = `cand-${candidates.length + 1}`;
       const proposal = parseProposal(reply.text);
       if (!proposal) {
