@@ -18,7 +18,10 @@ export interface MatrixRow {
   cases: number;
   trials: number;
   passed: number;
-  passAt1: number;
+  /** Trials with no verdict (no scorer decided); excluded from pass@1. */
+  undecided: number;
+  /** Pass rate over decided trials; null when no trial was decided. */
+  passAt1: number | null;
   passHat3: number | null;
   costPerSolve: number | null;
   tokensPerSolve: number | null;
@@ -42,6 +45,8 @@ export function buildMatrix(trials: Trial[], by: "target" | "model" | "agent"): 
     for (const t of ts) (cells.get(t.trace.caseId) ?? cells.set(t.trace.caseId, []).get(t.trace.caseId)!).push(t.pass === true);
     const k3 = [...cells.entries()].map(([c, o]) => verdictFor(c, id, o).passHatK[3]).filter((v): v is number => v !== undefined);
     const passed = ts.filter((t) => t.pass === true).length;
+    const undecided = ts.filter((t) => t.pass === null).length;
+    const decided = ts.length - undecided;
     const tokens = ts.reduce((a, t) => a + t.trace.usage.inputTokens + t.trace.usage.outputTokens, 0);
     const ms = ts.reduce((a, t) => a + (Date.parse(t.trace.endedAt) - Date.parse(t.trace.startedAt)), 0);
     const cost = ts.reduce((a, t) => a + t.costUsd, 0);
@@ -51,7 +56,8 @@ export function buildMatrix(trials: Trial[], by: "target" | "model" | "agent"): 
       cases: cells.size,
       trials: ts.length,
       passed,
-      passAt1: passed / ts.length,
+      undecided,
+      passAt1: decided ? passed / decided : null,
       passHat3: k3.length ? k3.reduce((a, b) => a + b, 0) / k3.length : null,
       costPerSolve: passed ? cost / passed : null,
       tokensPerSolve: passed ? tokens / passed : null,
@@ -74,7 +80,7 @@ export function buildMatrix(trials: Trial[], by: "target" | "model" | "agent"): 
     });
     for (const r of rows) r.band = letter.get(r.id) ?? "A";
   }
-  rows.sort((a, b) => b.passAt1 - a.passAt1 || (a.costPerSolve ?? Number.POSITIVE_INFINITY) - (b.costPerSolve ?? Number.POSITIVE_INFINITY));
+  rows.sort((a, b) => (b.passAt1 ?? -1) - (a.passAt1 ?? -1) || (a.costPerSolve ?? Number.POSITIVE_INFINITY) - (b.costPerSolve ?? Number.POSITIVE_INFINITY));
   return rows;
 }
 
@@ -83,10 +89,10 @@ const fmtInt = (n: number | null): string => (n === null ? "n/a" : Math.round(n)
 
 export function renderMatrixRows(rows: MatrixRow[]): string {
   const idWidth = Math.max(8, ...rows.map((r) => r.id.length)) + 2;
-  const head = `${"target".padEnd(idWidth)}band  cases  trials  pass@1  pass^3  $/solve   tokens/solve  s/solve  timeouts  hacks  cached`;
+  const head = `${"target".padEnd(idWidth)}band  cases  trials  pass@1  pass^3  $/solve   tokens/solve  s/solve  timeouts  hacks  cached  undecided`;
   const lines = rows.map(
     (r) =>
-      `${r.id.padEnd(idWidth)}${r.band.padEnd(6)}${String(r.cases).padEnd(7)}${String(r.trials).padEnd(8)}${r.passAt1.toFixed(2).padEnd(8)}${fmt(r.passHat3).padEnd(8)}${fmt(r.costPerSolve, 4, "$").padEnd(10)}${fmtInt(r.tokensPerSolve).padEnd(14)}${fmt(r.msPerSolve === null ? null : r.msPerSolve / 1000, 1).padEnd(9)}${String(r.timeouts).padEnd(10)}${String(r.rewardHacks).padEnd(7)}${(r.cachedShare * 100).toFixed(0)}%`,
+      `${r.id.padEnd(idWidth)}${r.band.padEnd(6)}${String(r.cases).padEnd(7)}${String(r.trials).padEnd(8)}${fmt(r.passAt1).padEnd(8)}${fmt(r.passHat3).padEnd(8)}${fmt(r.costPerSolve, 4, "$").padEnd(10)}${fmtInt(r.tokensPerSolve).padEnd(14)}${fmt(r.msPerSolve === null ? null : r.msPerSolve / 1000, 1).padEnd(9)}${String(r.timeouts).padEnd(10)}${String(r.rewardHacks).padEnd(7)}${`${(r.cachedShare * 100).toFixed(0)}%`.padEnd(8)}${r.undecided ? String(r.undecided) : ""}`.trimEnd(),
   );
   return `${[head, ...lines].join("\n")}\n\nband: targets sharing a letter are not significantly different (Holm-adjusted paired tests).\n`;
 }
