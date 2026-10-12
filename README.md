@@ -59,6 +59,18 @@ verdict: baseline holds; no candidate beats it
 
 The terminal UI is built on [OpenTUI](https://github.com/anomalyco/opentui): matrix, trace viewer with score context, side-by-side trajectory diff, failure clusters, judge calibration, candidates, fork, charts. `hone serve ssh` serves the same view read-only over SSH. Re-render the gif with `scripts/demo.sh`.
 
+## Does it actually improve anything?
+
+Yes, on a real system, with a paired test to prove it. On [`kyu1204/rag_qa_eval`](https://github.com/kyu1204/rag_qa_eval) (a Korean government-policy citation RAG with a 43-question gold set and its own 0/1/2 scoring), hone measured the baseline, calibrated the judge, induced a failure taxonomy, evolved the system prompt from the failure clusters and confirmed the result with 3 trials per case:
+
+| system | useful | safe | paired vs baseline (useful) |
+|---|---|---|---|
+| baseline prompt, top_k 5 | 79.8% | 100% | |
+| the authors' hand-tuned best (prompt v3, top_k 30) | 87.6% | 97.7% | +7.8 pts, p = 0.049 |
+| **prompt evolved by `hone evolve`, top_k 30** | **88.4%** | **100%** | **+8.5 pts, p = 0.047** |
+
+The automatic rewrite matched a week of hand tuning on usefulness and beat it on safety; with only 2 trials hone had said "no measurable effect" and told us how many more it needed. Full method, deviations and every artifact: [`docs/benchmarks/rag-policy-qa.md`](./docs/benchmarks/rag-policy-qa.md).
+
 ## Quick start
 
 ```bash

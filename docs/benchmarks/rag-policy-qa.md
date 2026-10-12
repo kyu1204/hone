@@ -1,6 +1,6 @@
 # Benchmark study: does hone improve a real RAG system?
 
-Date: 2026-10-12. Status: **complete except the confirmatory 3-trial comparison**, which hit the Anthropic account's monthly usage limit after about 1,000 generations (access returns 2026-11-01 unless the limit is raised). Measurement, judge calibration, failure taxonomy, the bandit comparison of the hand-made candidates, automatic prompt evolution and the ablation are done.
+Date: 2026-10-12 to 2026-10-13. Status: **complete.** Result in one line: the prompt hone evolved automatically from the failure clusters beats the baseline on usefulness by +8.5 points (p = 0.047) with zero hallucinations, confirmed with 3 trials per case; the authors' hand-tuned best setting gains +7.8 points (p = 0.049) but introduces hallucinations, and the two are not distinguishable from each other.
 
 ## What was evaluated
 
@@ -95,9 +95,31 @@ Best candidate cand-2 ([`results/evolved-prompt-cand-2.txt`](../../benchmarks/ra
 
 Without rule 2 ("cite [n] after every factual sentence") answers lose their structured citations and the quantitative questions drop from 100% useful to "cited wrongly" (score 1). The one component we removed is the one the scorer leans on hardest; a significant result in one run of 86 + 86 trials.
 
-## Blocked: the confirmatory comparison
+## 7. Confirm: one run, 43 cases x 3 trials x 3 targets (`confirm/hone.config.ts`, 387 generations)
 
-`confirm/hone.config.ts` runs baseline, v3-k30 and the evolved prompt in one run with 3 trials each (387 generations) so the paired test has the power the single-trial bandit lacked (`hone power` says about 109 paired cases, or more trials per case, for the +7-point effect). It started at 23:20 KST and every generation failed with Anthropic's "You have reached your specified API usage limits" (log kept as `logs/confirm-failed-quota.log`). It needs the account limit raised, then `benchmarks/rag-policy-qa/confirm.sh`.
+The single-trial bandit could not call a +7-point effect; `hone power` asked for more pairs or more trials. With 3 trials per case and all three systems in one run the comparisons are paired on the same 43 cases:
+
+| target | useful | safe | 2/1/0 | tokens/answer | s/answer |
+|---|---|---|---|---|---|
+| baseline (v1, k5) | 79.8% | 100% | 103/26/0 | 5.5k | 5.3 |
+| v3-k30 (authors' best, by hand) | 87.6% | 97.7% | 113/13/3 | 26.4k | 6.7 |
+| evolved (hone, cand-2 + k30) | **88.4%** | **100%** | 114/15/0 | 27.9k | 11.4 |
+
+| paired comparison (`hone compare`) | useful (pass rate) | mean 0/1/2 score |
+|---|---|---|
+| v3-k30 vs baseline | +7.8 pts, CI [0.1, 15.5], p = 0.049, **better** | +2.7 pts, p = 0.16, no significant difference |
+| evolved vs baseline | +8.5 pts, CI [0.1, 16.9], p = 0.047, **better** | +4.3 pts, CI [0.1, 8.5], p = 0.047, **better** |
+| evolved vs v3-k30 | +0.8 pts, p = 0.32, no significant difference | +1.6 pts, p = 0.10, no significant difference |
+
+Per group the evolved prompt takes qualitative questions from 41.0% to 61.5% useful and unanswerable/trap questions from 90% to 100%, and keeps quantitative questions at 100%. The authors' v3-k30 reaches the same usefulness but pays with three hallucinations (two in the bandit stage, three here), which is why it wins only on the usefulness axis; the evolved prompt wins on both because its rewrite also tightened the citation and no-speculation rules.
+
+What this costs: the evolved answers use five times the tokens of the baseline and take twice as long. hone reports that next to the pass rate, so the trade is visible.
+
+### Reading, revised
+
+- The loop measured, localized (retrieval coverage on multi-fact questions), proposed (three rewrites from the taxonomy), verified on a minibatch, and confirmed with a paired test. The whole thing took about 90 minutes of machine time and roughly 1,400 generations.
+- The automatic rewrite matched the authors' week of hand tuning on usefulness and beat it on safety. It is not magic: it encoded the same diagnosis they had reached, but it did so from the failure clusters without a human reading transcripts.
+- Two trials were not enough to see any of this ("no measurable effect" every time); three were. The tool's refusal to call the effect early was correct, and the power estimate told us what to do about it.
 
 ## What this study found in hone itself (all fixed and merged the same day)
 
@@ -112,4 +134,4 @@ Without rule 2 ("cite [n] after every factual sentence") answers lose their stru
 
 ## Cost and time
 
-Generation: about 1,000 answers through Anthropic across baseline, optimize, evolve (3 candidates: 3 x (30 + 86) + 86) and ablate (172), not metered by hone because the service's own client made the calls; roughly 6M input tokens, which is what exhausted the account's monthly limit. Judge: Jev, about $0.40 for the whole study. Wall clock: baseline 7 min, optimize 11 min, evolve 48 min, ablate 13 min, calibrate and taxonomy under 2 min each.
+Generation: about 1,400 answers through Anthropic across baseline, optimize, evolve (3 candidates: 3 x (30 + 86) + 86), ablate (172) and the confirmation (387), not metered by hone because the service's own client made the calls; roughly 12M input tokens, which hit the account's monthly limit once (raised, then rerun). Judge: Jev, about $0.90 for the whole study. Wall clock: baseline 7 min, optimize 11 min, evolve 48 min, ablate 13 min, confirmation 46 min, calibrate and taxonomy under 2 min each.
