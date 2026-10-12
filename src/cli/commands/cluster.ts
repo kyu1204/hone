@@ -110,6 +110,14 @@ export async function clusterCommand(argv: string[], io: CommandIo, deps: Cluste
       return 0;
     }
     if (args.flags.induce) {
+      try {
+        return await induce(runId);
+      } catch (e) {
+        io.stderr(`cluster failed: ${e instanceof Error ? e.message : String(e)}\n`);
+        return 1;
+      }
+    }
+    async function induce(runId: string): Promise<number> {
       const existing = readTaxonomy(root)?.codes;
       const chatFn: ChatFn = deps.chat ?? ((req) => chat(req, { provider: resolveLlmProvider(io.env, { cwd: io.cwd }) }));
       const codes = await induceTaxonomy(clusters, { chat: chatFn, existing, jev: deps.jev ?? (existing?.length ? jev() : undefined) });
