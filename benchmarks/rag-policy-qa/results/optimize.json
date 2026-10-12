@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 1,
+  "kind": "optimize",
+  "baseline": {
+    "id": "baseline",
+    "text": "baseline",
+    "passAt1": 0.7777777777777778,
+    "lo": 0.6479435728926356,
+    "hi": 0.885771657790044,
+    "costUsd": 0.015693972,
+    "pareto": true
+  },
+  "candidates": [
+    {
+      "id": "prompt-v3",
+      "text": "prompt-v3",
+      "passAt1": 0.7058823529411765,
+      "lo": 0.48049565944019434,
+      "hi": 0.8910254667430761,
+      "costUsd": 0.005550300000000001,
+      "pareto": true
+    },
+    {
+      "id": "k30",
+      "text": "k30",
+      "passAt1": 0.7368421052631579,
+      "lo": 0.5273820188043501,
+      "hi": 0.9044495567791988,
+      "costUsd": 0.018665304,
+      "pareto": false
+    },
+    {
+      "id": "v3-k30",
+      "text": "v3-k30",
+      "passAt1": 0.8444444444444444,
+      "lo": 0.7273641203261714,
+      "hi": 0.9344427657203511,
+      "costUsd": 0.06399498000000002,
+      "pareto": true
+    }
+  ],
+  "arms": [
+    {
+      "id": "baseline",
+      "runId": "2026-10-12T12-49-04.398Z-4010",
+      "trials": 43,
+      "banditTrials": 13,
+      "passed": 34,
+      "cases": 43,
+      "passAt1": 0.7777777777777778,
+      "lo": 0.6479435728926356,
+      "hi": 0.885771657790044,
+      "probBest": 0.1595,
+      "costUsd": 0.015693972
+    },
+    {
+      "id": "prompt-v3",
+      "runId": "2026-10-12T12-49-04.401Z-1f6c",
+      "trials": 15,
+      "banditTrials": 15,
+      "passed": 11,
+      "cases": 15,
+      "passAt1": 0.7058823529411765,
+      "lo": 0.48049565944019434,
+      "hi": 0.8910254667430761,
+      "probBest": 0.0755,
+      "costUsd": 0.005550300000000001
+    },
+    {
+      "id": "k30",
+      "runId": "2026-10-12T12-49-04.402Z-fc93",
+      "trials": 17,
+      "banditTrials": 17,
+      "passed": 13,
+      "cases": 17,
+      "passAt1": 0.7368421052631579,
+      "lo": 0.5273820188043501,
+      "hi": 0.9044495567791988,
+      "probBest": 0.1145,
+      "costUsd": 0.018665304
+    },
+    {
+      "id": "v3-k30",
+      "runId": "2026-10-12T12-49-04.402Z-eef1",
+      "trials": 43,
+      "banditTrials": 15,
+      "passed": 37,
+      "cases": 43,
+      "passAt1": 0.8444444444444444,
+      "lo": 0.7273641203261714,
+      "hi": 0.9344427657203511,
+      "probBest": 0.6505,
+      "costUsd": 0.06399498000000002
+    }
+  ],
+  "verdict": "no measurable effect",
+  "stopped": "budget",
+  "spent": 60,
+  "verified": 58
+}
