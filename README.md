@@ -65,6 +65,10 @@ change("answer with the bare value", {
 });
 ```
 
+### With a coding agent
+
+`hone init` also installs a skill for Claude Code, Codex and Cursor (`.agents/skills/hone`, `.claude/skills/hone`) and registers an MCP server in `.mcp.json`. The skill teaches the agent the same loop a person follows: run `hone sharpen --budget 0`, read the diagnosis page it names, write one change file per hypothesis under `sharpen/`, run `hone sharpen`, and report the verdict as printed. The agent proposes; hone holds cases out and decides. `hone guide` prints the skill.
+
 ## Why
 
 Most eval tools stop at a number. The number is usually a single run, graded by a judge nobody calibrated, on a harness nobody controlled for. Then the real work starts: reading transcripts, guessing what broke, editing a prompt, running again, and hoping the change was not noise.
@@ -158,7 +162,7 @@ A target is an HTTP endpoint, a TypeScript or Python function, a command-line ag
 - [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
 - [`docs/formats.md`](./docs/formats.md) and [`docs/compat.md`](./docs/compat.md): import/export formats with sources
 - [`examples/`](./examples/): sharpen (the three commands on a toy that starts broken), qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation
-- [`skills/hone/SKILL.md`](./skills/hone/SKILL.md): the skill `hone init --skills` installs for Claude Code and Codex
+- [`skills/hone/`](./skills/hone/SKILL.md): the skill `hone init` installs for coding agents, a short router with topic references (`hone guide <topic>`)
 
 ## How it compares
 

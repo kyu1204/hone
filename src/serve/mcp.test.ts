@@ -46,7 +46,7 @@ describe("mcp server", () => {
     expect(await server.handle(JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }))).toBeUndefined();
     expect((await call(server, 2, "ping")).result).toEqual({});
     const tools = (await call(server, 3, "tools/list")).result!.tools as { name: string; inputSchema: { type: string } }[];
-    expect(tools.map((t) => t.name)).toEqual(["hone_run", "hone_list_runs", "hone_matrix", "hone_compare", "hone_explain", "hone_cluster", "hone_fork"]);
+    expect(tools.map((t) => t.name)).toEqual(["hone_test", "hone_sharpen", "hone_guide", "hone_list_runs", "hone_matrix", "hone_compare", "hone_explain", "hone_cluster", "hone_fork"]);
     expect(tools.every((t) => t.inputSchema.type === "object")).toBe(true);
     expect((await call(server, 4, "nope")).error!.code).toBe(-32601);
     expect(JSON.parse((await server.handle("{broken"))!).error.code).toBe(-32700);
@@ -67,6 +67,37 @@ describe("mcp server", () => {
     const matrix = await call(server, 4, "tools/call", { name: "hone_matrix", arguments: {} });
     expect(matrix.result!.isError).toBeUndefined();
     expect(text(matrix)).toContain("t");
+  });
+
+  test("hone_guide returns the skill or a topic; hone_sharpen runs the cycle and returns the result document", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hone-mcp-sharpen-"));
+    dirs.push(dir);
+    const home = fs.mkdtempSync(path.join(os.tmpdir(), "hone-mcp-home-")); // no key may be found: a test must not call a real model
+    dirs.push(home);
+    const configModule = new URL("../core/config.ts", import.meta.url).pathname;
+    const changeModule = new URL("../correct/change.ts", import.meta.url).pathname;
+    fs.writeFileSync(
+      path.join(dir, "hone.config.ts"),
+      `import { defineConfig } from ${JSON.stringify(configModule)};
+const make = (text) => ({ t: { kind: "fn", version: text, fn: (i) => (text.includes("UPPERCASE") ? String(i).toUpperCase() : String(i)) } });
+export default defineConfig({ targets: make("Answer."), cases: Array.from({ length: 30 }, (_, i) => ({ id: "c" + i, input: "w" + i, expected: "W" + i })), trials: 1, scorers: [{ name: "exact" }], sharpen: { text: { seed: "Answer.", apply: (c, text) => ({ ...c, targets: make(text) }) } } });
+`,
+    );
+    fs.mkdirSync(path.join(dir, "sharpen"));
+    fs.writeFileSync(path.join(dir, "sharpen", "uppercase.ts"), `import { change } from ${JSON.stringify(changeModule)};\nchange("uppercase", { why: "outputs were lowercase", text: "Answer in UPPERCASE." });\n`);
+    const server = createMcpServer({ cwd: dir, env: { HOME: home } });
+    const guide = text(await call(server, 1, "tools/call", { name: "hone_guide", arguments: {} }));
+    expect(guide).toMatch(/^---\nname: hone\n/);
+    expect(text(await call(server, 2, "tools/call", { name: "hone_guide", arguments: { topic: "sharpening" } }))).toMatch(/^# sharpening/);
+    const unknown = await call(server, 3, "tools/call", { name: "hone_guide", arguments: { topic: "nope" } });
+    expect(unknown.result!.isError).toBe(true);
+    const diagnosed = JSON.parse(text(await call(server, 4, "tools/call", { name: "hone_sharpen", arguments: { budget: 0 } }))) as { candidates: unknown[]; diagnosisPath: string };
+    expect(diagnosed.candidates).toEqual([]);
+    expect(fs.existsSync(diagnosed.diagnosisPath)).toBe(true);
+    const result = JSON.parse(text(await call(server, 5, "tools/call", { name: "hone_sharpen", arguments: {} }))) as { verdict: string; message: string; candidates: { id: string; source: string }[] };
+    expect(result.verdict).toBe("proven");
+    expect(result.candidates[0]).toMatchObject({ id: "uppercase", source: "file" });
+    expect(result.message).toMatch(/Result: PROVEN\./);
   });
 
   test("fork re-runs through the config; bad arguments and unknown trials are tool errors, not protocol errors", async () => {

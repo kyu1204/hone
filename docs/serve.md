@@ -31,7 +31,9 @@ MCP over stdio (newline-delimited JSON-RPC 2.0, protocol `2025-06-18`). Register
 
 | tool | arguments | returns |
 |---|---|---|
-| `hone_run` | `cases?, targets?, trials?` | run summary |
+| `hone_test` | `cases?, targets?, trials?` | run summary |
+| `hone_sharpen` | `budget?, until?, maxCost?, trials?` | the result document of the cycle: split, diagnosis, every candidate, verdict, and the account as `message`; `budget: 0` only diagnoses |
+| `hone_guide` | `topic?` | the skill for coding agents, or one topic of it |
 | `hone_list_runs` | `limit?` | runs, newest first |
 | `hone_matrix` | `run?` | per-target matrix |
 | `hone_compare` | `a, b, run?` | paired comparison |

@@ -10,6 +10,7 @@ import { evolveCommand } from "./cli/commands/evolve";
 import { explainCommand } from "./cli/commands/explain";
 import { exportCommand } from "./cli/commands/export";
 import { forkCommand } from "./cli/commands/fork";
+import { guideCommand } from "./cli/commands/guide";
 import { importCommand } from "./cli/commands/import";
 import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
@@ -62,6 +63,7 @@ const MORE: [string, Group][] = [
       export: { run: exportCommand, summary: "write trials as JSONL for training, OpenTelemetry, Docent, JUnit or HTML" },
       import: { run: importCommand, summary: "bring Claude Code sessions and other tools' results in" },
       serve: { run: serveCommand, summary: "serve the dashboard over SSH, the scorers as a reward API, or MCP tools for agents" },
+      guide: { run: guideCommand, summary: "print the skill for coding agents, or one topic of it" },
     },
   ],
 ];
@@ -69,6 +71,11 @@ const MORE: [string, Group][] = [
 const COMMANDS: Group = Object.assign({}, EVERYDAY, ...MORE.map(([, g]) => g));
 const WIDTH = Math.max(...Object.keys(COMMANDS).map((c) => c.length)) + 2;
 const table = (g: Group): string => Object.entries(g).map(([name, c]) => `  ${name.padEnd(WIDTH)}${c.summary}`).join("\n");
+
+/** Every command the CLI accepts. */
+export function commandNames(): string[] {
+  return Object.keys(COMMANDS);
+}
 
 export function usage(): string {
   return `hone ${VERSION}\n\nusage: hone <command> [options]\n\n${table(EVERYDAY)}\n\nhone                    browse the results (in a terminal)\nhone help all           the single steps behind these, and other tools\nhone <command> --help   the options of one command\n`;

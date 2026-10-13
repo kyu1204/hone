@@ -10,6 +10,7 @@ import { evolveUsage } from "../src/cli/commands/evolve";
 import { explainUsage } from "../src/cli/commands/explain";
 import { exportUsage } from "../src/cli/commands/export";
 import { forkUsage } from "../src/cli/commands/fork";
+import { guideUsage } from "../src/cli/commands/guide";
 import { importUsage } from "../src/cli/commands/import";
 import { initUsage } from "../src/cli/commands/init";
 import { matrixUsage } from "../src/cli/commands/matrix";
@@ -41,6 +42,7 @@ const SECTIONS: [string, string, () => string][] = [
   ["Other tools", "export", exportUsage],
   ["Other tools", "import", importUsage],
   ["Other tools", "serve", serveUsage],
+  ["Other tools", "guide", guideUsage],
 ];
 
 export function renderCliDocs(): string {

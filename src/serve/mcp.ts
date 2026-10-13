@@ -4,8 +4,10 @@ import { clusterCommand } from "../cli/commands/cluster";
 import { compareCommand, storeRoot } from "../cli/commands/compare";
 import { explainCommand } from "../cli/commands/explain";
 import { forkCommand } from "../cli/commands/fork";
+import { guideCommand } from "../cli/commands/guide";
 import { matrixCommand } from "../cli/commands/matrix";
 import { type CommandIo, runCommand } from "../cli/commands/run";
+import { sharpenCommand } from "../cli/commands/sharpen";
 import { Store } from "../core/store";
 import { VERSION } from "../index";
 
@@ -65,10 +67,22 @@ export function createMcpServer(opts: McpServerOptions): McpServer {
 
   const tools: ToolDef[] = [
     {
-      name: "hone_run",
-      description: "Run every case against every target (optionally filtered) and return the run summary.",
+      name: "hone_test",
+      description: "Evaluate: run every case against every target (optionally filtered) and return the run summary.",
       inputSchema: { type: "object", properties: { cases: { type: "array", items: { type: "string" }, description: "case ids or globs" }, targets: { type: "array", items: { type: "string" } }, trials: { type: "number" } } },
       call: async (a) => json(await exec(runCommand, ["--quiet", "--json", ...list(a.cases).flatMap((c) => ["--case", c]), ...list(a.targets).flatMap((t) => ["--target", t]), ...(num(a.trials) !== undefined ? ["--trials", String(a.trials)] : [])])),
+    },
+    {
+      name: "hone_sharpen",
+      description: "Run the improvement cycle: measure, find why cases fail, try every change under sharpen/ (and variants, and rewrites by a model), confirm the best one on held-out cases. Returns the result document; `message` is the account to report. budget 0 only diagnoses and writes the page named in `diagnosisPath`.",
+      inputSchema: { type: "object", properties: { budget: { type: "number", description: "changes to try (default 6); 0 only diagnoses" }, until: { type: "number", description: "stop once this pass rate is reached, e.g. 0.9" }, maxCost: { type: "number", description: "stop when the system under test has cost this much (USD)" }, trials: { type: "number" } } },
+      call: async (a) => json(await exec(sharpenCommand, ["--quiet", "--json", ...(num(a.budget) !== undefined ? ["--budget", String(a.budget)] : []), ...(num(a.until) !== undefined ? ["--until", String(a.until)] : []), ...(num(a.maxCost) !== undefined ? ["--max-cost", String(a.maxCost)] : []), ...(num(a.trials) !== undefined ? ["--trials", String(a.trials)] : [])])),
+    },
+    {
+      name: "hone_guide",
+      description: "How to use hone: the skill, or one topic of it (setup, cases, sharpening, results, steps, mcp). Read `sharpening` before writing a change file.",
+      inputSchema: { type: "object", properties: { topic: { type: "string" } } },
+      call: async (a) => json(await exec(guideCommand, str(a.topic) ? [str(a.topic)!] : [])),
     },
     {
       name: "hone_list_runs",
