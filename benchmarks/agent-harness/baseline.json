@@ -1,0 +1,553 @@
+[
+ {
+  "id": "anthropic-temperature",
+  "commit": "48baf6e",
+  "kind": "fix",
+  "subject": "fix: never send temperature to the Anthropic API (Claude 5 rejects it)",
+  "tests": [
+   "src/providers/llm.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/providers/llm.test.ts :: chat > anthropic wire format: path, headers, system field, usage"
+  ],
+  "p2p": [
+   "src/providers/llm.test.ts :: chat > 429 is retried, 401 is not",
+   "src/providers/llm.test.ts :: chat > anthropic rejects tool messages in this version",
+   "src/providers/llm.test.ts :: chat > openai wire format: path, auth, json mode, usage and cost",
+   "src/providers/llm.test.ts :: pricing > known models have prices, unknown models cost zero",
+   "src/providers/llm.test.ts :: resolveLlmProvider > anthropic key wins by default, openai otherwise, HONE_LLM_PROVIDER forces",
+   "src/providers/llm.test.ts :: resolveLlmProvider > base url and model overrides",
+   "src/providers/llm.test.ts :: resolveLlmProvider > no key throws LlmConfigError"
+  ],
+  "changedTests": [
+   "src/providers/llm.test.ts :: chat > anthropic wire format: path, headers, system field, usage"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 380,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "branchpoints",
+  "commit": "03052fb",
+  "kind": "feat",
+  "subject": "feat: branch-point ranking for failed traces",
+  "tests": [
+   "src/analysis/branchpoints.test.ts"
+  ],
+  "newTestFiles": [
+   "src/analysis/branchpoints.test.ts"
+  ],
+  "f2p": [
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > a swapped tool result and an error span add signals at that step",
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > pickSibling prefers a passing trial of the same case",
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three"
+  ],
+  "p2p": [],
+  "changedTests": [
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > a swapped tool result and an error span add signals at that step",
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > pickSibling prefers a passing trial of the same case",
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+   "src/analysis/branchpoints.test.ts :: rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three"
+  ],
+  "removedTests": [],
+  "imports": {
+   "src/analysis/branchpoints.test.ts": [
+    "import valid from \"../../test/fixtures/trace.valid.json\";",
+    "import type { ChatMessage, Trace, Trial } from \"../core/types\";",
+    "import { pickSibling, rankBranchPoints, topSteps } from \"./branchpoints\";"
+   ]
+  },
+  "suite": {
+   "pass": 305,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ },
+ {
+  "id": "cache-per-trial",
+  "commit": "d42a198",
+  "kind": "fix",
+  "subject": "fix: cache target outputs per trial index so n trials are n samples",
+  "tests": [
+   "src/core/executor.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/core/executor.test.ts :: executor > runs target and scorers, stores the trial; a later trial is a fresh sample but re-running the same trial index hits the cache"
+  ],
+  "p2p": [
+   "src/core/executor.test.ts :: executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work",
+   "src/core/executor.test.ts :: executor > pass logic: false beats true, null-only is null, errors fail",
+   "src/core/executor.test.ts :: executor > reward-hack flag and gate modes",
+   "src/core/executor.test.ts :: executor > timeout flag, scorer exceptions and cost accounting",
+   "src/core/executor.test.ts :: executor > unknown case or target is a clear error",
+   "src/core/executor.test.ts :: executor > useCache: false calls the target every time"
+  ],
+  "changedTests": [
+   "src/core/executor.test.ts :: executor > runs target and scorers, stores the trial; a later trial is a fresh sample but re-running the same trial index hits the cache"
+  ],
+  "removedTests": [
+   "src/core/executor.test.ts :: executor > runs target and scorers, stores the trial, and serves the second identical trial from cache"
+  ],
+  "imports": {},
+  "suite": {
+   "pass": 384,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "calibrate-cases",
+  "commit": "dd6d43b",
+  "kind": "fix",
+  "subject": "fix: calibrate passes the run's real cases to the scorer and samples passing trials across cases",
+  "tests": [
+   "src/analysis/calibrate.test.ts",
+   "src/cli/commands/calibrate.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/analysis/calibrate.test.ts :: calibrate > scorers get the real Case (expected and all) and the sample is spread over cases, not the first n",
+   "src/cli/commands/calibrate.test.ts :: hone calibrate > scorers that need case.expected get it from the config's cases"
+  ],
+  "p2p": [
+   "src/analysis/calibrate.test.ts :: calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+   "src/analysis/calibrate.test.ts :: calibrate > only passing trials are used, n caps the sample, no labels means no kappa",
+   "src/analysis/calibrate.test.ts :: fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+   "src/analysis/calibrate.test.ts :: fault injectors > injected trials carry the fault in meta and do not mutate the original",
+   "src/analysis/calibrate.test.ts :: fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+   "src/analysis/calibrate.test.ts :: fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk",
+   "src/analysis/calibrate.test.ts :: inferDomain and kappa > cohenKappa",
+   "src/analysis/calibrate.test.ts :: inferDomain and kappa > retrieval spans mean rag, tool calls mean agent, otherwise qa",
+   "src/cli/commands/calibrate.test.ts :: hone calibrate > --labels adds kappa; --json prints the file; unknown scorer exits 2",
+   "src/cli/commands/calibrate.test.ts :: hone calibrate > writes calibration-<scorer>.json and prints the table",
+   "src/cli/commands/calibrate.test.ts :: parseLabels > csv with trialId,label; accepts true/false, pass/fail, 1/0, header optional"
+  ],
+  "changedTests": [
+   "src/analysis/calibrate.test.ts :: calibrate > scorers get the real Case (expected and all) and the sample is spread over cases, not the first n",
+   "src/cli/commands/calibrate.test.ts :: hone calibrate > scorers that need case.expected get it from the config's cases"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 384,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "cluster-induce-errors",
+  "commit": "34bc093",
+  "kind": "fix",
+  "subject": "fix: hone cluster --induce reports LLM failures cleanly",
+  "tests": [
+   "src/cli/commands/cluster.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/cli/commands/cluster.test.ts :: hone cluster > --induce reports an LLM failure as a clean error"
+  ],
+  "p2p": [
+   "src/cli/commands/cluster.test.ts :: hone cluster > --classify uses the saved taxonomy without inducing; fails without one",
+   "src/cli/commands/cluster.test.ts :: hone cluster > --induce names the clusters with the LLM, classifies every failure with Jev, saves the taxonomy",
+   "src/cli/commands/cluster.test.ts :: hone cluster > --json prints the file; a run without failures writes nothing and says so",
+   "src/cli/commands/cluster.test.ts :: hone cluster > unknown run exits 2",
+   "src/cli/commands/cluster.test.ts :: hone cluster > writes clusters-<runId>.json in the TUI shape and prints a table"
+  ],
+  "changedTests": [
+   "src/cli/commands/cluster.test.ts :: hone cluster > --induce reports an LLM failure as a clean error"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 380,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ },
+ {
+  "id": "embed-provider",
+  "commit": "ef5d00e",
+  "kind": "feat",
+  "subject": "feat: embeddings provider (OpenAI-compatible or hashed offline)",
+  "tests": [
+   "src/providers/embed.test.ts"
+  ],
+  "newTestFiles": [
+   "src/providers/embed.test.ts"
+  ],
+  "f2p": [
+   "src/providers/embed.test.ts :: embed > falls back to hashing without a key and uses the OpenAI endpoint with one",
+   "src/providers/embed.test.ts :: hashEmbed > deterministic, unit-norm, and similar texts are closer than unrelated ones"
+  ],
+  "p2p": [],
+  "changedTests": [
+   "src/providers/embed.test.ts :: embed > falls back to hashing without a key and uses the OpenAI endpoint with one",
+   "src/providers/embed.test.ts :: hashEmbed > deterministic, unit-norm, and similar texts are closer than unrelated ones"
+  ],
+  "removedTests": [],
+  "imports": {
+   "src/providers/embed.test.ts": [
+    "import { cosine, embed, hashEmbed } from \"./embed\";"
+   ]
+  },
+  "suite": {
+   "pass": 273,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "evolve-max-tokens",
+  "commit": "0804531",
+  "kind": "fix",
+  "subject": "fix: evolve asks for enough output tokens that a long rewritten prompt is not truncated",
+  "tests": [
+   "src/correct/evolve.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/correct/evolve.test.ts :: evolve > a reflection that fixes the failures joins the front and beats the baseline; junk replies are skipped"
+  ],
+  "p2p": [
+   "src/correct/evolve.test.ts :: evolve > a worse proposal is rejected on the minibatch and the verdict is no measurable effect",
+   "src/correct/evolve.test.ts :: evolve > maxCost of zero stops before any candidate",
+   "src/correct/evolve.test.ts :: parseProposal and isDominated > bare or fenced JSON with text; anything else is undefined",
+   "src/correct/evolve.test.ts :: parseProposal and isDominated > dominated when another is at least as good on both axes and better on one"
+  ],
+  "changedTests": [
+   "src/correct/evolve.test.ts :: evolve > a reflection that fixes the failures joins the front and beats the baseline; junk replies are skipped"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 386,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ },
+ {
+  "id": "failure-clustering",
+  "commit": "0813dd8",
+  "kind": "feat",
+  "subject": "feat: failure clustering with k-means++ and TF-IDF top terms",
+  "tests": [
+   "src/analysis/cluster.test.ts"
+  ],
+  "newTestFiles": [
+   "src/analysis/cluster.test.ts"
+  ],
+  "f2p": [
+   "src/analysis/cluster.test.ts :: clusterFailures > groups the three failure modes with the offline embedder and names top terms",
+   "src/analysis/cluster.test.ts :: clusterFailures > passing trials are ignored and no failures gives no clusters",
+   "src/analysis/cluster.test.ts :: kmeans > separates three obvious groups and chooseK scales with n",
+   "src/analysis/cluster.test.ts :: summarise > captures error, failed scorer reasons, last assistant message, tools and flags"
+  ],
+  "p2p": [],
+  "changedTests": [
+   "src/analysis/cluster.test.ts :: clusterFailures > groups the three failure modes with the offline embedder and names top terms",
+   "src/analysis/cluster.test.ts :: clusterFailures > passing trials are ignored and no failures gives no clusters",
+   "src/analysis/cluster.test.ts :: kmeans > separates three obvious groups and chooseK scales with n",
+   "src/analysis/cluster.test.ts :: summarise > captures error, failed scorer reasons, last assistant message, tools and flags"
+  ],
+  "removedTests": [],
+  "imports": {
+   "src/analysis/cluster.test.ts": [
+    "import valid from \"../../test/fixtures/trace.valid.json\";",
+    "import type { Trace, Trial } from \"../core/types\";",
+    "import { offlineEmbed } from \"../providers/embed\";",
+    "import { chooseK, clusterFailures, kmeans, summarise } from \"./cluster\";"
+   ]
+  },
+  "suite": {
+   "pass": 275,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "fork-first-user",
+  "commit": "7a2904d",
+  "kind": "fix",
+  "subject": "fix: fork uses an edited first user message as the input and keeps the answer as the final turn",
+  "tests": [
+   "src/correct/fork.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/correct/fork.test.ts :: forkTrial > editing the first user message re-runs a plain target with that text as the input"
+  ],
+  "p2p": [
+   "src/correct/fork.test.ts :: forkTrial > a target without resume still runs with ctx.prefix",
+   "src/correct/fork.test.ts :: forkTrial > loadForkDeps builds targets, scorer specs and case inputs from the config",
+   "src/correct/fork.test.ts :: forkTrial > re-runs the target from an edited prefix and stores a flagged trial"
+  ],
+  "changedTests": [
+   "src/correct/fork.test.ts :: forkTrial > editing the first user message re-runs a plain target with that text as the input"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 378,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ },
+ {
+  "id": "judge-calibration",
+  "commit": "514311f",
+  "kind": "feat",
+  "subject": "feat: judge calibration by fault injection",
+  "tests": [
+   "src/analysis/calibrate.test.ts"
+  ],
+  "newTestFiles": [
+   "src/analysis/calibrate.test.ts"
+  ],
+  "f2p": [
+   "src/analysis/calibrate.test.ts :: calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+   "src/analysis/calibrate.test.ts :: calibrate > only passing trials are used, n caps the sample, no labels means no kappa",
+   "src/analysis/calibrate.test.ts :: fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+   "src/analysis/calibrate.test.ts :: fault injectors > injected trials carry the fault in meta and do not mutate the original",
+   "src/analysis/calibrate.test.ts :: fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+   "src/analysis/calibrate.test.ts :: fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk",
+   "src/analysis/calibrate.test.ts :: inferDomain and kappa > cohenKappa",
+   "src/analysis/calibrate.test.ts :: inferDomain and kappa > retrieval spans mean rag, tool calls mean agent, otherwise qa"
+  ],
+  "p2p": [],
+  "changedTests": [
+   "src/analysis/calibrate.test.ts :: calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+   "src/analysis/calibrate.test.ts :: calibrate > only passing trials are used, n caps the sample, no labels means no kappa",
+   "src/analysis/calibrate.test.ts :: fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+   "src/analysis/calibrate.test.ts :: fault injectors > injected trials carry the fault in meta and do not mutate the original",
+   "src/analysis/calibrate.test.ts :: fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+   "src/analysis/calibrate.test.ts :: fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk",
+   "src/analysis/calibrate.test.ts :: inferDomain and kappa > cohenKappa",
+   "src/analysis/calibrate.test.ts :: inferDomain and kappa > retrieval spans mean rag, tool calls mean agent, otherwise qa"
+  ],
+  "removedTests": [],
+  "imports": {
+   "src/analysis/calibrate.test.ts": [
+    "import valid from \"../../test/fixtures/trace.valid.json\";",
+    "import type { ChatMessage, Trace, Trial } from \"../core/types\";",
+    "import type { Scorer } from \"../scorers/scorer\";",
+    "import { calibrate, cohenKappa, FAULTS, inferDomain, rng } from \"./calibrate\";"
+   ]
+  },
+  "suite": {
+   "pass": 294,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "matrix-errors",
+  "commit": "ffa8450",
+  "kind": "fix",
+  "subject": "fix: matrix counts errored trials in their own column and warns before pass@1 is read",
+  "tests": [
+   "src/cli/commands/matrix.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/cli/commands/matrix.test.ts :: hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1"
+  ],
+  "p2p": [
+   "src/cli/commands/matrix.test.ts :: hone matrix > --json exposes the numbers and --by model groups targets",
+   "src/cli/commands/matrix.test.ts :: hone matrix > no runs is a clear message",
+   "src/cli/commands/matrix.test.ts :: hone matrix > per-target aggregates sorted by pass rate, with bands",
+   "src/cli/commands/matrix.test.ts :: hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures"
+  ],
+  "changedTests": [
+   "src/cli/commands/matrix.test.ts :: hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 386,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "matrix-undecided",
+  "commit": "52f470a",
+  "kind": "fix",
+  "subject": "fix: matrix counts undecided trials instead of showing them as failures",
+  "tests": [
+   "src/cli/commands/matrix.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/cli/commands/matrix.test.ts :: hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures"
+  ],
+  "p2p": [
+   "src/cli/commands/matrix.test.ts :: hone matrix > --json exposes the numbers and --by model groups targets",
+   "src/cli/commands/matrix.test.ts :: hone matrix > no runs is a clear message",
+   "src/cli/commands/matrix.test.ts :: hone matrix > per-target aggregates sorted by pass rate, with bands"
+  ],
+  "changedTests": [
+   "src/cli/commands/matrix.test.ts :: hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 376,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ },
+ {
+  "id": "rollouts-export",
+  "commit": "ec20866",
+  "kind": "feat",
+  "subject": "feat: rollouts export (prompt, completion, reward, info)",
+  "tests": [
+   "src/io/export/rollouts.test.ts"
+  ],
+  "newTestFiles": [
+   "src/io/export/rollouts.test.ts"
+  ],
+  "f2p": [
+   "src/io/export/rollouts.test.ts :: splitPrompt > no assistant message means everything is prompt; a tool-heavy trace keeps tool turns in the completion",
+   "src/io/export/rollouts.test.ts :: splitPrompt > prompt ends at the last user message before the first assistant message",
+   "src/io/export/rollouts.test.ts :: toRollout > default reward is pass 1/0, info carries ids, scores, flags and cost",
+   "src/io/export/rollouts.test.ts :: toRollout > openai format merges prompt and completion into messages",
+   "src/io/export/rollouts.test.ts :: toRollout > undecided trials fall back to the mean score; reward can be mean-score or one scorer",
+   "src/io/export/rollouts.test.ts :: writeRollouts > one JSON object per line, pass-only filter"
+  ],
+  "p2p": [],
+  "changedTests": [
+   "src/io/export/rollouts.test.ts :: splitPrompt > no assistant message means everything is prompt; a tool-heavy trace keeps tool turns in the completion",
+   "src/io/export/rollouts.test.ts :: splitPrompt > prompt ends at the last user message before the first assistant message",
+   "src/io/export/rollouts.test.ts :: toRollout > default reward is pass 1/0, info carries ids, scores, flags and cost",
+   "src/io/export/rollouts.test.ts :: toRollout > openai format merges prompt and completion into messages",
+   "src/io/export/rollouts.test.ts :: toRollout > undecided trials fall back to the mean score; reward can be mean-score or one scorer",
+   "src/io/export/rollouts.test.ts :: writeRollouts > one JSON object per line, pass-only filter"
+  ],
+  "removedTests": [],
+  "imports": {
+   "src/io/export/rollouts.test.ts": [
+    "import valid from \"../../../test/fixtures/trace.valid.json\";",
+    "import type { ChatMessage, Trace, Trial } from \"../../core/types\";",
+    "import { splitPrompt, toRollout, writeRollouts } from \"./rollouts\";"
+   ]
+  },
+  "suite": {
+   "pass": 327,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ },
+ {
+  "id": "synth-messages",
+  "commit": "d3f37e4",
+  "kind": "fix",
+  "subject": "fix: synthesize a user/assistant message pair for targets that record no messages",
+  "tests": [
+   "src/core/executor.test.ts"
+  ],
+  "newTestFiles": [],
+  "f2p": [
+   "src/core/executor.test.ts :: executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work"
+  ],
+  "p2p": [
+   "src/core/executor.test.ts :: executor > pass logic: false beats true, null-only is null, errors fail",
+   "src/core/executor.test.ts :: executor > reward-hack flag and gate modes",
+   "src/core/executor.test.ts :: executor > runs target and scorers, stores the trial, and serves the second identical trial from cache",
+   "src/core/executor.test.ts :: executor > timeout flag, scorer exceptions and cost accounting",
+   "src/core/executor.test.ts :: executor > unknown case or target is a clear error",
+   "src/core/executor.test.ts :: executor > useCache: false calls the target every time"
+  ],
+  "changedTests": [
+   "src/core/executor.test.ts :: executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work"
+  ],
+  "removedTests": [],
+  "imports": {},
+  "suite": {
+   "pass": 377,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "dev"
+ },
+ {
+  "id": "taxonomy",
+  "commit": "d59c303",
+  "kind": "feat",
+  "subject": "feat: taxonomy induction and Jev classification",
+  "tests": [
+   "src/analysis/taxonomy.test.ts"
+  ],
+  "newTestFiles": [
+   "src/analysis/taxonomy.test.ts"
+  ],
+  "f2p": [
+   "src/analysis/taxonomy.test.ts :: classify > one Jev choice per trial over codes plus other",
+   "src/analysis/taxonomy.test.ts :: induceTaxonomy > a cluster whose reply cannot be parsed falls back to its provisional code",
+   "src/analysis/taxonomy.test.ts :: induceTaxonomy > merges with an existing taxonomy by identical code or by Jev agreement",
+   "src/analysis/taxonomy.test.ts :: induceTaxonomy > one chat call per cluster, codes in cluster order, summaries in the prompt",
+   "src/analysis/taxonomy.test.ts :: parseCodeJson > accepts bare and fenced JSON, normalises code to kebab-case, defaults axis",
+   "src/analysis/taxonomy.test.ts :: taxonomy file > round trips through .hone/taxonomy.json"
+  ],
+  "p2p": [],
+  "changedTests": [
+   "src/analysis/taxonomy.test.ts :: classify > one Jev choice per trial over codes plus other",
+   "src/analysis/taxonomy.test.ts :: induceTaxonomy > a cluster whose reply cannot be parsed falls back to its provisional code",
+   "src/analysis/taxonomy.test.ts :: induceTaxonomy > merges with an existing taxonomy by identical code or by Jev agreement",
+   "src/analysis/taxonomy.test.ts :: induceTaxonomy > one chat call per cluster, codes in cluster order, summaries in the prompt",
+   "src/analysis/taxonomy.test.ts :: parseCodeJson > accepts bare and fenced JSON, normalises code to kebab-case, defaults axis",
+   "src/analysis/taxonomy.test.ts :: taxonomy file > round trips through .hone/taxonomy.json"
+  ],
+  "removedTests": [],
+  "imports": {
+   "src/analysis/taxonomy.test.ts": [
+    "import valid from \"../../test/fixtures/trace.valid.json\";",
+    "import type { FailureCode, Trace, Trial } from \"../core/types\";",
+    "import type { JevQuestion, JevResult } from \"../providers/jev\";",
+    "import type { FailureCluster } from \"./cluster\";",
+    "import { classify, induceTaxonomy, parseCodeJson, readTaxonomy, writeTaxonomy } from \"./taxonomy\";"
+   ]
+  },
+  "suite": {
+   "pass": 282,
+   "fail": 0,
+   "exit": 0,
+   "failed": []
+  },
+  "split": "heldout"
+ }
+]

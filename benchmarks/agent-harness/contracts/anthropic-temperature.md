@@ -1,0 +1,6 @@
+- Background: `docs/work-orders/T-008.md` describes the chat client. It lists `temperature` as a request option without saying which provider receives it; the rule below is required.
+- The change is in `src/providers/llm.ts`, in the request that `chat(req, opts)` builds for a provider with `kind: "anthropic"`.
+- The JSON body posted to the Anthropic Messages endpoint must never contain a `temperature` key, whatever `req.temperature` is (including `0`). The key must be absent from the body, not present with `null`.
+- `ChatRequest.temperature` stays in the type and callers keep passing it; for Anthropic it is ignored silently (no error, no change to the result).
+- Everything else about the Anthropic request and response handling stays as it is: path `/v1/messages`, the `x-api-key` and `anthropic-version: 2023-06-01` headers, `model`, `max_tokens` (from `maxTokens`, default `1024`), `system`, `messages`, and the returned `text`, `usage`, `unknownPricing`.
+- The OpenAI-compatible request is unchanged: it still sends `temperature` when the caller gives one.

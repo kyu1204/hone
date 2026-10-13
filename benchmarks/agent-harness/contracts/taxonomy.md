@@ -1,0 +1,20 @@
+- Background: `docs/work-orders/T-602.md` describes the feature. Only the module `src/analysis/taxonomy.ts` is required here; extending `hone cluster` is out of scope. Two points differ from the work order: `induceTaxonomy` does not save anything itself (callers save with `writeTaxonomy`), and the `classify` state also carries the trial id (see below).
+- Exports of `src/analysis/taxonomy.ts`: `parseCodeJson`, `induceTaxonomy`, `classify`, `readTaxonomy`, `writeTaxonomy`.
+- Taxonomy file: `<root>/taxonomy.json`, where `root` is the store directory (normally `.hone`), holding `{ schemaVersion: 1, updatedAt, codes }`.
+  - `writeTaxonomy(root: string, codes: FailureCode[]): void` creates `root` when needed and writes the file with `updatedAt` set to the current ISO timestamp.
+  - `readTaxonomy(root: string)` returns the parsed file object (`schemaVersion`, `updatedAt`, `codes`), or `undefined` when the file is missing or unreadable.
+- `parseCodeJson(text: string): FailureCode | undefined` reads the JSON object in `text`, which may be bare or wrapped in a Markdown code fence or other text. It returns `undefined` when no object can be parsed, or when `code` or `definition` is not a string. Otherwise it returns exactly `{ code, axis, definition, evidencePatterns }`:
+  - `code` in kebab-case: lowercased, every run of characters other than `a-z0-9` replaced by one `-`, leading and trailing `-` removed;
+  - `axis` kept when it is `"role"` or `"domain"`, otherwise `"system"`;
+  - `evidencePatterns` the string entries of the given array, `[]` when absent.
+- `opts.chat` is a function called like `chat` in `src/providers/llm.ts`, with one `ChatRequest`; only the `text` of what it resolves to is used. `opts.jev` is any object with `ask(state, questions): Promise<JevResult>`, the shape of `JevClient`.
+- `induceTaxonomy(clusters: FailureCluster[], opts: { chat; existing?: FailureCode[]; jev?; sameThreshold?: number }): Promise<FailureCode[]>`:
+  - one `chat` call per cluster, in cluster order. The request's `messages` carry the cluster's top terms and up to 6 of its `summaries` verbatim.
+  - The reply goes through `parseCodeJson`. When that gives `undefined`, the cluster's provisional code is used: `{ code: cluster.id, axis: "system", definition: <top terms joined by ", ">, evidencePatterns: <top terms> }`.
+  - Merging with `opts.existing`: when an existing entry has the same `code`, that existing entry is used unchanged and Jev is not asked. Otherwise, when `opts.jev` is given and there are existing entries, exactly one `jev.ask` call is made for the candidate: the state is `{ candidate: { code, definition }, existing: [{ code, definition }, ...] }` and the questions object holds one `noul` question per existing entry, keyed by that entry's `code`. The existing entry whose answer has the highest `noul` is used when that value is at least `sameThreshold` (default `0.8`). In every other case the new code is used.
+  - The result lists the codes in cluster order, each `code` once.
+- `classify(trials: Trial[], codes: FailureCode[], opts: { jev }): Promise<Map<string, { code: string; confidence: number }>>`, keyed by trial id:
+  - with no codes, an empty map and no Jev call;
+  - otherwise one `jev.ask` per trial. The questions object is `{ code: <choice question> }`: a single `choice` question (the `choice` helper of `src/providers/jev.ts`) under the key `code`, whose options are the codes in the given order, keyed by `code` with the definition as text, followed by `other`;
+  - the state is `{ trialId: <trial id>, summary: summarise(trial), lastMessages: <the last 6 messages> }`, with `summarise` from `src/analysis/cluster.ts`. The work order names only the summary and the messages; the trial id is required too;
+  - the entry for a trial is `{ code: <choice>, confidence: <confidence> }` from the answer under `code`; when that answer is missing or not a `choice`, `{ code: "other", confidence: 0 }`.

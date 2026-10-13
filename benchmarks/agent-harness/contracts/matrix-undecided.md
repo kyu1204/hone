@@ -1,0 +1,11 @@
+- Background: `docs/work-orders/T-405.md` describes `hone matrix`. It lists `passAt1` without saying how trials without a verdict count; the rule below is required.
+- The change is in `src/cli/commands/matrix.ts` (`MatrixRow`, `buildMatrix`, `renderMatrixRows`). A trial is undecided when its `pass` is `null`.
+- Each row (also each entry of `rows` in `hone matrix --json`) gains `undecided: number`, the number of undecided trials in the group.
+- `passAt1` becomes the pass rate over decided trials only: `passed / (trials - undecided)`. When the group has no decided trial, `passAt1` is `null` (not `0`).
+- `trials` still counts every trial of the group, undecided ones included, and `passed` is unchanged.
+- Row order: `passAt1` descending, with `null` after every number; ties are broken by cost per solve as today.
+- Text table:
+  - the existing columns keep their names and their order (`target`, `band`, `cases`, `trials`, `pass@1`, `pass^3`, ... , `cached`); one new column with the header `undecided` is added after `cached`, as the last column;
+  - the `pass@1` cell prints `n/a` when `passAt1` is `null`, like the other columns that can be empty, and two decimals otherwise;
+  - the `undecided` cell prints the count, and is left blank when the count is 0.
+- Unchanged: `pass^3`, cost, tokens and time per solve, the timeout, hack and cached columns, the bands, `--by`, `--run`, the messages and the exit codes.

@@ -1,0 +1,11 @@
+sonnet-plain {'resolved': 25, 'failed only tests the statement does not determine': 58, 'failed a test the statement determines': 7}
+     failure-clustering ['clusterFailures > groups the three failure modes with the offline embedder and n']
+     fork-first-user ['forkTrial > editing the first user message re-runs a plain target with that text']
+     rollouts-export ['toRollout > openai format merges prompt and completion into messages']
+     taxonomy ['parseCodeJson > accepts bare and fenced JSON, normalises code to kebab-case, def']
+sonnet-spec {'resolved': 90}
+sonnet-plain-rules {'resolved': 30, 'failed only tests the statement does not determine': 57, 'failed a test the statement determines': 3}
+     branchpoints ['rankBranchPoints > pickSibling prefers a passing trial of the same case']
+     fork-first-user ['forkTrial > editing the first user message re-runs a plain target with that text']
+     rollouts-export ['toRollout > openai format merges prompt and completion into messages']
+opus-plain {'resolved': 40, 'failed only tests the statement does not determine': 50}

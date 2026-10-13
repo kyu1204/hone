@@ -1,0 +1,51 @@
+{
+ "schemaVersion": 1,
+ "updatedAt": "2026-10-13T05:43:54.180Z",
+ "codes": [
+  {
+   "code": "unverified-new-behavior",
+   "axis": "role",
+   "definition": "The agent implements the requested change but only runs the existing tests, and neither writes nor runs any test that exercises the new behavior; it discloses this gap, and the fail-to-pass tests still fail.",
+   "evidencePatterns": [
+    "I didn't add a test for the new behaviour",
+    "I haven't seen the maintainers' new test",
+    "I couldn't run the two new maintainer tests",
+    "existing tests pass",
+    "that one is unverified",
+    "tsc --noEmit is clean",
+    "pass-to-pass all green but fail-to-pass unresolved"
+   ]
+  },
+  {
+   "code": "unseen-tests-guessed-interface",
+   "axis": "role",
+   "definition": "The agent implements a feature without access to the maintainers' hidden tests and guesses option names, return shapes, or behavior, then reports its own passing tests while the hidden fail-to-pass tests fail.",
+   "evidencePatterns": [
+    "maintainers' test file isn't visible to me",
+    "maintainers' version of the test file wasn't available",
+    "the two new maintainer tests aren't in this checkout",
+    "option names and return shape follow the work order plus my own guesses",
+    "Both tests I wrote pass",
+    "resolved: 1/2 fail-to-pass",
+    "resolved: 0/1 fail-to-pass",
+    "I haven't run the maintainers' new test"
+   ]
+  },
+  {
+   "code": "unverified-api-guesses",
+   "axis": "role",
+   "definition": "The agent writes a module whose exported API and behaviour it guesses from a work order, without running or reading the maintainers' target tests, and checks it only with typechecking or its own throwaway test, so some fail-to-pass tests fail.",
+   "evidencePatterns": [
+    "couldn't run the maintainers' calibrate.test.ts",
+    "test file isn't visible here",
+    "several parts are my guesses",
+    "only a throwaway smoke test (not committed)",
+    "tsc --noEmit passed",
+    "I did not run any tests",
+    "did not re-run after the last edit",
+    "test expectations may differ from my guesses",
+    "partial fail-to-pass (e.g. 4/8, 3/4)"
+   ]
+  }
+ ]
+}

@@ -7,3 +7,6 @@ dist/
 .hone/
 .env
 .env.*
+.hone-pilot/
+benchmarks/agent-harness/logs/
+benchmarks/agent-harness/results/both-passes/trials.jsonl

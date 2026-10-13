@@ -1,0 +1,15 @@
+- Background: `docs/work-orders/T-704.md` describes the feature. Only the module `src/io/export/rollouts.ts` is required here; the `hone export` command is out of scope. `docs/compat.md` sketches a different row (`id`, `metrics`, a smaller `info`); the required shape is the work order's, restated below with the points it leaves open.
+- Exports of `src/io/export/rollouts.ts`: `splitPrompt`, `toRollout`, `writeRollouts`.
+- `splitPrompt(messages: ChatMessage[]): { prompt: ChatMessage[]; completion: ChatMessage[] }`.
+  - `prompt` is every message up to and including the last `user` message that precedes the first `assistant` message; `completion` is all the remaining messages in order (assistant turns, tool calls, tool results).
+  - With no `assistant` message, `prompt` is the whole list and `completion` is `[]`. With no `user` message before the first `assistant` message, `prompt` is everything before that assistant message.
+  - The two parts together always hold every message once, in order. The result has only these two keys.
+- Both functions below take the same options object, `{ reward?: string; format?: "trl" | "openai"; passOnly?: boolean }`; `toRollout` ignores `passOnly`.
+- `toRollout(trial: Trial, opts?)`.
+  - Default and `format: "trl"`: `{ prompt, completion, reward, info }`, splitting `trial.trace.messages`.
+  - `format: "openai"`: `{ messages, reward, info }`, where `messages` is the prompt followed by the completion.
+  - `info` is `{ trialId, runId, caseId, targetId, trial, pass, scores, flags, costUsd }`: `trialId` is `trial.id`; `caseId`, `targetId` and `trial` (the trial index) come from the trace; `scores` has one `{ scorer, value, pass }` per score, with only these keys. `info.injectedFault` is added when `trace.meta.injectedFault` is a string.
+  - `reward` with `opts.reward` omitted or `"pass"`: `1` when `pass === true`, `0` when `pass === false`, and the mean of the score values when `pass` is `null` (`0` without scores).
+  - `opts.reward: "mean-score"`: the mean of the score values, whatever the verdict.
+  - Any other `opts.reward` is a scorer name: the `value` of that scorer's score. When the trial has no score from it, `toRollout` throws an `Error` whose message starts with `scorer <name> not in trial <trial id>`.
+- `writeRollouts(trials: Trial[], out: string, opts?): number` is synchronous. It writes the file `out`, replacing it, with one `JSON.stringify(toRollout(trial, opts))` per line in input order, each line ending in `\n` (an empty file when nothing is kept). `opts.passOnly` keeps only trials with `pass === true`; `reward` and `format` are passed through. It returns the number of rollouts written.

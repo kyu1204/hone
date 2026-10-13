@@ -1,0 +1,14 @@
+- Background: the `src/providers/embed.ts` bullet of `docs/work-orders/T-601.md` describes this module. One point differs: the work order says `embed(...)` resolves to `number[][]`; the required result is the object described below, which carries the vectors and the method.
+- New module `src/providers/embed.ts` exporting `hashEmbed`, `cosine` and `embed`.
+- `hashEmbed(texts: string[]): number[][]` is synchronous and returns one vector of length 512 per text, in input order. The vector is defined as follows, so that it is the same in every implementation:
+  - tokens are the matches of `/[a-z0-9_.-]+/g` in the lowercased text;
+  - features are every token plus every pair of adjacent tokens joined by one space;
+  - each feature is hashed with 32-bit FNV-1a over its character codes (offset basis `0x811c9dc5`, prime `0x01000193`) to an unsigned `h`; dimension `h % 512` gets `+1` when bit 16 of `h` is set and `-1` otherwise;
+  - the vector is then L2-normalised. A text with no tokens gives the all-zero vector, never `NaN`.
+- `cosine(a: number[], b: number[]): number` is the cosine similarity, and `0` when either vector has zero norm.
+- `embed(texts: string[], opts?: { env?: Record<string, string | undefined>; src?: EnvSources; fetch?: typeof fetch }): Promise<{ vectors: number[][]; method: "openai" | "hash"; model?: string }>`.
+  - Settings are read with the existing `lookupEnv(name, opts.env ?? process.env, opts.src)` from `src/providers/jev.ts`; `src` is its `EnvSources` (`{ home?, cwd? }`).
+  - Without `OPENAI_API_KEY` (or with no texts) it makes no request and resolves to `{ vectors: hashEmbed(texts), method: "hash" }`. The key alone decides; `OPENAI_BASE_URL` and `HONE_EMBED_MODEL` only shape the request.
+  - With a key it sends `POST <base>/embeddings`, where `<base>` is `OPENAI_BASE_URL` (default `https://api.openai.com/v1`) without a trailing slash, with headers `content-type: application/json` and `authorization: Bearer <key>` and the JSON body `{ input: <array of texts>, model }`. `model` is `HONE_EMBED_MODEL`, default `text-embedding-3-small`. All texts go in one `input` array (at most 256 per request).
+  - The response is `{ data: [{ index, embedding }] }`, with `index` counting within the request's `input`; the vector of that text is the `embedding` as received. The result is `{ vectors, method: "openai", model }`, with `vectors` in input order.
+  - A non-2xx response rejects with an `Error`. `opts.fetch`, when given, replaces the global `fetch`.

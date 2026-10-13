@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "runId": "2026-10-13T00-11-57.435Z-27ae",
+  "by": "target",
+  "rows": [
+    {
+      "id": "sonnet-plain",
+      "cases": 15,
+      "trials": 30,
+      "passed": 30,
+      "undecided": 0,
+      "errors": 0,
+      "passAt1": 1,
+      "passHat3": null,
+      "costPerSolve": 0.18418896000000007,
+      "tokensPerSolve": 2272.9333333333334,
+      "msPerSolve": 25694.5,
+      "timeouts": 0,
+      "rewardHacks": 0,
+      "cachedShare": 0,
+      "band": "A"
+    },
+    {
+      "id": "sonnet-rules",
+      "cases": 15,
+      "trials": 30,
+      "passed": 30,
+      "undecided": 0,
+      "errors": 0,
+      "passAt1": 1,
+      "passHat3": null,
+      "costPerSolve": 0.1844478766666667,
+      "tokensPerSolve": 2248.9333333333334,
+      "msPerSolve": 26262.533333333333,
+      "timeouts": 0,
+      "rewardHacks": 0,
+      "cachedShare": 0,
+      "band": "A"
+    },
+    {
+      "id": "opus-plain",
+      "cases": 15,
+      "trials": 30,
+      "passed": 30,
+      "undecided": 0,
+      "errors": 0,
+      "passAt1": 1,
+      "passHat3": null,
+      "costPerSolve": 0.4127205266666667,
+      "tokensPerSolve": 2879.3333333333335,
+      "msPerSolve": 39041.23333333333,
+      "timeouts": 0,
+      "rewardHacks": 0,
+      "cachedShare": 0,
+      "band": "A"
+    }
+  ]
+}

@@ -1,0 +1,371 @@
+{
+ "anthropic-temperature": {
+  "f2pTests": 1,
+  "undetermined": [],
+  "f2pTestsBlocked": 0
+ },
+ "branchpoints": {
+  "f2pTests": 4,
+  "undetermined": [
+   {
+    "item": "reason string must match /diverges from passing sibling/; T-605 only names the signal \"the first divergence from a passing sibling\" and gives no reason strings",
+    "kind": "wording",
+    "test": "rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "reason string must match /early in the trace/; T-605 calls it \"the first 20% of the trace\"",
+    "kind": "wording",
+    "test": "rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "which step the divergence signal lands on when the diverging alignment rows exist only on the sibling side: the next failed-side message (step 7) is required; the last matched step would be 6",
+    "kind": "behaviour",
+    "test": "rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "a step with no signal must not be listed, so the -1 for early messages applies only to steps that already carry a signal; T-605 says \"messages in the first 20% of the trace get -1\"",
+    "kind": "behaviour",
+    "test": "rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "an error span is attributed to the tool-result message with the same name (step 4), not to the assistant message that issued the call; T-605 only says \"a span with attrs.error at that step\"",
+    "kind": "behaviour",
+    "test": "rankBranchPoints > a swapped tool result and an error span add signals at that step",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "reason string must match /tool result differs/; T-605 words it \"a tool result that differs from the sibling's result\"",
+    "kind": "wording",
+    "test": "rankBranchPoints > a swapped tool result and an error span add signals at that step",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "a step with no signal must not be listed, so the -1 for early messages applies only to steps that already carry a signal; T-605 says \"messages in the first 20% of the trace get -1\"",
+    "kind": "behaviour",
+    "test": "rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "tie-break for equal scores: the later step comes first (two steps with score 1 must come out as [7, 5]); T-605 only says \"sorted by score desc\"",
+    "kind": "determinism",
+    "test": "rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "topSteps(ranked, n) takes the ranked list and returns step numbers (number[]); the function is not described anywhere",
+    "kind": "shape",
+    "test": "rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 3
+ },
+ "cache-per-trial": {
+  "f2pTests": 1,
+  "undetermined": [],
+  "f2pTestsBlocked": 0
+ },
+ "calibrate-cases": {
+  "f2pTests": 2,
+  "undetermined": [
+   {
+    "item": "`cases` option (an array of Case) on calibrate()",
+    "kind": "name",
+    "test": "calibrate > scorers get the real Case (expected and all) and the sample is spread over cases, not the first n",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "the sample must come from a seeded shuffle of the passing trials: with six single-case trials the first three in order are rejected, so a deterministic one-per-case spread fails",
+    "kind": "determinism",
+    "test": "calibrate > scorers get the real Case (expected and all) and the sample is spread over cases, not the first n",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "cluster-induce-errors": {
+  "f2pTests": 1,
+  "undetermined": [
+   {
+    "item": "stderr must match /cluster failed: <error message>/ (export, evolve and optimize print \"<command> failed: ...\", but nothing states it for this command)",
+    "kind": "wording",
+    "test": "hone cluster > --induce reports an LLM failure as a clean error",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "exit code 1 (every other error path of this command returns 2)",
+    "kind": "behaviour",
+    "test": "hone cluster > --induce reports an LLM failure as a clean error",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "embed-provider": {
+  "f2pTests": 2,
+  "undetermined": [
+   {
+    "item": "hashEmbed([\"\"]) must be the all-zero vector (no NaN, no fallback unit vector), although the title says unit-norm",
+    "kind": "behaviour",
+    "test": "hashEmbed > deterministic, unit-norm, and similar texts are closer than unrelated ones",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "embed() resolves to an object { vectors, method }; T-601 says it resolves to number[][]",
+    "kind": "shape",
+    "test": "embed > falls back to hashing without a key and uses the OpenAI endpoint with one",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "method values \"hash\" and \"openai\"",
+    "kind": "name",
+    "test": "embed > falls back to hashing without a key and uses the OpenAI endpoint with one",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "options `env` and `src` ({ home, cwd }) on embed(texts, opts); T-601 only writes `opts?`",
+    "kind": "name",
+    "test": "embed > falls back to hashing without a key and uses the OpenAI endpoint with one",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 2
+ },
+ "evolve-max-tokens": {
+  "f2pTests": 1,
+  "undetermined": [
+   {
+    "item": "every reflection request must carry maxTokens of at least 4096; the statement gives no number",
+    "kind": "behaviour",
+    "test": "evolve > a reflection that fixes the failures joins the front and beats the baseline; junk replies are skipped",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "failure-clustering": {
+  "f2pTests": 4,
+  "undetermined": [
+   {
+    "item": "kmeans() returns an object with `assignments` (centroid index per vector); T-601 gives the parameters but no return shape",
+    "kind": "shape",
+    "test": "kmeans > separates three obvious groups and chooseK scales with n",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "fork-first-user": {
+  "f2pTests": 1,
+  "undetermined": [],
+  "f2pTestsBlocked": 0
+ },
+ "judge-calibration": {
+  "f2pTests": 8,
+  "undetermined": [
+   {
+    "item": "FAULTS is indexed FAULTS[domain][faultType] (e.g. FAULTS.rag[\"unsupported-claim\"]); only the export name is given",
+    "kind": "shape",
+    "test": "fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "FAULTS is indexed FAULTS[domain][faultType] (e.g. FAULTS.rag[\"unsupported-claim\"]); only the export name is given",
+    "kind": "shape",
+    "test": "fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "FAULTS is indexed FAULTS[domain][faultType] (e.g. FAULTS.rag[\"unsupported-claim\"]); only the export name is given",
+    "kind": "shape",
+    "test": "fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "FAULTS is indexed FAULTS[domain][faultType] (e.g. FAULTS.rag[\"unsupported-claim\"]); only the export name is given",
+    "kind": "shape",
+    "test": "fault injectors > injected trials carry the fault in meta and do not mutate the original",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "injectors take a third argument, the pool of trials to borrow from; T-604 defines them as (trial, rng)",
+    "kind": "shape",
+    "test": "fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "negated on a number means the first number plus one (12 becomes 13); T-604 says \"flips a number\"",
+    "kind": "behaviour",
+    "test": "fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "injectors take a third argument, the pool of trials to borrow from; T-604 defines them as (trial, rng)",
+    "kind": "shape",
+    "test": "fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "a tool call named Bash counts as verification by its name alone (arguments are empty); T-604's pattern /test|verify|check|run/i does not match \"Bash\"",
+    "kind": "behaviour",
+    "test": "fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "tool-result-swapped must consider every tool message and only same-tool results that differ, so it applies whenever one such pair exists; picking one tool message at random first does not",
+    "kind": "determinism",
+    "test": "fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "premature-done sets trace.output to the content of the claiming message; T-604 only says it truncates",
+    "kind": "behaviour",
+    "test": "fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "premature-done returns undefined when the only completion claim is the final assistant message",
+    "kind": "behaviour",
+    "test": "fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "trace.meta.injectedFault holds the fault type",
+    "kind": "name",
+    "test": "fault injectors > injected trials carry the fault in meta and do not mutate the original",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "cohenKappa returns exactly 1 when both raters use a single category and agree (expected agreement 1, a 0/0 case)",
+    "kind": "behaviour",
+    "test": "inferDomain and kappa > cohenKappa",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "a tool call named Bash counts as verification by its name alone (arguments are empty); T-604's pattern /test|verify|check|run/i does not match \"Bash\"",
+    "kind": "behaviour",
+    "test": "calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "tool-result-swapped must consider every tool message and only same-tool results that differ, so it applies whenever one such pair exists; picking one tool message at random first does not",
+    "kind": "determinism",
+    "test": "calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 6
+ },
+ "matrix-errors": {
+  "f2pTests": 1,
+  "undetermined": [
+   {
+    "item": "the warning must match /<n> of <trials> trials errored/",
+    "kind": "wording",
+    "test": "hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "the warning is part of the table text on stdout; a warning would normally go to stderr",
+    "kind": "behaviour",
+    "test": "hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "pass@1 still counts errored trials as failures (prints 0.00, not n/a), although the title says errors are \"not hidden inside pass@1\"",
+    "kind": "behaviour",
+    "test": "hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "the errors column must be the last column: the row line has to end with the error count",
+    "kind": "shape",
+    "test": "hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "matrix-undecided": {
+  "f2pTests": 1,
+  "undetermined": [
+   {
+    "item": "passAt1 is null in --json and n/a in the table when no trial of the group is decided",
+    "kind": "behaviour",
+    "test": "hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "the undecided column must not sit between trials and pass@1: the row is matched as id, band, cases, trials, pass@1",
+    "kind": "shape",
+    "test": "hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "rollouts-export": {
+  "f2pTests": 6,
+  "undetermined": [
+   {
+    "item": "an unknown scorer name in opts.reward must throw an error whose message matches /scorer <name>/; T-704 does not cover the case",
+    "kind": "wording",
+    "test": "toRollout > undecided trials fall back to the mean score; reward can be mean-score or one scorer",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "writeRollouts() is synchronous and returns the number of rollouts written; T-704 only says it \"streams one JSON object per line\"",
+    "kind": "shape",
+    "test": "writeRollouts > one JSON object per line, pass-only filter",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 2
+ },
+ "synth-messages": {
+  "f2pTests": 1,
+  "undetermined": [
+   {
+    "item": "trace.meta.synthesizedMessages is true on a synthesized trace and absent otherwise",
+    "kind": "name",
+    "test": "executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 1
+ },
+ "taxonomy": {
+  "f2pTests": 6,
+  "undetermined": [
+   {
+    "item": "Jev merge protocol: exactly one jev.ask per candidate, with one noul question per existing code keyed by that code; T-602 names the noul check and the 0.8 threshold but not the call layout",
+    "kind": "shape",
+    "test": "induceTaxonomy > merges with an existing taxonomy by identical code or by Jev agreement",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "the classification question must sit under the key `code` (questions.code, answer read from answers.code)",
+    "kind": "name",
+    "test": "classify > one Jev choice per trial over codes plus other",
+    "contradictsRepoDoc": false
+   },
+   {
+    "item": "the Jev state must carry the trial id as a string value; T-602 says \"state = summary + last messages\"",
+    "kind": "shape",
+    "test": "classify > one Jev choice per trial over codes plus other",
+    "contradictsRepoDoc": true
+   },
+   {
+    "item": "readTaxonomy(root) returns the file object { schemaVersion, updatedAt, codes } or undefined, and writeTaxonomy(root, codes) takes the store directory and the codes; only the names and the file shape are given",
+    "kind": "shape",
+    "test": "taxonomy file > round trips through .hone/taxonomy.json",
+    "contradictsRepoDoc": false
+   }
+  ],
+  "f2pTestsBlocked": 3
+ }
+}

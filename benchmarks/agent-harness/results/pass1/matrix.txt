@@ -1,0 +1,9 @@
+run 2026-10-13T07-34-56.411Z-4c9c by target
+
+target              band  cases  trials  pass@1  pass^3  $/solve   tokens/solve  s/solve  timeouts  hacks  cached  undecided  errors
+sonnet-spec         A     15     45      1.00    1.00    $0.0887   85,300        21.0     0         0      0%
+opus-plain          B     15     45      0.40    0.40    $1.3010   750,283       253.2    0         0      0%
+sonnet-plain-rules  B     15     45      0.36    0.33    $0.4879   602,436       127.3    0         0      0%
+sonnet-plain        B     15     45      0.31    0.20    $0.3785   421,454       92.2     0         0      0%
+
+band: targets sharing a letter are not significantly different (Holm-adjusted paired tests).
