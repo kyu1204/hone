@@ -107,6 +107,25 @@ describe("sharpen", () => {
     expect(r.message).toMatch(/variant wide \+ rewrite 1|rewrite 1 \(on variant wide\)/);
   });
 
+  test("a variant that only helps together with a rewrite is tried again on top of it", async () => {
+    // nothing passes until the text is rewritten; after that the variant fixes the other half
+    const { chat } = stubChat();
+    const cwd = tmp();
+    const cfg = config((id, text, variant) => text.includes("UPPERCASE") && (even(id) || variant === "wide"), { text: true, variants: ["wide"] });
+    const r = await sharpen({ config: cfg, hash: "h", cwd, chat, budget: 4, useCache: false });
+    expect(r.candidates.map((c) => c.id)).toEqual(["variant wide", "rewrite 1", "variant wide on rewrite 1"]);
+    expect(r.candidates[0]).toMatchObject({ dev: 0, parent: "baseline" });
+    expect(r.candidates[1]!.dev).toBeGreaterThan(0.2);
+    expect(r.candidates[1]!.dev).toBeLessThan(0.8);
+    expect(r.candidates[2]).toMatchObject({ kind: "variant", parent: "rewrite 1", variant: "wide", text: "Answer in UPPERCASE.", dev: 1 });
+    expect(r.best).toMatchObject({ id: "variant wide on rewrite 1", label: "variant wide on rewrite 1", baseline: 0, candidate: 1 });
+    expect(r.verdict).toBe("proven");
+    expect(r.message).toMatch(/Result: PROVEN\. On 10 cases it never saw, variant wide on rewrite 1 takes the pass rate from 0% to 100%/);
+    expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt`);
+    expect(r.message).toContain('It uses the variant "wide" from sharpen.variants.');
+    expect(fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`), "utf8")).toBe("Answer in UPPERCASE.");
+  });
+
   test("a rewrite that only fits the cases it learned from is not adopted", async () => {
     // the system passes a case only when the text names it; the proposer sees dev failures and names exactly those
     const naming = (prompt: string): string => `Answer. ${[...new Set([...prompt.matchAll(/case (c\d+)/g)].map((m) => `[${m[1]}]`))].join("")}`;

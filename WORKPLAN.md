@@ -112,6 +112,7 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 - [x] T-1001 Three-command surface: `init`, `test`, `sharpen`; the rest behind `hone help all` (M)
 - [x] T-1002 Config: one `sharpen` block (`text`, `variants`) replaces `evolve` and `optimize` (S)
 - [x] T-1003 `hone sharpen`: split, measure, gates, diagnose, propose, verify, confirm on held-out cases, plain report (L)
+- [x] T-1007 sharpen: try each variant again on top of a rewrite that became the best (S)
 - [ ] T-1004 The first five minutes: init scaffold, example, README, skill, docs (M)
 - [ ] T-1005 Proposals as patches from a coding agent; diagnosis by intervention; `--apply` (L)
 - [ ] T-1006 Replicate both studies with zero human decisions (M) BLOCKED: spends API credit and subscription quota; the maintainer sets the budget first.
@@ -193,3 +194,4 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 | 2026-10-13 | T-1001 | #100 | `hone test` replaces `run` (no alias: nothing was released); `ci` and `report` become `test --ci` and `test --report`; `hone --help` shows the everyday commands only, `hone help all` the rest in three groups with plain summaries; docs/cli.md regrouped; every mention in README, docs, examples, skill and benchmark scripts renamed |
 | 2026-10-13 | T-1002 | #101 | `config.sharpen.text` and `config.sharpen.variants` replace the top-level `evolve` and `optimize` keys (same shapes); evolve and optimize read the new block and name it in their errors; harness-ablation example and the RAG benchmark config follow |
 | 2026-10-13 | T-1003 | #102 | correct/sharpen.ts: seeded held-out split (in-sample below 12 cases), baseline on dev, gates (cannot measure, nothing to sharpen, nothing to change), diagnosis (offline clusters, named by the model when there is one), variants then rewrites from the best member so far (a rewrite lands on a variant without anyone combining them), sample check before a full run, ledger, confirmation on held-out cases (proven / promising with cases needed / no gain), plain account; `hone sharpen` is the third everyday command |
+| 2026-10-13 | T-1007 | #103 | sharpen tries every declared variant on top of a rewrite that became the best member (`variant <name> on rewrite <n>`), so changes that only help together are found, as in the RAG study where a person had combined them; the account names the variant to apply next to the new text |

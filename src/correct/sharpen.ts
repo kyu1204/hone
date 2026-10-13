@@ -158,6 +158,8 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     const more = r.verdict === "proven" ? "" : `${b.needed ? ` About ${b.needed} held-out cases would settle it.` : ""}${r.split.inSample ? " Add cases (12 or more) so some can be held out." : ""}`;
     lines.push(`Result: ${r.verdict === "proven" ? "PROVEN" : "PROMISING, not proven"}. ${where}, ${b.label} takes the pass rate from ${pct(b.baseline)} to ${pct(b.candidate)}`, `${stats}${cost}${more}`);
     if (x.textFile) lines.push(`The new text is in ${path.relative(x.cwd, x.textFile)}`);
+    const variant = r.candidates.find((c) => c.id === b.id)?.variant;
+    if (variant) lines.push(`It uses the variant "${variant}" from sharpen.variants.`);
   }
   return `${lines.join("\n")}\n`;
 }
@@ -224,13 +226,26 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       r.candidates.push({ id: cid, kind: "variant", parent: "baseline", variant: name, dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
     }
 
-    // rewrites start from the best member so far, so a rewrite lands on top of a variant that helped without anyone combining them
-    for (let n = 1; !stopped && canRewrite && !(stopped = over()); n++) {
+    // rewrites start from the best member so far, so a rewrite lands on top of a variant that helped without anyone combining them;
+    // the other way round, a variant is tried again on top of a rewrite that became the best
+    const onTop = new Set<string>();
+    for (let n = 1; !stopped && canRewrite && !(stopped = over()); ) {
       const parent = best();
       const failed = failing(parent.run, split.dev);
       if (failed.length === 0) break;
       tried++;
-      const cid = `rewrite ${n}`;
+      // a variant that did nothing alone may help once the text is right: try each one on a rewrite that became the best
+      const again = parent.text !== undefined && !parent.variant ? Object.keys(variants).find((v) => !onTop.has(`${parent.id}|${v}`)) : undefined;
+      if (again) {
+        onTop.add(`${parent.id}|${again}`);
+        const vid = `variant ${again} on ${parent.id}`;
+        const full = await run({ variant: again, text: parent.text }, vid, split.dev);
+        spent += cost(full);
+        members.push({ id: vid, variant: again, text: parent.text, run: full });
+        r.candidates.push({ id: vid, kind: "variant", parent: parent.id, variant: again, text: parent.text, dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
+        continue;
+      }
+      const cid = `rewrite ${n++}`;
       const text = parent.text ?? textHook!.seed;
       const samples = await spread(parent.run.trials, 6, seed);
       const modes = r.diagnosis.length ? `Failure modes seen:\n${r.diagnosis.map((d) => `- ${d.code}: ${d.definition} (${d.size} trials)`).join("\n")}\n\n` : "";
@@ -269,7 +284,7 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     const cmp = cases.length >= 2 ? compareTargets(cases.map((caseId) => ({ caseId, a: w.perCase.get(caseId) ?? 0, b: b.perCase.get(caseId) ?? 0 })), 1 - alpha).paired : undefined;
     const diff = rate(w, cases) - rate(b, cases);
     const perTrial = (x: RunOutcome): number => cost(x) / Math.max(1, x.trials.length);
-    r.best = { id: winner.id, label: winner.text !== undefined && winner.variant ? `${winner.id} (on variant ${winner.variant})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: cmp?.p ?? 1, ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
+    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.variant ? `${winner.id} (on variant ${winner.variant})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: cmp?.p ?? 1, ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
     if (diff <= 0) return finish("no gain");
     if (r.best.p < alpha && !split.inSample) return finish("proven");
     if (cmp && cmp.se > 0) r.best.needed = Math.ceil(pairedPowerN({ effect: diff / (cmp.se * Math.sqrt(cmp.n)), alpha }));
