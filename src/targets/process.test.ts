@@ -90,6 +90,28 @@ describe("process target (generic)", () => {
     expect(out.error).toBe("generic exited with exit code 1: You've hit your session limit");
   });
 
+  test("the child does not inherit the variables of a Claude Code session hone was started from", async () => {
+    const session = { CLAUDECODE: "1", CLAUDE_CODE_ENTRYPOINT: "cli", CLAUDE_CODE_SESSION_ID: "parent", CLAUDE_CODE_CHILD_SESSION: "1", CLAUDE_CODE_SESSION_ATTENDED: "1", CLAUDE_CODE_MESSAGING_SOCKET: "/tmp/parent.sock", CLAUDE_CODE_MESSAGING_TOKEN: "t", CLAUDE_CODE_EXECPATH: "/x", CLAUDE_EFFORT: "max", CLAUDE_PID: "1" };
+    const user = { CLAUDE_CODE_DISABLE_ADAPTIVE_THINKING: "1", HONE_TEST_KEEP: "yes" };
+    const before = Object.fromEntries(Object.keys({ ...session, ...user }).map((k) => [k, process.env[k]]));
+    Object.assign(process.env, session, user);
+    try {
+      const names = ["bash", "-c", "env | cut -d= -f1 | grep -E '^(CLAUDE|HONE_TEST)' | sort"];
+      const inherited = await createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: names }).run("x", ctx);
+      const seen = String(inherited.output).split("\n");
+      // what marks the launching session is gone; what the user configured stays
+      expect(seen.filter((n) => n in session)).toEqual([]);
+      expect(seen).toEqual(expect.arrayContaining(Object.keys(user)));
+      const explicit = await createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["bash", "-c", "echo $CLAUDE_EFFORT"], env: { CLAUDE_EFFORT: "low" } }).run("x", ctx);
+      expect(explicit.output).toBe("low"); // the target's own env always wins
+    } finally {
+      for (const [k, v] of Object.entries(before)) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+  });
+
   test("isolate none runs in place inside a git repo and refuses without one", async () => {
     const ws = workspace();
     const noGit = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, isolate: "none", command: ["echo", "x"] });
