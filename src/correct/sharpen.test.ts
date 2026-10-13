@@ -22,10 +22,10 @@ const idOf = (input: unknown): string => `c${String(input).slice(1)}`;
 const even = (id: string): boolean => Number(id.slice(1)) % 2 === 0;
 
 /** A system that answers a case correctly when `passes(caseId, text, variant)` says so; the text and the variant are what sharpen may change. */
-function config(passes: (id: string, text: string, variant: string | undefined) => boolean, opts: { n?: number; text?: boolean; variants?: string[]; price?: number } = {}): HoneConfig {
+function config(passes: (id: string, text: string, variant: string | undefined) => boolean, opts: { n?: number; text?: boolean; variants?: string[]; price?: number | ((variant: string | undefined, text: string) => number) } = {}): HoneConfig {
   const answer = (input: unknown, text: string, variant: string | undefined): string => (passes(idOf(input), text, variant) ? String(input).toUpperCase() : String(input));
   const make = (text: string, variant: string | undefined): HoneConfig["targets"] => ({
-    t: { kind: "fn", text, variant, version: `${variant ?? "base"}|${text}`, fn: (input: unknown) => (opts.price ? { output: answer(input, text, variant), usage: { costUsd: opts.price } } : answer(input, text, variant)) },
+    t: { kind: "fn", text, variant, version: `${variant ?? "base"}|${text}`, fn: (input: unknown) => (opts.price ? { output: answer(input, text, variant), usage: { costUsd: typeof opts.price === "function" ? opts.price(variant, text) : opts.price } } : answer(input, text, variant)) },
   });
   const sharpenBlock: NonNullable<HoneConfig["sharpen"]> = {};
   if (opts.text) sharpenBlock.text = { seed: "Answer.", apply: (c, text) => ({ ...c, targets: make(text, c.targets.t!.variant as string | undefined) }) };
@@ -192,6 +192,43 @@ describe("sharpen", () => {
     const saved = fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`), "utf8");
     expect(saved).toContain('change("rewrite 1", {');
     expect(saved).not.toContain("wide");
+  });
+
+  test("a cheaper candidate that is as good is the winner: one case of difference is not worth five times the price", async () => {
+    // the variant costs five times as much. A rewrite fixes everything but the cases in `only`, which need the variant too.
+    const dev = splitCases(Array.from({ length: 30 }, (_, i) => `c${i}`)).dev;
+    const run = (only: string[], price: (v: string | undefined) => number) => {
+      const { chat } = stubChat();
+      const cfg = config((id, text, variant) => (only.includes(id) ? variant === "wide" : text.includes("UPPERCASE")), { text: true, variants: ["wide"], price });
+      return sharpen({ config: cfg, hash: "h", cwd: tmp(), chat, budget: 2, useCache: false });
+    };
+    const dear = (v: string | undefined): number => (v === "wide" ? 5 : 1);
+    const one = await run([dev[0]!], dear);
+    expect(one.candidates.map((c) => `${c.id} ${Math.round(c.dev! * 100)}`)).toEqual(["variant wide 5", "rewrite 1 100", "rewrite 1 without wide 95"]);
+    expect(one.best!.id).toBe("rewrite 1 without wide");
+    expect(one.passedOver).toMatchObject({ id: "rewrite 1", dev: 1, costRatio: 5 });
+    expect(flat(one.message)).toContain("rewrite 1 scored higher on the cases it learned from (100% against 95%) at 5.0x the cost. That is within one case, so the cheaper one is the candidate.");
+    expect(flat(one.message)).not.toContain('It uses the variant "wide"');
+    // two cases of difference are a difference: the expensive one stays
+    const two = await run([dev[0]!, dev[1]!], dear);
+    expect(two.best!.id).toBe("rewrite 1");
+    expect(two.passedOver).toBeUndefined();
+    expect(flat(two.message)).toContain("Cost per case: 5.0x.");
+    // at the same price there is nothing to save
+    const same = await run([dev[0]!], () => 1);
+    expect(same.best!.id).toBe("rewrite 1");
+  });
+
+  test("a change that costs twice as much and gains one case is no gain: what you have is as good and cheaper", async () => {
+    const dev = splitCases(Array.from({ length: 30 }, (_, i) => `c${i}`)).dev;
+    const { chat } = stubChat();
+    const cfg = config((id, text) => id === dev[0] && text.includes("UPPERCASE"), { text: true, price: (_v, text) => (text.includes("UPPERCASE") ? 2 : 1) });
+    const r = await sharpen({ config: cfg, hash: "h", cwd: tmp(), chat, budget: 1, useCache: false });
+    expect(r.candidates[0]).toMatchObject({ id: "rewrite 1", dev: 0.05 });
+    expect(r.verdict).toBe("no gain");
+    expect(r.best).toBeUndefined();
+    expect(r.passedOver).toMatchObject({ id: "rewrite 1", costRatio: 2 });
+    expect(flat(r.message)).toContain("rewrite 1 scored higher on the cases it learned from (5% against 0%) at 2.0x the cost. That is within one case, so it is not counted as a gain.");
   });
 
   test("a variant that only helps together with a rewrite is tried again on top of it", async () => {

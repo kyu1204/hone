@@ -78,6 +78,8 @@ export interface SharpenResult {
     costRatio?: number;
     needed?: number;
   };
+  /** The candidate with the highest pass rate on the dev cases, when a clearly cheaper one that is as good was chosen instead of it. */
+  passedOver?: { id: string; dev: number; costRatio?: number };
   verdict: SharpenVerdict;
   stopped: "gate" | "budget" | "maxCost" | "until" | "exhausted";
   message: string;
@@ -272,6 +274,11 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     lines.push(`${row}${what}${note && room >= 24 ? `   ${clip(note, room)}` : ""}`);
   }
   const b = r.best;
+  if (r.passedOver) {
+    const p = r.passedOver;
+    const chosen = b ? (r.candidates.find((c) => c.id === b.id)?.dev ?? r.baseline.dev) : r.baseline.dev;
+    lines.push(`${p.id} scored higher on the cases it learned from (${pct(p.dev)} against ${pct(chosen)})${p.costRatio ? ` at ${p.costRatio.toFixed(1)}x the cost` : ""}. That is within one case, so ${b ? "the cheaper one is the candidate" : "it is not counted as a gain"}.`);
+  }
   if (!b) lines.push(`Result: NO GAIN. ${r.candidates.length === 0 ? "Nothing was tried." : r.candidates.length === 1 ? "The one change tried did not beat what you have." : `None of the ${r.candidates.length} changes beat what you have.`}`);
   else if (r.verdict === "no gain") {
     const dev = r.candidates.find((c) => c.id === b.id)?.dev ?? 0;
@@ -498,14 +505,27 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     // A rewrite written on top of a config change may not need it: the variant won the first round, so every rewrite
     // was measured with it. The same text is tried once without it, outside the budget like the held-out runs, and
     // when it does as well the smaller change is the winner.
-    const top = best();
-    const topEntry = r.candidates.find((c) => c.id === top.id);
-    if (top.cfg && top.text !== undefined && topEntry?.kind === "text" && !r.candidates.some((c) => c.variant === undefined && c.text === top.text)) {
-      const origin = r.candidates.find((c) => c.id === top.textFrom) ?? topEntry;
-      await tryText(base, `${origin.id} without ${top.cfg.name}`, { text: top.text, textFile: top.textFile, textFrom: origin.id }, { kind: "text", source: origin.source, ...(origin.file ? { file: origin.file } : {}) });
+    const rider = best();
+    const riderEntry = r.candidates.find((c) => c.id === rider.id);
+    if (rider.cfg && rider.text !== undefined && riderEntry?.kind === "text" && !r.candidates.some((c) => c.variant === undefined && c.text === rider.text)) {
+      const origin = r.candidates.find((c) => c.id === rider.textFrom) ?? riderEntry;
+      await tryText(base, `${origin.id} without ${rider.cfg.name}`, { text: rider.text, textFile: rider.textFile, textFrom: origin.id }, { kind: "text", source: origin.source, ...(origin.file ? { file: origin.file } : {}) });
     }
 
-    const winner = best();
+    // The winner is the highest pass rate, unless a clearly cheaper candidate is as good. "As good" is the
+    // one-standard-error rule of model selection: the difference between the two, case by case, is no larger than
+    // its own standard error, which comes to one case. The baseline is a candidate in this too.
+    const top = best();
+    const asGood = (m: Member): boolean => {
+      const d = split.dev.map((c) => (top.run.perCase.get(c) ?? 0) - (m.run.perCase.get(c) ?? 0));
+      const mean = d.reduce((sum, x) => sum + x, 0) / d.length;
+      const se = Math.sqrt(d.reduce((sum, x) => sum + (x - mean) ** 2, 0) / Math.max(1, d.length - 1) / d.length);
+      return mean <= se + 1e-9;
+    };
+    // ponytail: "clearly cheaper" is a fixed tenth; an option if a project needs another line
+    const cheaper = members.filter((m) => m !== top && cost(m.run) < 0.9 * cost(top.run) && asGood(m)).sort((a, b) => cost(a.run) - cost(b.run))[0];
+    const winner = cheaper ?? top;
+    if (cheaper) r.passedOver = { id: top.id, dev: dev(top), ...(cost(cheaper.run) > 0 ? { costRatio: cost(top.run) / cost(cheaper.run) } : {}) };
     if (winner === base) return finish("no gain");
     // confirm on cases no proposal has seen; without a held-out set the same comparison is in-sample and can only be promising
     const cases = split.inSample ? split.dev : split.holdout;

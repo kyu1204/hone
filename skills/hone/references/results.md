@@ -22,6 +22,8 @@ One row per case, one column per target: `●` a passing trial, `○` a failing 
 
 The statistics in parentheses are the difference in pass rate on the held-out cases, its interval, and the p-value. `Cost per case` compares what the changed system costs to run with what the current one costs.
 
+A line such as `rewrite 2 scored higher on the cases it learned from (92% against 90%) at 4.9x the cost. That is within one case, so the cheaper one is the candidate.` means the cycle chose on cost: a candidate that costs clearly less and is within one case of the best is taken instead of it. Report both numbers. If the user wants the expensive one anyway, that is their call to make, with the line in front of them.
+
 ## What you may claim
 
 - Quote the `Result:` line. Do not round `PROMISING` up to "improved" or `NO GAIN` down to "about the same".
