@@ -320,9 +320,9 @@ Bring other tools' results into the store: one run per import (plugin-eval yield
 ```
 usage: hone serve ssh [--port 2222] [--host 127.0.0.1] [--run id] [--read-only]
        hone serve reward [--port 8787] [--host 127.0.0.1] [--scorer name]...
-       hone serve mcp
+       hone serve mcp [--no-rewrites]
 
-ssh serves the dashboard (connect: ssh -p <port> <host>); reward serves the configured scorers over HTTP (GET /health, POST /score, POST /batch); mcp speaks MCP over stdio for agents (tools: hone_test, hone_sharpen, hone_guide, hone_list_runs, hone_matrix, hone_compare, hone_explain, hone_cluster, hone_fork).
+ssh serves the dashboard (connect: ssh -p <port> <host>); reward serves the configured scorers over HTTP (GET /health, POST /score, POST /batch); mcp speaks MCP over stdio for agents (tools: hone_test, hone_sharpen, hone_guide, hone_list_runs, hone_matrix, hone_compare, hone_explain, hone_cluster, hone_fork); with --no-rewrites its hone_sharpen judges only the changes under sharpen/ and the variants, for a client that does the proposing.
 
 ssh options:
   --read-only  disable forks for connected viewers (default on)
