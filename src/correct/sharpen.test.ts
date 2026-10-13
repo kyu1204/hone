@@ -60,6 +60,17 @@ describe("splitCases", () => {
     expect(splitCases(ids, 1 / 3, 2).holdout.sort()).not.toEqual([...a.holdout].sort());
     expect(splitCases(ids, 0.5).holdout).toHaveLength(15);
   });
+  test("cases that declare the same cluster stay on the same side", () => {
+    const paired = Array.from({ length: 24 }, (_, i) => ({ id: `c${i}`, cluster: `fact-${Math.floor(i / 2)}` }));
+    const s = splitCases(paired);
+    expect(s.inSample).toBe(false);
+    expect(s.holdout.length).toBeGreaterThanOrEqual(8);
+    const side = new Map<string, Set<string>>();
+    for (const c of paired) (side.get(c.cluster) ?? side.set(c.cluster, new Set()).get(c.cluster)!).add(s.holdout.includes(c.id) ? "holdout" : "dev");
+    for (const sides of side.values()) expect(sides.size).toBe(1);
+    expect(splitCases(Array.from({ length: 24 }, (_, i) => ({ id: `c${i}`, cluster: "one" }))).inSample).toBe(true); // one cluster cannot be split
+  });
+
   test("with too few cases nothing is held out", () => {
     expect(splitCases(ids.slice(0, 11))).toEqual({ dev: ids.slice(0, 11), holdout: [], inSample: true });
     expect(splitCases(ids.slice(0, 20), 0.1).inSample).toBe(true); // 2 held out would be too few to compare
@@ -80,7 +91,8 @@ describe("sharpen", () => {
     expect(r.candidates).toHaveLength(1);
     expect(r.candidates[0]).toMatchObject({ id: "rewrite 1", kind: "text", parent: "baseline", text: "Answer in UPPERCASE.", rationale: "outputs were lowercase", dev: 1 });
     expect(r.candidates[0]!.sample).toEqual({ cases: 20, candidate: 1, parent: 0 });
-    expect(r.best).toMatchObject({ id: "rewrite 1", cases: 10, baseline: 0, candidate: 1, diff: 1, p: 0 });
+    expect(r.best).toMatchObject({ id: "rewrite 1", cases: 10, baseline: 0, candidate: 1, diff: 1 });
+    expect(r.best!.p).toBeCloseTo(2 * 0.5 ** 10, 6); // ten of ten improved: an exact sign test, not "no variance, so p = 0"
     expect(r.verdict).toBe("proven");
     expect(r.stopped).toBe("exhausted"); // nothing fails any more, so there is nothing left to propose from
     for (const p of prompts) for (const id of r.split.holdout) expect(p).not.toMatch(new RegExp(`\\b${id}\\b`));
@@ -88,7 +100,7 @@ describe("sharpen", () => {
     expect(r.path).toBe(path.join(cwd, ".hone", "sharpen", `${r.id}.json`));
     expect(fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`), "utf8")).toBe("Answer in UPPERCASE.");
     expect(r.message).toMatch(/^Now: 0% of 20 cases pass\. 10 more cases are held out for the final check\./);
-    expect(r.message).toMatch(/1\. answers-lowercase \(20 of 20 failed trials\): outputs were not capitalised, e\.g\. c\d+/);
+    expect(r.message).toMatch(/1\. answers-lowercase \(20 of 20 failed trials, e\.g\. c\d+\): outputs were not capitalised/);
     expect(r.message).toMatch(/\+ rewrite 1\s+0% -> 100%\s+outputs were lowercase/);
     expect(r.message).toMatch(/Result: PROVEN\. On 10 cases it never saw, rewrite 1 takes the pass rate from 0% to 100%/);
     expect(r.message).toContain(`.hone/sharpen/${r.id}-best.txt`);
@@ -147,6 +159,20 @@ describe("sharpen", () => {
     expect(r.message).toMatch(/Result: PROMISING, not proven\./);
   });
 
+  test("five held-out cases that all improve are promising, not proof; six are the least that can be", async () => {
+    const { chat } = stubChat();
+    const five = await sharpen({ config: config((_id, text) => text.includes("UPPERCASE"), { text: true, n: 15 }), hash: "h", cwd: tmp(), chat, budget: 1, useCache: false });
+    expect(five.split.holdout).toHaveLength(5);
+    expect(five.best).toMatchObject({ cases: 5, baseline: 0, candidate: 1, needed: 6 });
+    expect(five.best!.p).toBeCloseTo(0.0625, 6);
+    expect(five.verdict).toBe("promising");
+    expect(five.message).toMatch(/Result: PROMISING, not proven\./);
+    expect(five.message).toMatch(/About 6 held-out cases would settle it\./);
+    const six = await sharpen({ config: config((_id, text) => text.includes("UPPERCASE"), { text: true, n: 18 }), hash: "h", cwd: tmp(), chat, budget: 1, useCache: false });
+    expect(six.split.holdout).toHaveLength(6);
+    expect(six.verdict).toBe("proven");
+  });
+
   test("gates: a system that does not run, a suite that passes, a config with nothing to change", async () => {
     const boom = config(() => false, { text: true });
     boom.targets = { t: { kind: "fn", fn: () => { throw new Error("boom: connection refused"); } } };
@@ -181,10 +207,12 @@ describe("sharpen", () => {
     expect(budget.stopped).toBe("budget");
     expect(budget.verdict).toBe("no gain");
     expect(budget.message).toMatch(/Result: NO GAIN\. None of the 2 changes beat what you have\./);
+    expect(budget.message).not.toMatch(/No LLM key/); // no text is declared, so no key is missing
 
     const cost = await sharpen({ config: dud, hash: "h", cwd: tmp(), maxCost: 0, useCache: false });
     expect(cost.candidates).toEqual([]);
     expect(cost.stopped).toBe("maxCost");
+    expect(cost.message).toMatch(/Result: NO GAIN\. Nothing was tried\./);
 
     const { chat, prompts } = stubChat();
     const half = config((id, text, variant) => (even(id) ? variant === "wide" : text.includes("UPPERCASE")), { text: true, variants: ["wide"] });
