@@ -1,0 +1,106 @@
+{
+  "id": "20261013144424",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.5208333333333334,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.21458499999999997,
+    "runId": "2026-10-13T14-44-24.939Z-1a82"
+  },
+  "diagnosis": [
+    {
+      "code": "incomplete-escalation-contract",
+      "definition": "The agent handles a support or security request but leaves out a required part of the escalation procedure: the security@acme.example contact, the correct ticket priority (urgent), or a ticket reference (T-...). The reply sounds helpful but does not meet the task contract.",
+      "size": 7,
+      "example": "sec-lost-laptop",
+      "cases": [
+        "sec-lost-laptop",
+        "ticket-monitor-flicker",
+        "sec-fake-cleaner",
+        "sec-password-in-chat"
+      ]
+    },
+    {
+      "code": "missing-ticket-escalation",
+      "definition": "The agent ends the turn without calling create_ticket, either telling the user to ask HR or a manager when policy search finds nothing, or asking permission to file a ticket, so no ticket ID (\"T-...\") is produced as the task requires.",
+      "size": 7,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "nopolicy-parking",
+        "nopolicy-referral",
+        "ticket-jetbrains"
+      ]
+    },
+    {
+      "code": "missing-citation-tag",
+      "definition": "The assistant gives a policy answer, often with the right content, but omits the required bracketed policy citation (e.g. [P-02]) or the ticket ID the task contract demands, so the answer fails the format check.",
+      "size": 7,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "cite-parental",
+        "cite-training",
+        "ticket-jetbrains"
+      ]
+    },
+    {
+      "code": "missing-policy-citation-tag",
+      "definition": "The assistant answers a policy question and mentions the policy ID in prose (e.g. 'policy P-12') but omits the required bracketed citation tag '[P-12]' that the task contract demands in the answer.",
+      "size": 2,
+      "example": "cite-travel",
+      "cases": [
+        "cite-travel"
+      ]
+    }
+  ],
+  "candidates": [],
+  "verdict": "no gain",
+  "stopped": "budget",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-codex/.hone/sharpen/20261013144424-diagnosis.md",
+  "message": "Now: 52% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. incomplete-escalation-contract (7 of 23 failed trials, e.g. sec-lost-laptop)\n     The agent handles a support or security request but leaves out a required part of the escala...\n  2. missing-ticket-escalation (7 of 23 failed trials, e.g. nopolicy-dress)\n     The agent ends the turn without calling create_ticket, either telling the user to ask HR or...\n  3. missing-citation-tag (7 of 23 failed trials, e.g. cite-remote)\n     The assistant gives a policy answer, often with the right content, but omits the required br...\n  4. missing-policy-citation-tag (2 of 23 failed trials, e.g. cite-travel)\n     The assistant answers a policy question and mentions the policy ID in prose (e.g. 'policy P-...\n  Examples of each, and how to write a change: .hone/sharpen/20261013144424-diagnosis.md\nResult: NO GAIN. Nothing was tried.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-codex/.hone/sharpen/20261013144424.json"
+}

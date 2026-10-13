@@ -112,3 +112,22 @@ change("cite the policy id", {
 ```
 
 `HONE_AGENT` picks one framework. Without it both run, and a change is judged on the two together.
+
+## What came of it
+
+Both frameworks, with hone's own model and with Codex as the proposer, are measured in [`docs/benchmarks/custom-agents.md`](../../docs/benchmarks/custom-agents.md). This is the account for the Strands agent, from the second run in that project (the model's rewrite of the first run kept as a change file, the search answered from the cache):
+
+```
+Tried 3 changes:
+  + rewrite 2                           48% -> 98%   Adds an explicit rule that tickets filed bec...
+  + variant model: sonnet               48% -> 63%
+  + variant model: sonnet on rewrite 2  48% -> 100%
+variant model: sonnet on rewrite 2 scored higher on the cases it learned from (100% against 98%) at
+2.7x the cost. That is within one case, so the cheaper one is the candidate.
+Result: PROVEN. On 12 cases it never saw, rewrite 2 takes the pass rate from 42% to 100% (+58
+points, 95% interval +26 to +91, p = 0.02). Cost per case: 1.8x.
+These 12 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New
+cases restore the bar.
+```
+
+The same cycle stopped at `PROMISING` for the LangChain agent, and for a prompt Codex wrote for the Strands agent: 52% to 92% on the cases it learned from, and on a held-out case a password reset without the employee ID. Twelve held-out cases that share six rules are thin evidence either way; the report says how thin.

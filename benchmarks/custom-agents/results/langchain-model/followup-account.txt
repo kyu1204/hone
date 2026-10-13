@@ -1,0 +1,21 @@
+Now: 54% of 24 cases pass. 12 more cases are held out for the final check.
+Why it fails:
+  1. missing-required-elements (8 of 22 failed trials, e.g. cite-remote)
+     The assistant gives a plausible answer but leaves out an element the task contract requires,...
+  2. missing-ticket-escalation (7 of 22 failed trials, e.g. nopolicy-dress)
+     The agent cannot resolve a request (no policy found, or an IT fault needing follow-up) and r...
+  3. missing-required-reference (4 of 22 failed trials, e.g. cite-parental)
+     The reply gives broadly correct content but leaves out a literal reference the task requires...
+  4. missing-policy-citation-tag (3 of 22 failed trials, e.g. cite-training)
+     The assistant answers a policy question with the correct substance and mentions the policy b...
+  Examples of each, and how to write a change: .hone/sharpen/20261013145349-diagnosis.md
+Tried 3 changes:
+  + rewrite 2                           54% -> 90%   Adds the missing verify_identity/reset_passw...
+  + variant model: sonnet               54% -> 63%
+  + variant model: sonnet on rewrite 2  54% -> 92%
+Result: PROMISING, not proven. On 12 cases it never saw, variant model: sonnet on rewrite 2 takes
+the pass rate from 50% to 92% (+42 points, 95% interval +6 to +77, p = 0.13). Cost per case: 4.9x.
+About 17 held-out cases would settle it.
+The text comes from sharpen/model-rewrite.ts.
+It uses the variant "model: sonnet" from sharpen.variants.
+Rewrites by a model were off: only the changes from files and the variants were tried.

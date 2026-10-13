@@ -1,0 +1,240 @@
+{
+  "id": "20261013144957",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.5,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.20952400000000004,
+    "runId": "2026-10-13T14-49-57.648Z-2f9e"
+  },
+  "diagnosis": [
+    {
+      "code": "missing-required-markers",
+      "definition": "The assistant gives a substantively reasonable reply but leaves out what the task contract requires: a bracketed policy citation such as [P-02], or a created ticket with a T- ID. It either cites policy only in prose or in a different format, or it offers or asks to act without calling create_ticket.",
+      "size": 11,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "cite-parental",
+        "cite-travel",
+        "ticket-monitor-flicker",
+        "ticket-jetbrains",
+        "nopolicy-parking"
+      ]
+    },
+    {
+      "code": "missing-security-contact",
+      "definition": "In a security-incident reply (phishing, lost laptop, compromised account), the assistant opens a ticket and gives steps but omits the required security contact address security@acme.example, and sometimes also files the ticket at the wrong priority.",
+      "size": 6,
+      "example": "sec-phishing-click",
+      "cases": [
+        "sec-phishing-click",
+        "sec-lost-laptop",
+        "sec-password-in-chat",
+        "sec-fake-cleaner"
+      ]
+    },
+    {
+      "code": "missing-escalation-ticket",
+      "definition": "When the policy search returns no relevant result, the assistant tells the user to ask HR or a manager but does not call create_ticket to log or escalate the unanswered question as the workflow expects.",
+      "size": 5,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "nopolicy-parking",
+        "nopolicy-referral"
+      ]
+    },
+    {
+      "code": "missing-policy-citation",
+      "definition": "The answer states policy content correctly and refers to the policy in prose, but omits the required bracketed citation tag (e.g. \"[P-08]\") demanded by the output contract.",
+      "size": 2,
+      "example": "cite-training",
+      "cases": [
+        "cite-training"
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "id": "create requested support tickets immediately",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/create-needed-tickets.ts",
+      "why": "The missing-required-artifact failures show that actionable IT support requests are sometimes answered with troubleshooting or an offer instead of creating a ticket and reporting its ID.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nWhen an employee reports an IT problem or requests software or equipment support that needs helpdesk action, create the appropriate ticket immediately rather than merely offering to do so. Include the created ticket ID in the answer.",
+      "textFile": "sharpen/create-needed-tickets.ts",
+      "textFrom": "create requested support tickets immediately",
+      "sample": {
+        "cases": 21,
+        "candidate": 0.42857142857142855,
+        "parent": 0.42857142857142855
+      },
+      "dev": 0.5,
+      "costUsd": 0.3891479999999999,
+      "runId": "2026-10-13T14-50-11.506Z-3035"
+    },
+    {
+      "id": "open low-priority ticket when policy is missing",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/escalate-missing-policy.ts",
+      "why": "The missing-escalation-ticket failures show that unanswered policy questions are redirected to HR instead of being escalated through a ticket.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nSearch policy for policy questions. If no relevant policy is found, do not invent or cite one: create an other-category, low-priority ticket to obtain the answer, and include the ticket ID in the response.",
+      "textFile": "sharpen/escalate-missing-policy.ts",
+      "textFrom": "open low-priority ticket when policy is missing",
+      "sample": {
+        "cases": 21,
+        "candidate": 0.5714285714285714,
+        "parent": 0.42857142857142855
+      },
+      "dev": 0.625,
+      "costUsd": 0.43132499999999996,
+      "runId": "2026-10-13T14-50-11.532Z-3fc9"
+    },
+    {
+      "id": "state the helpdesk operating contract explicitly",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/explicit-helpdesk-contract.ts",
+      "why": "All four diagnosed failure modes are contract-following errors caused by the generic seed prompt omitting when to search, act, escalate, and report required artifacts.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Resolve employee requests by using the available tools and clearly report what you did.\n\n- For policy questions, search the policy database before answering. When a relevant policy supports the answer, cite its ID in square brackets, such as [P-02]. Never invent a policy citation.\n- If no relevant policy is found, create an other-category ticket with low priority to obtain the answer instead of merely directing the employee elsewhere. Include the ticket ID in your response.\n- For an IT problem or a software or equipment support request needing helpdesk action, create the appropriate ticket immediately instead of only offering to do it. Include the ticket ID in your response.\n- Treat phishing, exposed credentials, lost devices, and other security incidents as urgent: create a security ticket with urgent priority and tell the employee to contact security@acme.example.\n- Follow identity and authorization safeguards exposed by the tools. Do not claim an action succeeded unless its tool result confirms it.",
+      "textFile": "sharpen/explicit-helpdesk-contract.ts",
+      "textFrom": "state the helpdesk operating contract explicitly",
+      "sample": {
+        "cases": 21,
+        "candidate": 0.9285714285714286,
+        "parent": 0.42857142857142855
+      },
+      "dev": 0.9375,
+      "costUsd": 0.44723899999999994,
+      "runId": "2026-10-13T14-50-49.585Z-f969"
+    },
+    {
+      "id": "cite policy IDs in brackets",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/policy-citations.ts",
+      "why": "The missing-policy-citation and missing-required-artifact failures show that policy answers are substantively correct but omit the required bracketed policy identifier.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nWhen answering from a policy search result, cite the supporting policy ID in square brackets, for example [P-02]. Do not invent a citation when no relevant policy was found.",
+      "textFile": "sharpen/policy-citations.ts",
+      "textFrom": "cite policy IDs in brackets",
+      "sample": {
+        "cases": 21,
+        "candidate": 0.6666666666666666,
+        "parent": 0.42857142857142855
+      },
+      "dev": 0.7083333333333334,
+      "costUsd": 0.44730099999999995,
+      "runId": "2026-10-13T14-50-54.973Z-354b"
+    },
+    {
+      "id": "escalate security incidents urgently",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/security-escalation.ts",
+      "why": "The missing-security-contact failures show that incident answers omit the required security contact and sometimes use high rather than urgent priority.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nTreat suspected phishing, exposed credentials, lost devices, and other security incidents as urgent. Create a security ticket with urgent priority and tell the employee to contact security@acme.example.",
+      "textFile": "sharpen/security-escalation.ts",
+      "textFrom": "escalate security incidents urgently",
+      "sample": {
+        "cases": 21,
+        "candidate": 0.5714285714285714,
+        "parent": 0.42857142857142855
+      },
+      "dev": 0.625,
+      "costUsd": 0.374632,
+      "runId": "2026-10-13T14-50-55.024Z-6572"
+    },
+    {
+      "id": "variant model: sonnet",
+      "kind": "variant",
+      "source": "config",
+      "parent": "baseline",
+      "variant": "model: sonnet",
+      "dev": 0.625,
+      "costUsd": 0.6791579999999999,
+      "runId": "2026-10-13T14-50-55.035Z-722c"
+    },
+    {
+      "id": "variant model: sonnet on state the helpdesk operating contract explicitly",
+      "kind": "variant",
+      "source": "config",
+      "parent": "state the helpdesk operating contract explicitly",
+      "variant": "model: sonnet",
+      "text": "You are the Acme internal helpdesk assistant. Resolve employee requests by using the available tools and clearly report what you did.\n\n- For policy questions, search the policy database before answering. When a relevant policy supports the answer, cite its ID in square brackets, such as [P-02]. Never invent a policy citation.\n- If no relevant policy is found, create an other-category ticket with low priority to obtain the answer instead of merely directing the employee elsewhere. Include the ticket ID in your response.\n- For an IT problem or a software or equipment support request needing helpdesk action, create the appropriate ticket immediately instead of only offering to do it. Include the ticket ID in your response.\n- Treat phishing, exposed credentials, lost devices, and other security incidents as urgent: create a security ticket with urgent priority and tell the employee to contact security@acme.example.\n- Follow identity and authorization safeguards exposed by the tools. Do not claim an action succeeded unless its tool result confirms it.",
+      "textFile": "sharpen/explicit-helpdesk-contract.ts",
+      "textFrom": "state the helpdesk operating contract explicitly",
+      "dev": 0.9375,
+      "costUsd": 0.6989219999999999,
+      "runId": "2026-10-13T14-50-55.051Z-15fc"
+    }
+  ],
+  "verdict": "proven",
+  "stopped": "exhausted",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/langchain-codex/.hone/sharpen/20261013144957-diagnosis.md",
+  "best": {
+    "id": "state the helpdesk operating contract explicitly",
+    "label": "state the helpdesk operating contract explicitly",
+    "cases": 12,
+    "baseline": 0.4166666666666667,
+    "candidate": 0.9583333333333334,
+    "diff": 0.5416666666666667,
+    "lo": 0.22518746243096954,
+    "hi": 0.8581458709023637,
+    "p": 0.015625000000000003,
+    "confirmations": 2,
+    "alpha": 0.025,
+    "costRatio": 1.0628532626887655
+  },
+  "message": "Now: 50% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. missing-required-markers (11 of 24 failed trials, e.g. cite-remote)\n     The assistant gives a substantively reasonable reply but leaves out what the task contract r...\n  2. missing-security-contact (6 of 24 failed trials, e.g. sec-phishing-click)\n     In a security-incident reply (phishing, lost laptop, compromised account), the assistant ope...\n  3. missing-escalation-ticket (5 of 24 failed trials, e.g. nopolicy-dress)\n     When the policy search returns no relevant result, the assistant tells the user to ask HR or...\n  4. missing-policy-citation (2 of 24 failed trials, e.g. cite-training)\n     The answer states policy content correctly and refers to the policy in prose, but omits the...\n  Examples of each, and how to write a change: .hone/sharpen/20261013144957-diagnosis.md\nTried 7 changes:\n  - create requested support tickets immediately                50% -> 50%\n  + open low-priority ticket when policy is missing             50% -> 63%\n  + state the helpdesk operating contract explicitly            50% -> 94%\n  + cite policy IDs in brackets                                 50% -> 71%\n  + escalate security incidents urgently                        50% -> 63%\n  + variant model: sonnet                                       50% -> 63%\n  + variant model: sonnet on state the helpdesk operating c...  50% -> 94%\nResult: PROVEN. On 12 cases it never saw, state the helpdesk operating contract explicitly takes the\npass rate from 42% to 96% (+54 points, 95% interval +23 to +86, p = 0.02). Cost per case: 1.1x.\nThese 12 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New\ncases restore the bar.\nThe text comes from sharpen/explicit-helpdesk-contract.ts.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/langchain-codex/.hone/sharpen/20261013144957.json"
+}

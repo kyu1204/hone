@@ -1,0 +1,221 @@
+{
+  "id": "20261013144927",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.5208333333333334,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.21458499999999997,
+    "runId": "2026-10-13T14-49-27.319Z-670b"
+  },
+  "diagnosis": [
+    {
+      "code": "incomplete-escalation-handling",
+      "definition": "The agent handles an IT or security helpdesk request but leaves out a required part of the escalation contract: it opens no ticket when one is needed, files the ticket at the wrong priority (e.g. \"high\" instead of \"urgent\"), or omits the required security contact address (security@acme.example) from its reply.",
+      "size": 7,
+      "example": "sec-lost-laptop",
+      "cases": [
+        "sec-lost-laptop",
+        "ticket-monitor-flicker",
+        "sec-fake-cleaner",
+        "sec-password-in-chat"
+      ]
+    },
+    {
+      "code": "missing-ticket-escalation",
+      "definition": "The agent ends its turn without calling create_ticket, either when the policy search finds nothing or when the request clearly needs a ticket, and instead tells the user to ask HR or a manager or asks whether to create one.",
+      "size": 7,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "nopolicy-parking",
+        "nopolicy-referral",
+        "ticket-jetbrains"
+      ]
+    },
+    {
+      "code": "missing-citation-tag",
+      "definition": "The assistant gives a policy answer (sometimes naming the policy in prose, e.g. 'Under policy P-07') but omits the required bracketed citation tag such as [P-07], or skips the required follow-through like a ticket ID, so the output contract is not met.",
+      "size": 7,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "cite-parental",
+        "cite-training",
+        "ticket-jetbrains"
+      ]
+    },
+    {
+      "code": "missing-policy-citation-format",
+      "definition": "The assistant cites or paraphrases a policy by name (e.g., 'policy P-12') but omits the required bracketed citation tag (e.g., '[P-12]') that the task contract requires in the answer.",
+      "size": 2,
+      "example": "cite-travel",
+      "cases": [
+        "cite-travel"
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "id": "cite policy results in brackets",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/cite-policy-results.ts",
+      "why": "The missing-citation-tag failures happen because the prompt never specifies how retrieved policy IDs must appear in the answer.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nFor questions about company policy, search the policy tool before answering. When the search returns a relevant policy, answer from that result and cite every policy you rely on using its exact ID in square brackets, for example [P-02]. Do not cite a policy when the search found no relevant policy.",
+      "textFile": "sharpen/cite-policy-results.ts",
+      "textFrom": "cite policy results in brackets",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.625,
+        "parent": 0.425
+      },
+      "dev": 0.6875,
+      "costUsd": 0.41910500000000006,
+      "runId": "2026-10-13T14-49-43.540Z-4a0b"
+    },
+    {
+      "id": "complete security escalation",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/complete-security-escalation.ts",
+      "why": "The incomplete-escalation-contract failures show that security incidents need an explicit, consistent escalation contract in the prompt.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nTreat suspected compromise, malware, credential exposure, phishing interaction, and lost company devices as security incidents. Immediately create a security-category ticket with urgent priority, include the returned ticket reference (T-...) in the response, and tell the employee to contact security@acme.example. Give concise immediate containment steps appropriate to the incident.",
+      "textFile": "sharpen/complete-security-escalation.ts",
+      "textFrom": "complete security escalation",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.525,
+        "parent": 0.425
+      },
+      "dev": 0.6041666666666666,
+      "costUsd": 0.392791,
+      "runId": "2026-10-13T14-49-43.569Z-2550"
+    },
+    {
+      "id": "complete ticket escalation",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/complete-ticket-escalation.ts",
+      "why": "The missing-ticket-escalation failures occur because the prompt does not require the agent to open a ticket immediately and report its reference instead of merely offering or redirecting the employee.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nUse the available tools to complete support requests, not merely suggest that the employee contact someone else or ask whether they want a ticket. For a technical support problem, create a ticket with the appropriate category and severity-based priority. If a policy search has no relevant result, do not invent an answer: create an \"other\" category ticket at low priority to obtain a definitive answer. Whenever you create a ticket, include the returned ticket reference (T-...) in your response.",
+      "textFile": "sharpen/complete-ticket-escalation.ts",
+      "textFrom": "complete ticket escalation",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.55,
+        "parent": 0.425
+      },
+      "dev": 0.625,
+      "costUsd": 0.45893399999999995,
+      "runId": "2026-10-13T14-49-43.621Z-64f3"
+    },
+    {
+      "id": "make the helpdesk operating contract explicit",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/explicit-helpdesk-contract.ts",
+      "why": "All diagnosed failure modes are omissions caused by the one-sentence prompt not stating the required policy-citation, ticket-completion, and security-escalation contract.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Resolve employee requests using the available tools and follow these operating rules.\n\nPolicy questions:\n- Search policy before answering. Base the answer on relevant search results.\n- Cite each policy used with its exact ID in square brackets, such as [P-02].\n- If no relevant policy is found, do not invent an answer or merely redirect the employee. Create an \"other\" category ticket at low priority for follow-up, and do not cite an unrelated policy.\n\nSupport requests:\n- Complete the escalation now rather than asking permission to create a ticket.\n- Create a ticket with the appropriate category and severity-based priority.\n- Include every created ticket's returned T-... reference in the response.\n\nSecurity incidents:\n- Treat suspected compromise, malware, credential exposure, phishing interaction, and lost company devices as security incidents.\n- Immediately create a security-category ticket with urgent priority, include its T-... reference, and tell the employee to contact security@acme.example.\n- Give concise, incident-appropriate containment steps.\n\nNever claim a tool action happened unless its tool call succeeded.",
+      "textFile": "sharpen/explicit-helpdesk-contract.ts",
+      "textFrom": "make the helpdesk operating contract explicit",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.9,
+        "parent": 0.425
+      },
+      "dev": 0.9166666666666666,
+      "costUsd": 0.47169099999999997,
+      "runId": "2026-10-13T14-50-09.617Z-eb64"
+    },
+    {
+      "id": "variant model: sonnet",
+      "kind": "variant",
+      "source": "config",
+      "parent": "baseline",
+      "variant": "model: sonnet",
+      "dev": 0.625,
+      "costUsd": 0.7045380000000002,
+      "runId": "2026-10-13T14-50-16.974Z-dae5"
+    },
+    {
+      "id": "variant model: sonnet on make the helpdesk operating contract explicit",
+      "kind": "variant",
+      "source": "config",
+      "parent": "make the helpdesk operating contract explicit",
+      "variant": "model: sonnet",
+      "text": "You are the Acme internal helpdesk assistant. Resolve employee requests using the available tools and follow these operating rules.\n\nPolicy questions:\n- Search policy before answering. Base the answer on relevant search results.\n- Cite each policy used with its exact ID in square brackets, such as [P-02].\n- If no relevant policy is found, do not invent an answer or merely redirect the employee. Create an \"other\" category ticket at low priority for follow-up, and do not cite an unrelated policy.\n\nSupport requests:\n- Complete the escalation now rather than asking permission to create a ticket.\n- Create a ticket with the appropriate category and severity-based priority.\n- Include every created ticket's returned T-... reference in the response.\n\nSecurity incidents:\n- Treat suspected compromise, malware, credential exposure, phishing interaction, and lost company devices as security incidents.\n- Immediately create a security-category ticket with urgent priority, include its T-... reference, and tell the employee to contact security@acme.example.\n- Give concise, incident-appropriate containment steps.\n\nNever claim a tool action happened unless its tool call succeeded.",
+      "textFile": "sharpen/explicit-helpdesk-contract.ts",
+      "textFrom": "make the helpdesk operating contract explicit",
+      "dev": 0.9166666666666666,
+      "costUsd": 0.7222140000000001,
+      "runId": "2026-10-13T14-50-17.006Z-9474"
+    }
+  ],
+  "verdict": "promising",
+  "stopped": "exhausted",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-codex/.hone/sharpen/20261013144927-diagnosis.md",
+  "best": {
+    "id": "make the helpdesk operating contract explicit",
+    "label": "make the helpdesk operating contract explicit",
+    "cases": 12,
+    "baseline": 0.3333333333333333,
+    "candidate": 0.8333333333333334,
+    "diff": 0.5,
+    "lo": 0.07163384418832364,
+    "hi": 0.9283661558116764,
+    "p": 0.07031249999999992,
+    "confirmations": 2,
+    "alpha": 0.025,
+    "costRatio": 1.2402672525895695,
+    "needed": 20
+  },
+  "message": "Now: 52% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. incomplete-escalation-handling (7 of 23 failed trials, e.g. sec-lost-laptop)\n     The agent handles an IT or security helpdesk request but leaves out a required part of the e...\n  2. missing-ticket-escalation (7 of 23 failed trials, e.g. nopolicy-dress)\n     The agent ends its turn without calling create_ticket, either when the policy search finds n...\n  3. missing-citation-tag (7 of 23 failed trials, e.g. cite-remote)\n     The assistant gives a policy answer (sometimes naming the policy in prose, e.g. 'Under polic...\n  4. missing-policy-citation-format (2 of 23 failed trials, e.g. cite-travel)\n     The assistant cites or paraphrases a policy by name (e.g., 'policy P-12') but omits the requ...\n  Examples of each, and how to write a change: .hone/sharpen/20261013144927-diagnosis.md\nTried 6 changes:\n  + cite policy results in brackets                             52% -> 69%\n  + complete security escalation                                52% -> 60%\n  + complete ticket escalation                                  52% -> 63%\n  + make the helpdesk operating contract explicit               52% -> 92%\n  + variant model: sonnet                                       52% -> 63%\n  + variant model: sonnet on make the helpdesk operating co...  52% -> 92%\nResult: PROMISING, not proven. On 12 cases it never saw, make the helpdesk operating contract\nexplicit takes the pass rate from 33% to 83% (+50 points, 95% interval +7 to +93, p = 0.07). Cost\nper case: 1.2x. About 20 held-out cases would settle it.\nThese 12 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New\ncases restore the bar.\nThe text comes from sharpen/explicit-helpdesk-contract.ts.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-codex/.hone/sharpen/20261013144927.json"
+}

@@ -1,0 +1,107 @@
+{
+  "id": "20261013144427",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.5,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.20952400000000004,
+    "runId": "2026-10-13T14-44-27.341Z-e89c"
+  },
+  "diagnosis": [
+    {
+      "code": "missing-required-artifact",
+      "definition": "The reply gives a plausible answer but leaves out the artifact the task contract requires: a bracketed policy citation such as [P-02], or a ticket ID from a create_ticket call. It cites the policy in plain text or not at all, or it offers troubleshooting or asks permission instead of creating the ticket.",
+      "size": 11,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "cite-parental",
+        "cite-travel",
+        "ticket-monitor-flicker",
+        "ticket-jetbrains",
+        "nopolicy-parking"
+      ]
+    },
+    {
+      "code": "missing-security-contact",
+      "definition": "In a security incident response (phishing, lost laptop, compromised account), the assistant opens a ticket and gives steps but omits the required escalation contact address security@acme.example from its answer.",
+      "size": 6,
+      "example": "sec-phishing-click",
+      "cases": [
+        "sec-phishing-click",
+        "sec-lost-laptop",
+        "sec-password-in-chat",
+        "sec-fake-cleaner"
+      ]
+    },
+    {
+      "code": "missing-escalation-ticket",
+      "definition": "When a policy search returns no relevant result, the assistant tells the user to contact HR or another team itself and never calls create_ticket to escalate the unanswered question.",
+      "size": 5,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "nopolicy-parking",
+        "nopolicy-referral"
+      ]
+    },
+    {
+      "code": "missing-policy-citation",
+      "definition": "The assistant gives a correct policy-based answer but omits the required bracketed citation tag (e.g. \"[P-08]\") demanded by the answer format, mentioning the policy only in plain prose.",
+      "size": 2,
+      "example": "cite-training",
+      "cases": [
+        "cite-training"
+      ]
+    }
+  ],
+  "candidates": [],
+  "verdict": "no gain",
+  "stopped": "budget",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/langchain-codex/.hone/sharpen/20261013144427-diagnosis.md",
+  "message": "Now: 50% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. missing-required-artifact (11 of 24 failed trials, e.g. cite-remote)\n     The reply gives a plausible answer but leaves out the artifact the task contract requires: a...\n  2. missing-security-contact (6 of 24 failed trials, e.g. sec-phishing-click)\n     In a security incident response (phishing, lost laptop, compromised account), the assistant...\n  3. missing-escalation-ticket (5 of 24 failed trials, e.g. nopolicy-dress)\n     When a policy search returns no relevant result, the assistant tells the user to contact HR...\n  4. missing-policy-citation (2 of 24 failed trials, e.g. cite-training)\n     The assistant gives a correct policy-based answer but omits the required bracketed citation...\n  Examples of each, and how to write a change: .hone/sharpen/20261013144427-diagnosis.md\nResult: NO GAIN. Nothing was tried.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/langchain-codex/.hone/sharpen/20261013144427.json"
+}

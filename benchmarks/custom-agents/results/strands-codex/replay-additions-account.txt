@@ -1,0 +1,32 @@
+Now: 52% of 24 cases pass. 12 more cases are held out for the final check.
+Why it fails:
+  1. incomplete-escalation-handoff (7 of 23 failed trials, e.g. sec-lost-laptop)
+     The assistant handles an IT or security request but skips part of the required escalation co...
+  2. skipped-ticket-creation (7 of 23 failed trials, e.g. nopolicy-dress)
+     The assistant answers or defers to the user (e.g. 'ask HR' or 'would you like me to create a...
+  3. missing-policy-citation (7 of 23 failed trials, e.g. cite-remote)
+     The assistant gives a substantively policy-based answer but omits the required bracketed pol...
+  4. missing-policy-citation-tag (2 of 23 failed trials, e.g. cite-travel)
+     The answer states the correct policy content and refers to it in plain text (e.g. 'Under pol...
+  Examples of each, and how to write a change: .hone/sharpen/20261013150332-diagnosis.md
+Tried 7 changes:
+  + cite policy results in brackets                             52% -> 69%
+  + complete security escalation                                52% -> 60%
+  + complete ticket escalation                                  52% -> 63%
+  + variant model: sonnet                                       52% -> 63%
+  + cite policy results in brackets + complete ticket escal...  52% -> 79%
+  + cite policy results in brackets + complete ticket escal...  52% -> 92%
+  + variant model: sonnet on cite policy results in bracket...  52% -> 94%
+variant model: sonnet on cite policy results in brackets + complete ticket escalation + complete
+security escalation scored higher on the cases it learned from (94% against 92%) at 2.9x the cost.
+That is within one case, so the cheaper one is the candidate.
+Result: PROMISING, not proven. On 12 cases it never saw, cite policy results in brackets + complete
+ticket escalation + complete security escalation takes the pass rate from 33% to 79% (+46 points,
+95% interval +4 to +87, p = 0.07). Cost per case: 1.2x. About 25 held-out cases would settle it.
+These 12 held-out cases have now judged 3 different changes, so this one had to reach p < 0.017. New
+cases restore the bar.
+The new text is in .hone/sharpen/20261013150332-best.txt
+As a change file: .hone/sharpen/20261013150332-best.ts
+It puts together the additions "cite policy results in brackets", "complete ticket escalation",
+"complete security escalation".
+Rewrites by a model were off: only the changes from files and the variants were tried.

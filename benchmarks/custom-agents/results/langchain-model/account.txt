@@ -1,0 +1,21 @@
+Now: 54% of 24 cases pass. 12 more cases are held out for the final check.
+Why it fails:
+  1. skips-required-ticket (9 of 22 failed trials, e.g. nopolicy-dress)
+     The assistant answers or offers to help but never calls create_ticket (for example, asking '...
+  2. missing-required-artifact (5 of 22 failed trials, e.g. cite-remote)
+     The agent produces a plausible answer but omits the required output element the task contrac...
+  3. contract-detail-omission (4 of 22 failed trials, e.g. cite-parental)
+     The agent gives a plausible, helpful-looking reply but leaves out a specific element the tas...
+  4. missing-required-reference (4 of 22 failed trials, e.g. cite-travel)
+     The assistant gives a substantively reasonable answer but leaves out the exact citation tag...
+  Examples of each, and how to write a change: .hone/sharpen/20261013143716-diagnosis.md
+Tried 3 changes:
+  + variant model: sonnet  54% -> 63%
+  + rewrite 1              54% -> 69%   Adds explicit rules requiring exact bracketed citations,...
+  + rewrite 2              54% -> 92%   Adds the missing verify_identity/reset_password flow and...
+Result: PROMISING, not proven. On 12 cases it never saw, rewrite 2 (on variant model: sonnet) takes
+the pass rate from 50% to 92% (+42 points, 95% interval +6 to +77, p = 0.13). Cost per case: 4.9x.
+About 17 held-out cases would settle it.
+The new text is in .hone/sharpen/20261013143716-best.txt
+As a change file: .hone/sharpen/20261013143716-best.ts
+It uses the variant "model: sonnet" from sharpen.variants.
