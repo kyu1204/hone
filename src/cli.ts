@@ -17,6 +17,7 @@ import { optimizeCommand } from "./cli/commands/optimize";
 import { powerCommand } from "./cli/commands/power";
 import { type CommandIo, runCommand } from "./cli/commands/run";
 import { serveCommand } from "./cli/commands/serve";
+import { sharpenCommand } from "./cli/commands/sharpen";
 import { tuiCommand } from "./cli/commands/tui";
 import { VERSION } from "./index";
 
@@ -28,11 +29,12 @@ const EVERYDAY: Group = {
   init: { run: initCommand, summary: "set up: detect the project, write hone.config.ts and example cases" },
   // `hone test --ci` is the gate for pipelines: thresholds per axis, JUnit, a pull request comment
   test: { run: (argv, io) => (argv.includes("--ci") ? ciCommand(argv.filter((a) => a !== "--ci"), io) : runCommand(argv, io)), summary: "evaluate: run every case, score it, say how far to trust the score" },
+  sharpen: { run: sharpenCommand, summary: "improve: find why cases fail, try changes, re-test, keep what is proven" },
 };
 
 const MORE: [string, Group][] = [
   [
-    "single steps of the improvement cycle",
+    "steps that `hone sharpen` runs for you",
     {
       cluster: { run: clusterCommand, summary: "group the failed trials into failure modes and name them" },
       calibrate: { run: calibrateCommand, summary: "check a judge: plant known faults in passing trials and count what it catches" },

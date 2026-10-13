@@ -17,19 +17,21 @@ import { optimizeUsage } from "../src/cli/commands/optimize";
 import { powerUsage } from "../src/cli/commands/power";
 import { runUsage } from "../src/cli/commands/run";
 import { serveUsage } from "../src/cli/commands/serve";
+import { sharpenUsage } from "../src/cli/commands/sharpen";
 import { tuiUsage } from "../src/cli/commands/tui";
 
 const SECTIONS: [string, string, () => string][] = [
   ["Everyday", "init", initUsage],
   ["Everyday", "test", runUsage],
   ["Everyday", "test --ci", ciUsage],
-  ["Single steps of the improvement cycle", "cluster", clusterUsage],
-  ["Single steps of the improvement cycle", "calibrate", calibrateUsage],
-  ["Single steps of the improvement cycle", "evolve", evolveUsage],
-  ["Single steps of the improvement cycle", "optimize", optimizeUsage],
-  ["Single steps of the improvement cycle", "ablate", ablateUsage],
-  ["Single steps of the improvement cycle", "compare", compareUsage],
-  ["Single steps of the improvement cycle", "power", powerUsage],
+  ["Everyday", "sharpen", sharpenUsage],
+  ["Steps that `hone sharpen` runs for you", "cluster", clusterUsage],
+  ["Steps that `hone sharpen` runs for you", "calibrate", calibrateUsage],
+  ["Steps that `hone sharpen` runs for you", "evolve", evolveUsage],
+  ["Steps that `hone sharpen` runs for you", "optimize", optimizeUsage],
+  ["Steps that `hone sharpen` runs for you", "ablate", ablateUsage],
+  ["Steps that `hone sharpen` runs for you", "compare", compareUsage],
+  ["Steps that `hone sharpen` runs for you", "power", powerUsage],
   ["Looking at results", "tui", tuiUsage],
   ["Looking at results", "matrix", matrixUsage],
   ["Looking at results", "explain", explainUsage],
