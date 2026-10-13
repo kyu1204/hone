@@ -71,6 +71,17 @@ Yes, on a real system, with a paired test to prove it. On [`kyu1204/rag_qa_eval`
 
 The automatic rewrite matched a week of hand tuning on usefulness and beat it on safety; with only 2 trials hone had said "no measurable effect" and told us how many more it needed. Full method, deviations and every artifact: [`docs/benchmarks/rag-policy-qa.md`](./docs/benchmarks/rag-policy-qa.md).
 
+It also tells you when the thing you were about to tune is not the lever. On 15 coding tasks cut from this repository's history, given to Claude Code in a sandbox and graded by tests the agent never sees:
+
+| what the agent got | resolved | est. cost per solved task |
+|---|---|---|
+| Sonnet, commit title and test names | 24% | $0.44 |
+| Sonnet, the same plus six harness rules | 31% | $0.54 |
+| Opus, commit title and test names | 49% | $1.06 |
+| **Sonnet, written requirements** | **100%** | **$0.08** |
+
+Failure clustering pointed at the cause: the hidden tests asserted names and wordings the statement never gave. Rules could not supply them, and a larger model guessed only some. Method, two full passes and the three attempts that were thrown away first: [`docs/benchmarks/agent-harness.md`](./docs/benchmarks/agent-harness.md).
+
 ## Quick start
 
 ```bash
