@@ -33,9 +33,15 @@ describe("hone init", () => {
     const cases = await loadCases(config.cases, d);
     expect(cases.length).toBeGreaterThan(0);
     expect(fs.readFileSync(path.join(d, ".gitignore"), "utf8")).toContain(".hone/");
-    expect(o.out).toMatch(/hone test/);
+    expect(o.out).toMatch(/next: hone test, then hone sharpen/);
     const run = io(d);
     expect(await runCommand(["--quiet"], run)).toBe(0);
+    // the config shows how to tell hone what it may change, commented out so the file runs as written
+    const text = fs.readFileSync(path.join(d, "hone.config.ts"), "utf8");
+    expect(text).toMatch(/\/\/ sharpen: \{/);
+    expect(text).toMatch(/\/\/ +text: \{ seed: /);
+    expect(text).toMatch(/\/\/ +variants: \{ /);
+    expect(config.sharpen).toBeUndefined();
   });
 
   test("refuses to overwrite without --force", async () => {

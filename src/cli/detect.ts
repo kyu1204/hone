@@ -90,10 +90,18 @@ export function detectProject(dir: string): Detection {
   return d;
 }
 
+// Commented out so the generated file runs as written. `hone sharpen` changes only what is declared here.
+const SHARPEN_HINT = `  // What \`hone sharpen\` may change. Uncomment and point it at your prompt and settings:
+  // sharpen: {
+  //   text: { seed: PROMPT, apply: (config, text) => ({ ...config, targets: { /* the same target with this text */ } }) },
+  //   variants: { "another setting": (config) => ({ ...config, targets: { /* the same target with that setting */ } }) },
+  // },
+`;
+
 export function renderConfig(d: Detection, importFrom = "hone-eval"): string {
   const targets = d.targets.map((t) => `    ${JSON.stringify(t.id)}: ${t.spec},`).join("\n");
   const notes = d.notes.map((n) => `// ${n}`).join("\n");
-  return `import { defineConfig } from ${JSON.stringify(importFrom)};\n${d.imports.join("\n")}${d.imports.length ? "\n" : ""}\n${notes}${notes ? "\n" : ""}export default defineConfig({\n  targets: {\n${targets}\n  },\n  cases: "evals/**/*.yaml",\n  trials: 3,\n  scorers: ${JSON.stringify(d.scorers)},\n  gates: { passAt1: { min: 0.8 } },\n});\n`;
+  return `import { defineConfig } from ${JSON.stringify(importFrom)};\n${d.imports.join("\n")}${d.imports.length ? "\n" : ""}\n${notes}${notes ? "\n" : ""}export default defineConfig({\n  targets: {\n${targets}\n  },\n  cases: "evals/**/*.yaml",\n  trials: 3,\n  scorers: ${JSON.stringify(d.scorers)},\n  gates: { passAt1: { min: 0.8 } },\n${SHARPEN_HINT}});\n`;
 }
 
 /** JSON is valid YAML; keep it readable with one case per entry. */

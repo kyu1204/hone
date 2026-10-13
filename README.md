@@ -21,6 +21,46 @@
 
 ---
 
+## Three commands
+
+```bash
+# requires Bun >= 1.3.14
+bunx hone-eval init   # set up: detects the project, writes hone.config.ts and example cases
+hone test             # evaluate: runs every case, scores it, says how far to trust the score
+hone sharpen          # improve: finds why cases fail, tries changes, re-tests, keeps what is proven
+```
+
+`hone` alone opens the results in the terminal. Every other command is one step of these three or a tool, and stays out of the way until you ask: `hone help all`.
+
+This is `hone sharpen` on [`examples/sharpen`](./examples/sharpen/), a toy help-desk bot where nothing passes as written (real output, 16 seconds, four model calls):
+
+```
+Now: 0% of 12 cases pass. 6 more cases are held out for the final check.
+Why it fails:
+  1. blanket-refusal-unknown (6 of 12 failed trials, e.g. cancel): The assistant answers the task with a generic 'Sorry, I do not know.' instead of attempting the task or pro...
+  2. chatty-preamble-wrapper (5 of 12 failed trials, e.g. ship-abroad): The assistant wraps the answer in conversational filler (e.g. a thank-you opener and 'The answer is ...') i...
+  3. chatty-answer-wrapper (1 of 12 failed trials, e.g. shipping-time): The agent wraps the answer in conversational filler (e.g. a pleasantry opener or full-sentence framing) ins...
+Tried 3 changes:
+  - variant loose matching               0% -> 0%
+  + rewrite 1                            0% -> 50%   Replaces the polite full-sentence instruction, which caused chatty wrappers, with a bar...
+  + variant loose matching on rewrite 1  0% -> 100%
+Result: PROVEN. On 6 cases it never saw, variant loose matching on rewrite 1 takes the pass rate from 0% to 100%
+(+100 points, 95% interval +100 to +100, p = 0.03).
+The new text is in .hone/sharpen/20261013122857-best.txt
+It uses the variant "loose matching" from sharpen.variants.
+```
+
+Before proposing anything it held six cases out. It named the failure modes, tried the declared setting (no gain alone), asked a model to rewrite the declared text (half), tried the setting again on top of the rewrite (all), and checked the result on the six cases no proposal had seen. Six out of six is the fewest an exact test accepts at 5%, hence p = 0.03 and not more. When a change only fits the cases it learned from, the verdict is `NO GAIN`; when there are too few cases to tell, `PROMISING, not proven`, with the number that would settle it.
+
+You tell it what it may change, in `hone.config.ts`:
+
+```ts
+sharpen: {
+  text: { seed: PROMPT, apply: (config, text) => withPrompt(config, text) },  // a prompt, a rule file, a rubric
+  variants: { "top_k 30": (config) => withTopK(config, 30) },                // a setting, a model, a retrieval depth
+},
+```
+
 ## Why
 
 Most eval tools stop at a number. The number is usually a single run, graded by a judge nobody calibrated, on a harness nobody controlled for. Then the real work starts: reading transcripts, guessing what broke, editing a prompt, running again, and hoping the change was not noise.
@@ -40,7 +80,7 @@ Most eval tools stop at a number. The number is usually a single run, graded by 
 
 <p align="center"><img alt="hone ablate, hone optimize and the dashboard on the harness-ablation example" src=".github/assets/demo.gif" width="880"></p>
 
-`hone ablate` removes one component at a time and reports the paired delta per component; `hone optimize` spends a trial budget across candidates by Thompson sampling and then decides with a paired test; `hone` opens the dashboard over the latest run (captured from [`examples/harness-ablation`](./examples/harness-ablation)):
+The single steps are commands of their own. `hone ablate` removes one component at a time and reports the paired delta per component; `hone optimize` spends a trial budget across candidates by Thompson sampling and then decides with a paired test; `hone` opens the dashboard over the latest run (captured from [`examples/harness-ablation`](./examples/harness-ablation)):
 
 ```
 ablation      pass@1  delta    CI95            p        cost delta  verdict
@@ -61,7 +101,7 @@ The terminal UI is built on [OpenTUI](https://github.com/anomalyco/opentui): mat
 
 ## Does it actually improve anything?
 
-Yes, on a real system, with a paired test to prove it. On [`kyu1204/rag_qa_eval`](https://github.com/kyu1204/rag_qa_eval) (a Korean government-policy citation RAG with a 43-question gold set and its own 0/1/2 scoring), hone measured the baseline, calibrated the judge, induced a failure taxonomy, evolved the system prompt from the failure clusters and confirmed the result with 3 trials per case:
+On one real system so far, with a person still driving. On [`kyu1204/rag_qa_eval`](https://github.com/kyu1204/rag_qa_eval) (a Korean government-policy citation RAG with a 43-question gold set and its own 0/1/2 scoring), hone measured the baseline, calibrated the judge, induced a failure taxonomy, rewrote the system prompt from the failure clusters and compared with 3 trials per case:
 
 | system | useful | safe | paired vs baseline (useful) |
 |---|---|---|---|
@@ -70,6 +110,8 @@ Yes, on a real system, with a paired test to prove it. On [`kyu1204/rag_qa_eval`
 | **prompt evolved by `hone evolve`, top_k 30** | **88.4%** | **100%** | **+8.5 pts, p = 0.047** |
 
 The automatic rewrite matched a week of hand tuning on usefulness and beat it on safety; with only 2 trials hone had said "no measurable effect" and told us how many more it needed. Full method, deviations and every artifact: [`docs/benchmarks/rag-policy-qa.md`](./docs/benchmarks/rag-policy-qa.md).
+
+Read that table with three things in mind. The retrieval depth of 30 was the authors' find, and a person decided to put it together with the rewritten prompt; the prompt alone was +4.7 points and not significant. The 95% interval of the +8.5 points starts at +0.1, and the result does not survive a correction for the three comparisons. And the prompt was written and confirmed on the same 43 questions. `hone sharpen` was built afterwards to close those gaps: it holds cases out, and it tries a setting again on top of a rewrite without being told to. Re-running this study through it is planned (T-1006 in [`WORKPLAN.md`](./WORKPLAN.md)).
 
 It also tells you when the thing you were about to tune is not the lever. On 15 coding tasks cut from this repository's history, given to Claude Code in a sandbox and graded by tests the agent never sees:
 
@@ -80,53 +122,38 @@ It also tells you when the thing you were about to tune is not the lever. On 15 
 | Opus, commit title and test names | 49% | $1.06 |
 | **Sonnet, written requirements** | **100%** | **$0.08** |
 
-Failure clustering pointed at the cause: the hidden tests asserted names and wordings the statement never gave. Rules could not supply them, and a larger model guessed only some. Method, two full passes and the three attempts that were thrown away first: [`docs/benchmarks/agent-harness.md`](./docs/benchmarks/agent-harness.md).
+Failure clustering pointed at the cause: the hidden tests asserted names and wordings the statement never gave. Rules could not supply them, and a larger model guessed only some. In this study hone was the instrument: it ran and scored the sessions and named the failure modes, while a person read the traces, found the cause and wrote the rules, and a separate agent wrote the requirements. Method, two full passes and the three attempts that were thrown away first: [`docs/benchmarks/agent-harness.md`](./docs/benchmarks/agent-harness.md).
 
-## Quick start
+## A config
 
-```bash
-# requires Bun >= 1.3.14
-bunx hone-eval init          # detects your project, writes hone.config.ts + evals/cases.yaml, stores keys
-hone import claude-code      # existing Claude Code sessions show up in the matrix, no run needed
-hone test --adaptive         # runs cases until confidence intervals are tight enough
-hone                         # the dashboard
-hone cluster --induce        # name the failure modes
-hone compare rag@a rag@b     # paired comparison with significance
-hone test --ci               # per-axis thresholds, exit code, JUnit, PR comment
-```
-
-A config is a TypeScript file:
+`hone init` writes one for the project it finds. It is a TypeScript file:
 
 ```ts
-import { defineConfig, http, process, jev, regex, rag, gates } from "hone-eval";
+import { defineConfig } from "hone-eval";
 
 export default defineConfig({
   targets: {
-    rag: http({ url: "http://localhost:8000/ask", body: (c) => ({ q: c.input }) }),
-    cc: process({ agent: "claude-code", workspace: "./fixtures/repo" }),
+    rag: { kind: "http", url: "http://localhost:8000/ask", body: (c) => ({ q: c.input }), output: "answer" },
   },
-  cases: "./evals/**/*.yaml",
-  trials: 5,
-  adaptive: { ciWidth: 0.15, maxTrials: 12 },
-  scorers: [
-    regex({ pattern: "^\\d+$" }),
-    jev.noul("The answer cites a chunk that supports it"),
-    rag.faithfulness(),
-  ],
-  gates: gates({ passHatK: { k: 3, min: 0.8 }, costUsd: { max: 0.5 }, rewardHack: "fail" }),
+  cases: "evals/**/*.yaml",
+  trials: 3,
+  scorers: [{ name: "contains", caseField: "expected.answer" }, { name: "rag.citations" }],
+  gates: { passAt1: { min: 0.8 } },
 });
 ```
+
+A target is an HTTP endpoint, a TypeScript or Python function, a command-line agent such as Claude Code in an isolated workspace, an MCP server, or recorded traces. `hone test --ci` turns the gates into an exit code, JUnit and a pull request comment; `hone import claude-code` brings existing Claude Code sessions in without running anything.
 
 ## Documentation
 
 - [`docs/README.md`](./docs/README.md): index; [`docs/concepts.md`](./docs/concepts.md): the data model and the loop
-- [`docs/cli.md`](./docs/cli.md): every command, generated from `--help`
-- [`docs/config.md`](./docs/config.md): `hone.config.ts`, targets, scorers, gates, ablations, evolve, optimize
+- [`docs/cli.md`](./docs/cli.md): every command, generated from `--help`; the three everyday ones first
+- [`docs/config.md`](./docs/config.md): `hone.config.ts`, targets, scorers, gates, ablations, and what `sharpen` may change
 - [`docs/analysis.md`](./docs/analysis.md): clustering, taxonomy, trajectory diff, judge calibration, branch points
-- [`docs/correction.md`](./docs/correction.md): fork, evolve, optimize, ablate, bisect, compare, ci
+- [`docs/correction.md`](./docs/correction.md): `hone sharpen` and its single steps: fork, evolve, optimize, ablate, bisect, compare
 - [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
 - [`docs/formats.md`](./docs/formats.md) and [`docs/compat.md`](./docs/compat.md): import/export formats with sources
-- [`examples/`](./examples/): qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation, each green under `hone test --ci`
+- [`examples/`](./examples/): sharpen (the three commands on a toy that starts broken), qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation
 - [`skills/hone/SKILL.md`](./skills/hone/SKILL.md): the skill `hone init --skills` installs for Claude Code and Codex
 
 ## How it compares
@@ -137,7 +164,7 @@ export default defineConfig({
 | Targets | HTTP, function, Python, CLI agent, MCP, replay, Docker | providers | Python callables | Python solvers | containerized agents |
 | Variance | n trials, pass^k, CIs, paired tests by default | repeat option | per-metric | epochs | per-task trials |
 | Judge calibration | fault injection, kappa, order swap | rubric | rubric | rubric | rubric |
-| Correction loop | cluster, taxonomy, fork, evolve, bisect, ablate | no | no | no | no |
+| Correction loop | one command (`hone sharpen`): diagnose, propose, re-test, confirm on held-out cases | no | no | no | no |
 | Interface | TUI, CLI, MCP server, SSH | CLI, web | pytest | CLI, web | CLI |
 | Runs offline, local-first | yes | yes | yes | yes | yes |
 
@@ -163,6 +190,7 @@ v0.1.0 ships everything above. Progress is tracked task by task in [`WORKPLAN.md
 | P7 | correction: fork, evolve, optimize, rollout export, reward server, MCP server |
 | P8 | import/export adapters, skills, shipped docs |
 | P9 | examples, docs, binaries, release |
+| P10 | three commands; `hone sharpen` runs the whole cycle with a held-out confirmation. Next: proposals as patches from a coding agent, and both studies re-run with no human decisions |
 
 ## Contributing
 
