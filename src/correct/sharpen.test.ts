@@ -204,18 +204,23 @@ describe("sharpen", () => {
     };
     const dear = (v: string | undefined): number => (v === "wide" ? 5 : 1);
     const one = await run([dev[0]!], dear);
-    expect(one.candidates.map((c) => `${c.id} ${Math.round(c.dev! * 100)}`)).toEqual(["variant wide 5", "rewrite 1 100", "rewrite 1 without wide 95"]);
-    expect(one.best!.id).toBe("rewrite 1 without wide");
-    expect(one.passedOver).toMatchObject({ id: "rewrite 1", dev: 1, costRatio: 5 });
-    expect(flat(one.message)).toContain("rewrite 1 scored higher on the cases it learned from (100% against 95%) at 5.0x the cost. That is within one case, so the cheaper one is the candidate.");
+    // the search stays at the baseline's price: the rewrite is written from the baseline although the variant led, and the
+    // variant goes on top of it once, beyond the budget of two
+    expect(one.candidates.map((c) => `${c.id} ${Math.round(c.dev! * 100)}`)).toEqual(["variant wide 5", "rewrite 1 95", "variant wide on rewrite 1 100"]);
+    expect(one.candidates[1]).toMatchObject({ parent: "baseline" });
+    expect(one.candidates[1]!.variant).toBeUndefined();
+    expect(one.best!.id).toBe("rewrite 1");
+    expect(one.passedOver).toMatchObject({ id: "variant wide on rewrite 1", dev: 1, costRatio: 5 });
+    expect(flat(one.message)).toContain("variant wide on rewrite 1 scored higher on the cases it learned from (100% against 95%) at 5.0x the cost. That is within one case, so the cheaper one is the candidate.");
     expect(flat(one.message)).not.toContain('It uses the variant "wide"');
-    // two cases of difference are a difference: the expensive one stays
+    // two cases of difference are a difference: the expensive one is the winner
     const two = await run([dev[0]!, dev[1]!], dear);
-    expect(two.best!.id).toBe("rewrite 1");
+    expect(two.best!.id).toBe("variant wide on rewrite 1");
     expect(two.passedOver).toBeUndefined();
     expect(flat(two.message)).toContain("Cost per case: 5.0x.");
-    // at the same price there is nothing to save
+    // at the same price the variant is a candidate like any other: it led, so the rewrite is written on top of it
     const same = await run([dev[0]!], () => 1);
+    expect(same.candidates[1]).toMatchObject({ id: "rewrite 1", parent: "variant wide", dev: 1 });
     expect(same.best!.id).toBe("rewrite 1");
   });
 
