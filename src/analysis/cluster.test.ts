@@ -23,6 +23,14 @@ describe("summarise", () => {
     expect(h).toContain("c9");
     expect(h).toContain("unsupported");
   });
+
+  test("an answer taken from hone's cache reads the same as one that ran: the flag is bookkeeping, not what the system did", () => {
+    const ran = trial("h", "hallucination");
+    const cached = { ...ran, flags: ["cached"] as Trial["flags"] };
+    expect(summarise(cached)).toBe(summarise(ran));
+    // what the system did stays: a timeout, a reward hack
+    expect(summarise({ ...trial("t", "tamper"), flags: ["reward-hack", "cached"] })).toMatch(/flags: reward-hack$/m);
+  });
 });
 
 describe("kmeans", () => {
