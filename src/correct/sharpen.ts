@@ -39,6 +39,8 @@ export interface SharpenCandidate {
   textFile?: string;
   /** The id of the candidate that introduced this text (itself, for a rewrite or a text change; the parent's, for a pairing). */
   textFrom?: string;
+  /** The additions (changes with `add`) its text is made of, in the order they were stacked. */
+  adds?: string[];
   /** The model's one-line reason for its rewrite. */
   rationale?: string;
   /** The quick check on the parent's failing cases plus a few passing ones. */
@@ -142,6 +144,7 @@ interface Member {
   text?: string;
   textFile?: string;
   textFrom?: string;
+  adds?: string[];
   run: RunOutcome;
 }
 
@@ -210,13 +213,14 @@ function diagnosisPage(x: { r: Omit<SharpenResult, "message" | "path">; trials: 
   out.push(x.seed !== undefined ? "- the text (`sharpen.text` in hone.config.ts), now:" : "- no text is declared (`sharpen.text` in hone.config.ts says where a new text goes)");
   if (x.seed !== undefined) out.push(...shown(x.seed, 4000).split("\n").map((l) => `  > ${l}`));
   out.push(`- variants in the config: ${x.variants.join(", ") || "none"}`, `- change files: ${x.changes.length ? [...new Set(x.changes.map((c) => c.file ?? "?"))].map((f) => `${f} (${x.changes.filter((c) => (c.file ?? "?") === f).map((c) => c.name).join(", ")})`).join("; ") : "none yet"}`, "");
-  out.push("## Write a change", "", "One file per idea under `sharpen/`, with the failure it fixes as `why`. Then run `hone sharpen`.", "", "```ts", "// sharpen/<what-it-does>.ts", 'import { change } from "hone-eval";', "", 'change("what it does", {', '  why: "which failure mode above, and why this fixes it",', '  text: "the new text",                 // a new version of the text above', "  // config: (config) => ({ ...config }),  // or a change to the config: a setting, a model, new code", "});", "```", "", "New code goes into a new file that the `config` function points at. Do not edit a file the current system runs: the comparison needs it unchanged.", "");
+  out.push("## Write a change", "", "One file per idea under `sharpen/`, with the failure it fixes as `why`. Then run `hone sharpen`.", "", "```ts", "// sharpen/<what-it-does>.ts", 'import { change } from "hone-eval";', "", 'change("what it does", {', '  why: "which failure mode above, and why this fixes it",', '  add: "one rule for the text above",      // a paragraph added to the text as it is', '  // text: "the whole new text",           // or a new version of the whole text', "  // config: (config) => ({ ...config }),  // or a change to the config: a setting, a model, new code", "});", "```", "", "One failure mode, one change. Additions that help are stacked into one text for you, so do not merge them yourself. New code goes into a new file that the `config` function points at. Do not edit a file the current system runs: the comparison needs it unchanged.", "");
   return out.join("\n");
 }
 
 const pct = (x: number): string => `${Math.round(x * 100)}%`;
 const pts = (x: number): string => `${x >= 0 ? "+" : ""}${Math.round(x * 100)}`;
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" : "s"}`;
+const quoted = (names: string[]): string => names.map((n) => `"${n}"`).join(", ");
 // the account stays readable; the ledger file keeps the full text
 const clip = (text: string, n: number): string => (text.length > n ? `${text.slice(0, n - 3).trimEnd()}...` : text);
 /** The account fits a terminal: sentences are wrapped at this width; indented rows (lists, tables, code) are built to fit. */
@@ -250,8 +254,8 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     lines.push(
       "Nothing to change: there is no change to try. Write one, for example sharpen/first.ts:",
       '  import { change } from "hone-eval";',
-      '  change("what it does", { why: "which failure it fixes", text: "the new text" });',
-      "A `text` needs `sharpen: { text: { seed, apply } }` in hone.config.ts, which says where a text goes; a `config` function needs nothing.",
+      '  change("what it does", { why: "which failure it fixes", add: "one rule for the text" });',
+      "An `add` or a `text` needs `sharpen: { text: { seed, apply } }` in hone.config.ts, which says where a text goes; a `config` function needs nothing.",
       x.noRewrites ? "Rewrites by a model were off, so only a change you write can be tried." : x.noKey ? "sharpen.text is declared, but there is no LLM key for the model to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)." : "With `sharpen.text` declared and an LLM key set, a model writes rewrites too.",
     );
     return page(lines);
@@ -283,6 +287,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     // what to adopt, and where it is
     const w = r.candidates.find((c) => c.id === b.id);
     if (w?.text !== undefined) lines.push(...(w.textFile ? [`The text comes from ${w.textFile}.`] : [`The new text is in ${path.relative(x.cwd, x.textFile ?? "")}`, `As a change file: ${path.relative(x.cwd, x.changeFile ?? "")}`]));
+    if (w?.adds && w.adds.length > 1) lines.push(`It puts together the additions ${quoted(w.adds)}.`);
     if (w?.variant) lines.push(w.variantFile ? `It uses the change "${w.variant}" from ${w.variantFile}.` : `It uses the variant "${w.variant}" from sharpen.variants.`);
   }
   if (x.noRewrites) lines.push("Rewrites by a model were off: only the changes from files and the variants were tried.");
@@ -312,19 +317,26 @@ function countConfirmation(file: string, split: string, winner: string): number 
 /** A model's winning rewrite in the form a person writes: a change file that can be moved into sharpen/. */
 function asChangeFile(winner: SharpenCandidate, origin: SharpenCandidate, verdict: SharpenVerdict): string {
   const together = winner.variant ? `// It was confirmed together with ${winner.variantFile ? `the change "${winner.variant}" (${winner.variantFile})` : `the variant "${winner.variant}" (sharpen.variants)`}.\n` : "";
-  return `// Proposed by the model as ${origin.id}; the held-out check said: ${verdict}. Move this file into sharpen/ to keep it as a candidate.\n${together}import { change } from "hone-eval";\n\nchange(${JSON.stringify(origin.id)}, {\n  why: ${JSON.stringify(origin.rationale || "rewritten by the model from the failure modes")},\n  text: ${JSON.stringify(winner.text)},\n});\n`;
+  const parts = quoted(origin.adds ?? []);
+  const [from, why] = origin.source === "file" ? [`The additions ${parts} put together as one text`, `the additions ${parts} together`] : [`Proposed by the model as ${origin.id}`, origin.rationale || "rewritten by the model from the failure modes"];
+  return `// ${from}; the held-out check said: ${verdict}. Move this file into sharpen/ to keep it as a candidate.\n${together}import { change } from "hone-eval";\n\nchange(${JSON.stringify(origin.id)}, {\n  why: ${JSON.stringify(why)},\n  text: ${JSON.stringify(winner.text)},\n});\n`;
 }
 
 export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
   const { config } = opts;
-  const budget = opts.budget ?? 6;
+  // six by default, or enough for what was written: every change alone, a stack for every addition, the variants, and two more
+  const budget = opts.budget ?? Math.max(6, (opts.changes?.length ?? 0) + (opts.changes ?? []).filter((c) => c.add !== undefined && !c.config).length + Object.keys(config.sharpen?.variants ?? {}).length + 2);
   const alpha = opts.alpha ?? 0.05;
   const seed = opts.seed ?? 1;
   const textHook = config.sharpen?.text;
   const changes = opts.changes ?? [];
-  for (const c of changes) if (c.text !== undefined && !textHook) throw new Error(`${c.file ?? "a change"}: change "${c.name}" sets a text, but hone.config.ts declares no \`sharpen: { text: { seed, apply } }\` to put it into`);
+  for (const c of changes) if ((c.text !== undefined || c.add !== undefined) && !textHook) throw new Error(`${c.file ?? "a change"}: change "${c.name}" ${c.add !== undefined ? "adds to" : "sets"} a text, but hone.config.ts declares no \`sharpen: { text: { seed, apply } }\` to put it into`);
+  /** The text of a change on its own: the whole text it carries, or its addition on the seed. */
+  const textOf = (c: Change): string | undefined => (c.text !== undefined ? c.text : c.add !== undefined ? `${textHook!.seed}\n\n${c.add}` : undefined);
   // config changes that can be put on top of a text: the ones from files first, then the inline variants
-  const fromFiles: ConfigChange[] = changes.filter((c) => c.config && c.text === undefined).map((c) => ({ key: c.name, name: c.name, apply: c.config!, file: c.file, why: c.why }));
+  const fromFiles: ConfigChange[] = changes.filter((c) => c.config && c.text === undefined && c.add === undefined).map((c) => ({ key: c.name, name: c.name, apply: c.config!, file: c.file, why: c.why }));
+  /** Additions can be stacked: each is a paragraph for whatever the text is by then. */
+  const additions = changes.filter((c) => c.add !== undefined && !c.config);
   const inline: ConfigChange[] = Object.entries(config.sharpen?.variants ?? {}).map(([name, apply]) => ({ key: `variant ${name}`, name, apply }));
   const fileTexts = changes.filter((c) => c.text !== undefined && !c.config);
   const canRewrite = Boolean(textHook && opts.chat) && opts.rewrites !== false;
@@ -387,22 +399,22 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     let tried = 0;
     const over = (): SharpenResult["stopped"] | undefined => (opts.maxCost !== undefined && spent >= opts.maxCost ? "maxCost" : opts.until !== undefined && dev(best()) >= opts.until ? "until" : tried >= budget ? "budget" : undefined);
     let stopped: SharpenResult["stopped"] | undefined;
-    const carried = (m: { cfg?: ConfigChange; text?: string; textFile?: string; textFrom?: string }): Partial<SharpenCandidate> => ({
+    const carried = (m: { cfg?: ConfigChange; text?: string; textFile?: string; textFrom?: string; adds?: string[] }): Partial<SharpenCandidate> => ({
       ...(m.cfg ? { variant: m.cfg.name, ...(m.cfg.file ? { variantFile: m.cfg.file } : {}) } : {}),
-      ...(m.text !== undefined ? { text: m.text, ...(m.textFile ? { textFile: m.textFile } : {}), ...(m.textFrom ? { textFrom: m.textFrom } : {}) } : {}),
+      ...(m.text !== undefined ? { text: m.text, ...(m.textFile ? { textFile: m.textFile } : {}), ...(m.textFrom ? { textFrom: m.textFrom } : {}), ...(m.adds ? { adds: m.adds } : {}) } : {}),
     });
 
     /** A config change on top of `parent`: described in a line, so it gets its full run at once. */
     const tryConfig = async (parent: Member, cfg: ConfigChange, cid: string): Promise<void> => {
       tried++;
-      const child = { cfg, text: parent.text, textFile: parent.textFile, textFrom: parent.textFrom };
+      const child = { cfg, text: parent.text, textFile: parent.textFile, textFrom: parent.textFrom, adds: parent.adds };
       const full = await run(child, cid, split.dev);
       spent += paid(full);
       members.push({ id: cid, ...child, run: full });
       r.candidates.push({ id: cid, kind: "variant", source: cfg.file ? "file" : "config", parent: parent.id, ...(cfg.file ? { file: cfg.file } : {}), ...(cfg.why ? { why: cfg.why } : {}), ...carried(child), dev: rate(full, split.dev), costUsd: paid(full), runId: full.runId });
     };
     /** A text on top of `parent`: first on the parent's failing cases plus eight passing ones, and only then in full. */
-    const tryText = async (parent: Member, cid: string, text: { cfg?: ConfigChange; text: string; textFile?: string; textFrom?: string }, meta: Pick<SharpenCandidate, "kind" | "source" | "file" | "why" | "rationale">): Promise<void> => {
+    const tryText = async (parent: Member, cid: string, text: { cfg?: ConfigChange; text: string; textFile?: string; textFrom?: string; adds?: string[] }, meta: Pick<SharpenCandidate, "kind" | "source" | "file" | "why" | "rationale">): Promise<void> => {
       tried++;
       const child = { ...text, textFrom: text.textFrom ?? cid };
       const failed = failing(parent.run, split.dev);
@@ -422,19 +434,33 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       r.candidates.push({ ...entry, dev: rate(full, split.dev), costUsd: paid(quick) + (whole ? 0 : paid(full)), runId: full.runId });
     };
 
-    // 1. every change from a file on its own, then every inline variant on its own
+    // 1. every change from a file on its own (an addition on the seed text), then every inline variant on its own
     for (const c of changes) {
       if ((stopped = over())) break;
       const meta = { source: "file" as const, ...(c.file ? { file: c.file } : {}), why: c.why };
-      if (c.text === undefined) await tryConfig(base, fromFiles.find((f) => f.key === c.name)!, c.name);
-      else await tryText(base, c.name, { ...(c.config ? { cfg: { key: c.name, name: c.name, apply: c.config, file: c.file, why: c.why } } : {}), text: c.text, textFile: c.file }, { kind: c.config ? "both" : "text", ...meta });
+      const text = textOf(c);
+      if (text === undefined) await tryConfig(base, fromFiles.find((f) => f.key === c.name)!, c.name);
+      else await tryText(base, c.name, { ...(c.config ? { cfg: { key: c.name, name: c.name, apply: c.config, file: c.file, why: c.why } } : {}), text, textFile: c.file, ...(c.add !== undefined && !c.config ? { adds: [c.name] } : {}) }, { kind: c.config ? "both" : "text", ...meta });
     }
     for (const v of inline) {
       if (stopped || (stopped = over())) break;
       await tryConfig(base, v, v.key);
     }
 
-    // 2. from the best member so far: the primitive of the kind it lacks (a config change on a text, a text from a file on
+    // 2. stack the additions: from the one that did best alone, each of the others in that order, kept when the stack
+    //    gets better. They come before any config change is put on a text because they cost what the baseline costs.
+    const alone = additions.map((a) => members.find((m) => m.id === a.name)).filter((m): m is Member => m !== undefined).sort((x, y) => dev(y) - dev(x));
+    let stack = alone[0];
+    for (const next of alone.slice(1)) {
+      if (stopped || (stopped = over())) break;
+      const a = additions.find((x) => x.name === next.id)!;
+      const cid = `${stack!.id} + ${a.name}`;
+      await tryText(stack!, cid, { text: `${stack!.text}\n\n${a.add}`, adds: [...stack!.adds!, a.name] }, { kind: "text", source: "file", ...(a.file ? { file: a.file } : {}), why: a.why });
+      const made = members.find((m) => m.id === cid);
+      if (made && dev(made) > dev(stack!)) stack = made;
+    }
+
+    // 3. from the best member so far: the primitive of the kind it lacks (a config change on a text, a text from a file on
     //    a config change), so changes that only help together are found without anyone combining them; then a rewrite
     const paired = new Set<string>();
     for (let n = 1; !stopped && !(stopped = over()); ) {

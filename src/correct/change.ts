@@ -9,8 +9,10 @@ import type { HoneConfig } from "../core/config";
 export interface ChangeSpec {
   /** The hypothesis: what is wrong, and why this fixes it. It goes into the ledger and the account. */
   why: string;
-  /** A new version of the text declared in `config.sharpen.text`. */
+  /** A new version of the text declared in `config.sharpen.text`: the whole text. */
   text?: string;
+  /** A paragraph for that text as it is: one rule, one instruction. The cycle stacks the additions that help, so two ideas stay two changes. */
+  add?: string;
   /**
    * Any change a config can express: a setting, a model, another function or module for a target. New code goes into a
    * new file (or this one) and the config points at it. Never edit a file the baseline runs: there would be nothing
@@ -51,10 +53,12 @@ export function change(name: string, spec: ChangeSpec): void {
   };
   if (typeof s.why !== "string" || s.why.trim() === "") fail("`why` says what is wrong and why this fixes it; it is required");
   if (s.text !== undefined && typeof s.text !== "string") fail("`text` is the new text, a string");
+  if (s.add !== undefined && (typeof s.add !== "string" || s.add.trim() === "")) fail("`add` is a paragraph to add to the text; it is empty");
+  if (s.text !== undefined && s.add !== undefined) fail("`text` is the whole new text and `add` a paragraph for the text as it is; give one of them");
   if (s.config !== undefined && typeof s.config !== "function") fail("`config` is a function from a config to a config");
-  if (s.text === undefined && s.config === undefined) fail("give it a `text`, a `config` function, or both");
+  if (s.text === undefined && s.add === undefined && s.config === undefined) fail("give it something to try: `add`, `text` or a `config` function");
   const reg = registry();
-  if (reg.loading) reg.changes.push({ name, why: s.why!, ...(s.text !== undefined ? { text: s.text } : {}), ...(s.config ? { config: s.config } : {}) });
+  if (reg.loading) reg.changes.push({ name, why: s.why!, ...(s.text !== undefined ? { text: s.text } : {}), ...(s.add !== undefined ? { add: s.add } : {}), ...(s.config ? { config: s.config } : {}) });
 }
 
 /** Import every change file matched by `globs` (relative to `cwd`) and return the changes they declared, in path order. */

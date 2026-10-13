@@ -29,7 +29,7 @@ import { change } from "hone-eval";
 
 change("answer with the bare value", {
   why: "the cases expect the answer alone; the bot wraps it in a sentence",
-  text: "Reply with only the answer.",
+  add: "Reply with only the answer.",
 });
 ```
 
@@ -37,10 +37,33 @@ change("answer with the bare value", {
 | --- | --- |
 | name (first argument) | short and unique; it appears in the result |
 | `why` | required: which failure mode, and why this fixes it |
-| `text` | a new version of the text the config declares in `sharpen.text`. The whole text, not a diff |
+| `add` | one paragraph for the text the config declares in `sharpen.text`, added to the text as it is: a rule, an instruction |
+| `text` | a new version of that text. The whole text, not a diff |
 | `config` | a function from a config to a config: a setting, a model, another function or module for a target |
 
-A change has a `text`, a `config`, or both. A `text` needs `sharpen.text` in the config (topic `setup`).
+A change has an `add` or a `text`, a `config`, or one of the first two with a `config`. `add` and `text` need `sharpen.text` in the config (topic `setup`).
+
+### Additions are stacked for you
+
+A prompt usually fails in several ways at once, and each way needs its own rule. Write each rule as its own change with `add`:
+
+```ts
+// sharpen/cite-policies.ts
+change("cite the policy id", {
+  why: "missing-citation: answers quote the policy but never name it",
+  add: "When an answer comes from a policy, name the policy id in square brackets, like [P-03].",
+});
+```
+
+```ts
+// sharpen/urgent-security.ts
+change("security incidents are urgent", {
+  why: "wrong-priority: security tickets are filed as high, the cases need urgent",
+  add: "A security incident always gets a ticket with priority urgent.",
+});
+```
+
+The cycle tries each alone, then stacks them: the one that did best alone, plus the next, and so on, keeping an addition only when the stack gets better with it. The result line names the additions the winner is made of, and the whole text is saved as `.hone/sharpen/<id>-best.txt`. Do not write the merged text yourself: you would lose what each rule was worth, and a second run to confirm it costs a second look at the held-out cases. Use `text` when the text has to be rewritten as a whole.
 
 ### Changing code
 
@@ -64,19 +87,19 @@ For a `python` or `process` target the function returns the same target with ano
 - Aim at one failure mode from the diagnosis and name it in `why`.
 - Fix the cause the failing cases show, not the cases. A prompt that lists the expected answers of the cases you saw passes those cases and fails the held-out ones; the verdict will be `NO GAIN`.
 - Keep what already works. The cycle checks a new text on the failing cases plus some passing ones before it spends a full run on it.
-- Two ideas are two changes. The cycle puts changes together itself when one only helps on top of another.
+- Two ideas are two changes. The cycle puts changes together itself: additions are stacked, and a config change is tried on top of the best text.
 
 ## 3. Run the cycle
 
 ```bash
 hone sharpen                 # every change, pairings, then the held-out check
-hone sharpen --budget 10     # try at most 10 candidates (default 6)
+hone sharpen --budget 10     # try at most 10 candidates (default: 6, or enough for every change file and its stack)
 hone sharpen --until 0.9     # stop trying once 90% of the cases it learns from pass
 hone sharpen --max-cost 2    # stop trying when the system under test has cost 2 dollars
 hone sharpen --no-rewrites   # judge only the changes you wrote and the variants: the model writes none of its own
 ```
 
-Order of candidates: every change from a file alone, then inline variants from the config, then pairings on top of the best one so far, then (with an LLM key and `sharpen.text`) rewrites by a model. A winning rewrite that was written on top of a variant is also tried without it (`rewrite 2 without <variant>`); when it does as well, the smaller and cheaper change is the winner. Raise `--budget` when there are more changes than the default covers.
+Order of candidates: every change from a file alone, then inline variants from the config, then the stack of additions, then pairings on top of the best one so far, then (with an LLM key and `sharpen.text`) rewrites by a model. A winning rewrite that was written on top of a variant is also tried without it (`rewrite 2 without <variant>`); when it does as well, the smaller and cheaper change is the winner. Raise `--budget` when there are more changes than the default covers.
 
 ## 4. Read the result
 

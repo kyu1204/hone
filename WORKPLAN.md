@@ -132,6 +132,7 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 - [ ] T-1105 README rewritten around what hone is now, with a new demo recording (M)
 - [x] T-1106 `hone sharpen --no-rewrites`: only the changes from files and the variants are judged (S)
 - [x] T-1107 A winning rewrite is tried without the config change it was written on: the smaller change wins when it is as good (S)
+- [x] T-1108 A change can add to the text (`add`), and the cycle stacks the additions that help (M)
 
 ## Progress log
 
@@ -223,3 +224,4 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 | 2026-10-13 | T-1106 follow-up | #118 | `hone serve mcp --no-rewrites`: a server whose `hone_sharpen` judges only what the client proposed, whatever arguments the client sends; the operator who starts the server decides, not the agent that talks to it |
 | 2026-10-13 | T-1107 | #119 | found in the first real run on a custom agent: the costlier variant won round one, every rewrite was then written on top of it, and the confirmed winner cost 4.7x per case without anyone having measured the prompt alone; now a winning rewrite that sits on a config change is tried once without it, outside the budget, and equal pass rates go to the cheaper and then the smaller change |
 | 2026-10-13 | fix | #120 | sharpen and evolve added the price of cached answers to their spend: a rewrite's full run takes its sample from the cache, so each rewrite was counted at up to twice what it cost, `--max-cost` stopped the first real runs after three candidates at a reported 3.9 dollars when 2.9 had been spent, and the ledger's `costUsd` per candidate was too high; a run now carries `spentUsd`, what it ran itself |
+| 2026-10-13 | T-1108 | #121 | found in T-1103: two Codex sessions followed "one hypothesis per change" and wrote three or four prompts that each added one rule; a `text` replaces the whole text, so the cycle could not combine them and the sessions had to merge them by hand and spend a second look at the held-out cases. `change(name, { why, add })` is a paragraph for the text as it is; after every change has run alone the additions are stacked, best first, each kept when the stack improves; the default budget covers every change file and its stack; the winner's additions are named and the whole text saved as a change file |

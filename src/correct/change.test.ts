@@ -48,6 +48,15 @@ describe("change files", () => {
     expect(again[2]!.text).toBe("edited");
   });
 
+  test("add: a paragraph for the text as it is, alone or with a config change", async () => {
+    const dir = project({ "sharpen/a.ts": 'change("cite", { why: "w1", add: "Cite the policy id." });\nchange("cite, on the larger model", { why: "w2", add: "Cite.", config: (c) => c });' });
+    const changes = await loadChanges(dir);
+    expect(changes[0]).toMatchObject({ name: "cite", why: "w1", add: "Cite the policy id." });
+    expect(changes[0]!.text).toBeUndefined();
+    expect(changes[1]).toMatchObject({ add: "Cite." });
+    expect(typeof changes[1]!.config).toBe("function");
+  });
+
   test("no directory means no changes; another place can be named", async () => {
     const dir = project({ "ideas/x.ts": 'change("from ideas", { why: "w", text: "T" });' });
     expect(await loadChanges(dir)).toEqual([]);
@@ -65,7 +74,9 @@ describe("change files", () => {
       }
     };
     expect(await bad('change("no reason", { text: "T" });')).toMatch(/^sharpen\/x\.ts: change "no reason": `why` says what is wrong and why this fixes it; it is required/);
-    expect(await bad('change("empty", { why: "w" });')).toMatch(/^sharpen\/x\.ts: change "empty": give it a `text`, a `config` function, or both/);
+    expect(await bad('change("empty", { why: "w" });')).toMatch(/^sharpen\/x\.ts: change "empty": give it something to try: `add`, `text` or a `config` function/);
+    expect(await bad('change("two texts", { why: "w", text: "T", add: "A" });')).toMatch(/^sharpen\/x\.ts: change "two texts": `text` is the whole new text and `add` a paragraph for the text as it is; give one of them/);
+    expect(await bad('change("blank", { why: "w", add: "  " });')).toMatch(/^sharpen\/x\.ts: change "blank": `add` is a paragraph to add to the text; it is empty/);
     expect(await bad('change("", { why: "w", text: "T" });')).toMatch(/^sharpen\/x\.ts: a change needs a name/);
     expect(await bad('change("wrong type", { why: "w", config: "top_k 30" });')).toMatch(/^sharpen\/x\.ts: change "wrong type": `config` is a function from a config to a config/);
     expect(await bad('throw new Error("boom");')).toMatch(/^sharpen\/x\.ts: boom/);

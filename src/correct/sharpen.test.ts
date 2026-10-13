@@ -293,6 +293,70 @@ describe("sharpen", () => {
     expect(none.candidates).toEqual([]);
   });
 
+  describe("additions", () => {
+    // every case needs the rule of its class in the text; an addition carries one rule
+    const RULES = ["RULE-A", "RULE-B", "RULE-C"];
+    const klass = (id: string): number => Number(id.slice(1)) % 3;
+    const add = (name: string, text: string) => ({ name, why: `cases of one kind need ${text}`, add: text, file: `sharpen/${name}.ts` });
+    const three = [add("a", "RULE-A"), add("b", "RULE-B"), add("c", "RULE-C")];
+
+    test("additions that each fix a part are stacked, the one that did best alone first, and the stack is proven with no model", async () => {
+      const cwd = tmp();
+      const r = await sharpen({ config: config((id, text) => text.includes(RULES[klass(id)]!), { text: true }), changes: three, hash: "h", cwd, useCache: false });
+      const alone = r.candidates.slice(0, 3);
+      expect(alone.map((c) => c.id)).toEqual(["a", "b", "c"]);
+      expect(alone[0]).toMatchObject({ kind: "text", source: "file", file: "sharpen/a.ts", parent: "baseline", text: "Answer.\n\nRULE-A", adds: ["a"] });
+      for (const c of alone) expect(c.dev).toBeLessThan(0.6);
+      // then the stack: the best one, plus the next best, plus the third
+      const order = [...alone].sort((x, y) => y.dev! - x.dev!).map((c) => c.id);
+      expect(r.candidates.slice(3).map((c) => c.id)).toEqual([`${order[0]} + ${order[1]}`, `${order[0]} + ${order[1]} + ${order[2]}`]);
+      const stack = r.candidates[4]!;
+      expect(stack).toMatchObject({ kind: "text", source: "file", parent: `${order[0]} + ${order[1]}`, adds: order, dev: 1 });
+      expect(stack.text).toBe(`Answer.\n\n${order.map((n) => three.find((t) => t.name === n)!.add).join("\n\n")}`);
+      expect(r.best).toMatchObject({ id: stack.id, baseline: 0, candidate: 1 });
+      expect(r.verdict).toBe("proven");
+      expect(flat(r.message)).toContain(`It puts together the additions ${order.map((n) => `"${n}"`).join(", ")}.`);
+      expect(flat(r.message)).not.toMatch(/No LLM key/);
+      // the whole text is saved, and as a change file that loads
+      expect(fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`), "utf8")).toBe(stack.text!);
+      const saved = fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`), "utf8");
+      expect(saved).toContain(`The additions ${order.map((n) => `"${n}"`).join(", ")} put together as one text`);
+      fs.mkdirSync(path.join(cwd, "sharpen"));
+      fs.writeFileSync(path.join(cwd, "sharpen", "best.ts"), saved.replace('"hone-eval"', JSON.stringify(new URL("./change.ts", import.meta.url).pathname)));
+      expect((await loadChanges(cwd))[0]).toMatchObject({ name: stack.id, text: stack.text });
+    });
+
+    test("an addition that breaks what the stack has gained is dropped at the sample, and the stack goes on without it", async () => {
+      // a fourth of the cases is fixed by nothing; TOXIC fixes nothing alone and breaks everything it is combined with
+      const passes = (id: string, text: string): boolean => Number(id.slice(1)) % 4 !== 3 && !text.includes("TOXIC") && text.includes(RULES[Number(id.slice(1)) % 4]!);
+      const r = await sharpen({ config: config(passes, { text: true, n: 40 }), changes: [...three, add("toxic", "TOXIC")], hash: "h", cwd: tmp(), budget: 12, useCache: false });
+      const dropped = r.candidates.find((c) => c.dropped === "sample")!;
+      expect(dropped.id).toMatch(/ \+ toxic$/);
+      expect(r.best!.id).not.toContain("toxic");
+      expect(r.candidates.find((c) => c.id === r.best!.id)!.adds!.sort()).toEqual(["a", "b", "c"]);
+    });
+
+    test("additions are stacked before a config change is tried on top, and the default budget covers what was written", async () => {
+      // a third of the cases needs the variant; of five additions two matter
+      const five = [...three, add("d", "RULE-D"), add("e", "RULE-E")];
+      const cfg = config((id, text, variant) => (klass(id) === 2 ? variant === "wide" : text.includes(RULES[klass(id)]!)), { text: true, variants: ["wide"] });
+      const r = await sharpen({ config: cfg, hash: "h", cwd: tmp(), changes: five, useCache: false });
+      const ids = r.candidates.map((c) => c.id);
+      expect(ids.slice(0, 6)).toEqual(["a", "b", "c", "d", "e", "variant wide"]); // all five alone although the usual budget is six
+      const stacks = ids.filter((i) => i.includes(" + ") && !i.startsWith("variant"));
+      expect(stacks).toHaveLength(4); // the best one plus each of the other four
+      const onTop = ids.findIndex((i) => i.startsWith("variant wide on "));
+      expect(onTop).toBeGreaterThan(ids.indexOf(stacks[3]!));
+      expect(r.candidates[onTop]).toMatchObject({ kind: "variant", variant: "wide", dev: 1 });
+      expect([...r.candidates[onTop]!.adds!].sort()).toEqual(["a", "b"]); // c, d and e added nothing and are not in the stack
+      expect(r.best!.id).toBe(ids[onTop]!);
+    });
+
+    test("an addition needs the config to say where a text goes", async () => {
+      await expect(sharpen({ config: config(() => false), changes: [add("a", "RULE-A")], hash: "h", cwd: tmp(), useCache: false })).rejects.toThrow('sharpen/a.ts: change "a" adds to a text, but hone.config.ts declares no `sharpen: { text: { seed, apply } }` to put it into');
+    });
+  });
+
   test("a change that carries a text and a config is one candidate; a text change needs the config to say where a text goes", async () => {
     const cfg = config((_id, text, variant) => text.includes("UPPERCASE") && variant === "wide", { text: true, variants: ["wide"] });
     const wide = cfg.sharpen!.variants!.wide!;
@@ -409,7 +473,7 @@ describe("sharpen", () => {
     expect(bare.message).toMatch(/Why it fails:/);
     expect(flat(bare.message)).toMatch(/sharpen: \{ text: \{ seed, apply \} \}/);
     expect(flat(bare.message)).toMatch(/Nothing to change: there is no change to try\. Write one, for example sharpen\/first\.ts:/);
-    expect(bare.message).toContain('change("what it does", { why: "which failure it fixes", text: "the new text" });');
+    expect(bare.message).toContain('change("what it does", { why: "which failure it fixes", add: "one rule for the text" });');
     expect(prompts.length).toBeGreaterThan(0); // the model named the failure modes
     expect(prompts.some((p) => p.includes("Current text"))).toBe(false); // and was not asked for rewrites
 
