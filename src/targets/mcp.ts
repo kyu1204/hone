@@ -99,15 +99,17 @@ class McpProcess {
     const proc = this.proc;
     const res = new Promise<RpcResponse>((resolve) => this.pending.set(id, { resolve }));
     this.send({ jsonrpc: "2.0", id, method, params });
-    const timeout = new Promise<RpcResponse>((resolve) =>
-      setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<RpcResponse>((resolve) => {
+      timer = setTimeout(() => {
         if (this.pending.delete(id)) {
           proc.kill();
           resolve({ error: { code: -2, message: `mcp ${method} timed out after ${timeoutMs}ms` } });
         }
-      }, timeoutMs),
-    );
-    return Promise.race([res, timeout]);
+      }, timeoutMs);
+    });
+    // an answered request must not leave its timer running: it would keep the caller's process alive for the whole timeout
+    return Promise.race([res, timeout]).finally(() => clearTimeout(timer));
   }
 
   /** Spawn and handshake if needed; resolves to an error response when the handshake fails. */

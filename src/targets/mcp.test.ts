@@ -37,6 +37,18 @@ describe("mcp target", () => {
     expect(unknown.error).toMatch(/unknown tool nope/);
   });
 
+  test("a finished call leaves no timer behind: a script that used a target ends when it is done", () => {
+    const script = `
+import { createTarget } from "./src/targets/index.ts";
+const t = createTarget("m", { kind: "mcp", command: ${JSON.stringify(server)}, tool: "echo" });
+console.log((await t.run({ text: "hello" }, { runId: "r", caseId: "c", trial: 0 })).output);
+await t.close?.();`;
+    const started = Date.now();
+    const r = Bun.spawnSync(["bun", "-e", script], { cwd: new URL("../..", import.meta.url).pathname, stdout: "pipe", stderr: "pipe", timeout: 10_000 });
+    expect(r.stdout.toString().trim()).toBe("hello");
+    expect(Date.now() - started).toBeLessThan(5_000); // the call's own timeout is far longer
+  }, 15_000);
+
   test("a crashed server is restarted on the next call", async () => {
     const t = createTarget("m", { kind: "mcp", command: server, tool: "crash" });
     targets.push(t);
