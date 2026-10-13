@@ -126,7 +126,7 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 Why: the agents teams build in-house (LangChain, Strands) are where an evaluation cycle is hardest to set up and most needed.
 
 - [x] T-1101 Python targets for custom agents: `params`, traces recorded from LangChain and Strands, concurrency (M)
-- [ ] T-1102 Example: an in-house helpdesk agent in LangChain and in Strands, 36 cases over six house rules (M)
+- [x] T-1102 Example: an in-house helpdesk agent in LangChain and in Strands, 36 cases over six house rules (M)
 - [ ] T-1103 Benchmark: the cycle on both, by hone's own rewrites and by a coding agent (Codex) writing changes (M)
 - [ ] T-1104 `hone init` recognises LangChain and Strands projects (S)
 - [ ] T-1105 README rewritten around what hone is now, with a new demo recording (M)
@@ -216,3 +216,4 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 | 2026-10-13 | T-1011 | #110 | `.hone/sharpen/holdout.json` lists, per split, the different winners its held-out cases have judged; the n-th has to reach alpha / n and the account says so; the same winner again keeps its place (a replication is not another attempt); the fewest units that can prove follow the level (six at 0.05, seven at 0.025) |
 | 2026-10-13 | T-1010 follow-up | #111 | docs/benchmarks/agent-writes-changes.md: one real Claude Code session (sonnet, sandboxed, the skill only, no API key for hone) read the diagnosis page, wrote two change files, and hone confirmed the pair as PROVEN on 6 held-out cases in 31 s; the skill now says to delete a change file after applying it |
 | 2026-10-13 | T-1101 | #114 | python target: `params` reach the callable as `ctx.params` and, with `env`, are part of the version (two variants of one module no longer share cached outputs); `ctx.from_langchain` and `ctx.from_strands` record messages, tool calls, tool results and usage from what the frameworks return, duck-typed; usage with a model name is priced from the table; `workers` serves calls on threads |
+| 2026-10-13 | T-1102 | #116 | `examples/helpdesk-agent`: six tools over in-memory data, the same agent in LangChain 1.4 and Strands 1.60 behind `answer(input, ctx)`, 36 cases (six for each of six house rules) and three trace scorers whose reasons name the broken rule; with the one-line prompt and claude-haiku-5-5 both frameworks pass 33 of 72 trials (verify and lookup 12 of 12, cite and nopolicy 0); 144 agent runs take 90 s and $0.63. Running it showed four python-target faults fixed in #115 (a stale cache after editing the agent, prints taken for answers and framework noise in the output, PYTHONPATH ignored, a timer left behind) |

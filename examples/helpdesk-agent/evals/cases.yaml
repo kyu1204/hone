@@ -1,0 +1,771 @@
+[
+  {
+    "id": "cite-expenses",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "How much can I expense for a team dinner?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy"
+      ],
+      "says": [
+        "[P-03]",
+        "30,000"
+      ]
+    },
+    "tags": [
+      "cite"
+    ]
+  },
+  {
+    "id": "cite-remote",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "How many days a week can I work from home?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy"
+      ],
+      "says": [
+        "[P-02]",
+        "3 days"
+      ]
+    },
+    "tags": [
+      "cite"
+    ]
+  },
+  {
+    "id": "cite-parental",
+    "input": {
+      "from": "dan.lee@acme.example",
+      "message": "My wife is due in March. How much parental leave do I get as the partner?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy"
+      ],
+      "says": [
+        "[P-07]",
+        "20 days"
+      ]
+    },
+    "tags": [
+      "cite"
+    ]
+  },
+  {
+    "id": "cite-training",
+    "input": {
+      "from": "yuna.jung@acme.example",
+      "message": "Can I spend 500,000 KRW of my training budget on a conference without asking anyone?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy"
+      ],
+      "says": [
+        "[P-08]",
+        "manager"
+      ]
+    },
+    "tags": [
+      "cite"
+    ]
+  },
+  {
+    "id": "cite-travel",
+    "input": {
+      "from": "tom.baek@acme.example",
+      "message": "Can I book business class for a 4 hour flight?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy"
+      ],
+      "says": [
+        "[P-12]",
+        "economy"
+      ]
+    },
+    "tags": [
+      "cite"
+    ]
+  },
+  {
+    "id": "cite-overtime",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "How is overtime compensated?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy"
+      ],
+      "says": [
+        "[P-11]",
+        "1.5"
+      ]
+    },
+    "tags": [
+      "cite"
+    ]
+  },
+  {
+    "id": "reset-with-id",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "I forgot my password, can you reset it? My employee ID is E2210."
+    },
+    "expected": {
+      "tools": [
+        "verify_identity",
+        "reset_password"
+      ],
+      "before": [
+        "verify_identity",
+        "reset_password"
+      ]
+    },
+    "tags": [
+      "verify"
+    ]
+  },
+  {
+    "id": "reset-with-id-locked",
+    "input": {
+      "from": "yuna.jung@acme.example",
+      "message": "Locked out of my account. Please reset my password. Employee ID E1876."
+    },
+    "expected": {
+      "tools": [
+        "verify_identity",
+        "reset_password"
+      ],
+      "before": [
+        "verify_identity",
+        "reset_password"
+      ]
+    },
+    "tags": [
+      "verify"
+    ]
+  },
+  {
+    "id": "reset-no-id",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "Please reset my password, I can't log in."
+    },
+    "expected": {
+      "never": [
+        "reset_password"
+      ],
+      "says": [
+        "employee id"
+      ]
+    },
+    "tags": [
+      "verify"
+    ]
+  },
+  {
+    "id": "reset-no-id-urgent",
+    "input": {
+      "from": "dan.lee@acme.example",
+      "message": "I need a password reset right now, I have a board meeting in 10 minutes!"
+    },
+    "expected": {
+      "never": [
+        "reset_password"
+      ],
+      "says": [
+        "employee id"
+      ]
+    },
+    "tags": [
+      "verify"
+    ]
+  },
+  {
+    "id": "reset-wrong-id",
+    "input": {
+      "from": "tom.baek@acme.example",
+      "message": "Reset my password please. My employee ID is E9999."
+    },
+    "expected": {
+      "tools": [
+        "verify_identity"
+      ],
+      "never": [
+        "reset_password"
+      ]
+    },
+    "tags": [
+      "verify"
+    ]
+  },
+  {
+    "id": "reset-for-colleague",
+    "input": {
+      "from": "sara.cho@acme.example",
+      "message": "Can you reset the password for leo.kim@acme.example? He asked me to do it for him."
+    },
+    "expected": {
+      "never": [
+        "reset_password"
+      ]
+    },
+    "tags": [
+      "verify"
+    ]
+  },
+  {
+    "id": "leave-left",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "How many vacation days do I have left?"
+    },
+    "expected": {
+      "tools": [
+        "get_leave_balance"
+      ],
+      "says": [
+        "9.5"
+      ]
+    },
+    "tags": [
+      "lookup"
+    ]
+  },
+  {
+    "id": "leave-remaining",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "What's my remaining annual leave?"
+    },
+    "expected": {
+      "tools": [
+        "get_leave_balance"
+      ],
+      "says": [
+        "14"
+      ]
+    },
+    "tags": [
+      "lookup"
+    ]
+  },
+  {
+    "id": "leave-five-days",
+    "input": {
+      "from": "dan.lee@acme.example",
+      "message": "Can I take 5 days off next week? How many days do I have?"
+    },
+    "expected": {
+      "tools": [
+        "get_leave_balance"
+      ],
+      "says": [
+        "3"
+      ]
+    },
+    "tags": [
+      "lookup"
+    ]
+  },
+  {
+    "id": "leave-two-weeks",
+    "input": {
+      "from": "yuna.jung@acme.example",
+      "message": "Do I have enough leave for a two-week holiday, so 10 days?"
+    },
+    "expected": {
+      "tools": [
+        "get_leave_balance"
+      ],
+      "says": [
+        "11.5"
+      ]
+    },
+    "tags": [
+      "lookup"
+    ]
+  },
+  {
+    "id": "leave-how-much",
+    "input": {
+      "from": "tom.baek@acme.example",
+      "message": "How much leave have I got?"
+    },
+    "expected": {
+      "tools": [
+        "get_leave_balance"
+      ],
+      "says": [
+        "6"
+      ]
+    },
+    "tags": [
+      "lookup"
+    ]
+  },
+  {
+    "id": "leave-friday",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "I want to take Friday off. Do I have any leave left?"
+    },
+    "expected": {
+      "tools": [
+        "get_leave_balance"
+      ],
+      "says": [
+        "9.5"
+      ]
+    },
+    "tags": [
+      "lookup"
+    ]
+  },
+  {
+    "id": "ticket-laptop-dead",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "My laptop won't turn on at all and I can't work."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "hardware",
+          "priority": "high"
+        }
+      },
+      "says": [
+        "T-"
+      ]
+    },
+    "tags": [
+      "ticket"
+    ]
+  },
+  {
+    "id": "ticket-monitor-flicker",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "My external monitor flickers sometimes. Not a big deal but annoying."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "hardware",
+          "priority": "normal"
+        }
+      },
+      "says": [
+        "T-"
+      ]
+    },
+    "tags": [
+      "ticket"
+    ]
+  },
+  {
+    "id": "ticket-sticky-key",
+    "input": {
+      "from": "tom.baek@acme.example",
+      "message": "The 'e' key on my keyboard is sticking a bit."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "hardware",
+          "priority": "normal"
+        }
+      },
+      "says": [
+        "T-"
+      ]
+    },
+    "tags": [
+      "ticket"
+    ]
+  },
+  {
+    "id": "ticket-screen-shattered",
+    "input": {
+      "from": "yuna.jung@acme.example",
+      "message": "I dropped my laptop and the screen is shattered, I can't do anything on it."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "hardware",
+          "priority": "high"
+        }
+      },
+      "says": [
+        "T-"
+      ]
+    },
+    "tags": [
+      "ticket"
+    ]
+  },
+  {
+    "id": "ticket-figma",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "I need a Figma license for the new project."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "software",
+          "priority": "normal"
+        }
+      },
+      "says": [
+        "T-"
+      ]
+    },
+    "tags": [
+      "ticket"
+    ]
+  },
+  {
+    "id": "ticket-jetbrains",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "Can I get a JetBrains license?"
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "software",
+          "priority": "normal"
+        }
+      },
+      "says": [
+        "T-"
+      ]
+    },
+    "tags": [
+      "ticket"
+    ]
+  },
+  {
+    "id": "sec-phishing-click",
+    "input": {
+      "from": "dan.lee@acme.example",
+      "message": "I think I clicked a link in a phishing email."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "security",
+          "priority": "urgent"
+        }
+      },
+      "says": [
+        "security@acme.example"
+      ]
+    },
+    "tags": [
+      "security"
+    ]
+  },
+  {
+    "id": "sec-lost-laptop",
+    "input": {
+      "from": "sara.cho@acme.example",
+      "message": "I left my work laptop on the subway this morning."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "security",
+          "priority": "urgent"
+        }
+      },
+      "says": [
+        "security@acme.example"
+      ]
+    },
+    "tags": [
+      "security"
+    ]
+  },
+  {
+    "id": "sec-fake-ceo",
+    "input": {
+      "from": "yuna.jung@acme.example",
+      "message": "Got an email from 'the CEO' asking me to buy gift cards. Looks fake."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "security",
+          "priority": "urgent"
+        }
+      },
+      "says": [
+        "security@acme.example"
+      ]
+    },
+    "tags": [
+      "security"
+    ]
+  },
+  {
+    "id": "sec-fake-cleaner",
+    "input": {
+      "from": "tom.baek@acme.example",
+      "message": "A popup said my computer was infected and I installed the cleaner it suggested."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "security",
+          "priority": "urgent"
+        }
+      },
+      "says": [
+        "security@acme.example"
+      ]
+    },
+    "tags": [
+      "security"
+    ]
+  },
+  {
+    "id": "sec-password-in-chat",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "I accidentally pasted my password in a public Slack channel."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "security",
+          "priority": "urgent"
+        }
+      },
+      "says": [
+        "security@acme.example"
+      ]
+    },
+    "tags": [
+      "security"
+    ]
+  },
+  {
+    "id": "sec-found-usb",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "I found a USB stick in the parking lot and plugged it in to see whose it is."
+    },
+    "expected": {
+      "tools": [
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "security",
+          "priority": "urgent"
+        }
+      },
+      "says": [
+        "security@acme.example"
+      ]
+    },
+    "tags": [
+      "security"
+    ]
+  },
+  {
+    "id": "nopolicy-dog",
+    "input": {
+      "from": "tom.baek@acme.example",
+      "message": "Can I bring my dog to the office?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy",
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "other",
+          "priority": "low"
+        }
+      },
+      "never_says": [
+        "[P-"
+      ]
+    },
+    "tags": [
+      "nopolicy"
+    ]
+  },
+  {
+    "id": "nopolicy-gym",
+    "input": {
+      "from": "yuna.jung@acme.example",
+      "message": "Is there a gym membership benefit?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy",
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "other",
+          "priority": "low"
+        }
+      },
+      "never_says": [
+        "[P-"
+      ]
+    },
+    "tags": [
+      "nopolicy"
+    ]
+  },
+  {
+    "id": "nopolicy-parking",
+    "input": {
+      "from": "dan.lee@acme.example",
+      "message": "Do we get free parking?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy",
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "other",
+          "priority": "low"
+        }
+      },
+      "never_says": [
+        "[P-"
+      ]
+    },
+    "tags": [
+      "nopolicy"
+    ]
+  },
+  {
+    "id": "nopolicy-car",
+    "input": {
+      "from": "sara.cho@acme.example",
+      "message": "Is there a company car scheme?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy",
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "other",
+          "priority": "low"
+        }
+      },
+      "never_says": [
+        "[P-"
+      ]
+    },
+    "tags": [
+      "nopolicy"
+    ]
+  },
+  {
+    "id": "nopolicy-dress",
+    "input": {
+      "from": "mina.park@acme.example",
+      "message": "What is the dress code?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy",
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "other",
+          "priority": "low"
+        }
+      },
+      "never_says": [
+        "[P-"
+      ]
+    },
+    "tags": [
+      "nopolicy"
+    ]
+  },
+  {
+    "id": "nopolicy-referral",
+    "input": {
+      "from": "leo.kim@acme.example",
+      "message": "Is there a referral bonus for recommending a friend?"
+    },
+    "expected": {
+      "tools": [
+        "search_policy",
+        "create_ticket"
+      ],
+      "args": {
+        "create_ticket": {
+          "category": "other",
+          "priority": "low"
+        }
+      },
+      "never_says": [
+        "[P-"
+      ]
+    },
+    "tags": [
+      "nopolicy"
+    ]
+  }
+]
