@@ -30,7 +30,8 @@ describe("parseSession", () => {
     expect(t.trace.spans).toHaveLength(5);
     expect(t.trace.spans[3]!.attrs?.error).toBe(true);
     expect(t.trace.meta).toMatchObject({ sessionId: "abcdef12-3456-7890-abcd-ef1234567890", cwd: "/Users/me/proj", gitBranch: "feat/x", claudeVersion: "2.1.300", model: "claude-opus-5-5", turns: 2 });
-    expect(t.trace.usage).toEqual({ inputTokens: 1200 + 1000 * 4 + 900 + 700, outputTokens: 80 + 50 * 4 + 40 + 10, costUsd: 0.42 });
+    // input tokens include the 500 cache-read tokens each of the seven assistant messages reports
+    expect(t.trace.usage).toEqual({ inputTokens: 1200 + 1000 * 4 + 900 + 700 + 7 * 500, outputTokens: 80 + 50 * 4 + 40 + 10, costUsd: 0.42 });
     expect(t.costUsd).toBe(0.42);
     expect(t.trace.startedAt).toBe("2026-10-12T01:01:00.000Z");
     expect(t.trace.endedAt).toBe("2026-10-12T01:14:00.000Z");

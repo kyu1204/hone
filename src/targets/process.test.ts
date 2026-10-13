@@ -130,6 +130,48 @@ describe("claude-code stream-json parser", () => {
     expect(parsed.spans[0]?.name).toBe("Write");
     expect(parsed.meta.model).toBe("claude-opus-5-5");
   });
+
+  // Modelled on a real Claude Code 2.1.296 stream: hooks, thinking and task notices as system records,
+  // one API message split over several records that repeat its usage, cache tokens, rate limit events.
+  const real = (): ReturnType<typeof parseClaudeStream> => parseClaudeStream(fs.readFileSync(path.join(fixtures, "claude-stream-2.1.jsonl"), "utf8"));
+
+  test("only the init record is a system message; hook, thinking and task records are not turns", () => {
+    const parsed = real();
+    expect(parsed.messages.filter((m) => m.role === "system")).toHaveLength(1);
+    expect(parsed.messages.map((m) => m.role)).toEqual(["system", "assistant", "tool", "assistant", "tool", "tool", "assistant"]);
+  });
+
+  test("records that share a message id are one assistant turn with its text and all its tool calls", () => {
+    const parsed = real();
+    const turns = parsed.messages.filter((m) => m.role === "assistant");
+    expect(turns).toHaveLength(3);
+    expect(turns[0]).toMatchObject({ content: "Let me look." });
+    expect(turns[0]!.tool_calls?.map((c) => c.function.name)).toEqual(["Bash"]);
+    expect(turns[1]!.tool_calls?.map((c) => c.function.name)).toEqual(["Read", "Edit"]);
+    expect(turns[2]).toEqual({ role: "assistant", content: "Changed a to 2." });
+    expect(parsed.messages.filter((m) => m.role === "tool").map((m) => [m.name, m.tool_call_id])).toEqual([["Bash", "toolu_a"], ["Read", "toolu_b"], ["Edit", "toolu_c"]]);
+    expect(parsed.spans.filter((s) => s.kind === "tool").map((s) => s.name)).toEqual(["Bash", "Read", "Edit"]);
+  });
+
+  test("input tokens include cache reads and writes: the result record's totals, with the breakdown kept in meta", () => {
+    const parsed = real();
+    expect(parsed.usage).toEqual({ inputTokens: 9 + 5500 + 99000, outputTokens: 410, costUsd: 0.0931 });
+    expect(parsed.meta.tokens).toEqual({ input: 9, cacheCreation: 5500, cacheRead: 99000, output: 410 });
+  });
+
+  test("without a result record, usage is counted once per message id, not once per record", () => {
+    const text = fs.readFileSync(path.join(fixtures, "claude-stream-2.1.jsonl"), "utf8");
+    const parsed = parseClaudeStream(text.split("\n").filter((l) => !l.includes('"type": "result"')).join("\n"));
+    expect(parsed.meta.tokens).toEqual({ input: 2 + 3 + 4, cacheCreation: 4000 + 1000 + 500, cacheRead: 30000 + 34000 + 35000, output: 8 + 6 + 12 });
+    expect(parsed.usage.inputTokens).toBe(9 + 5500 + 99000);
+    expect(parsed.output).toBe("Changed a to 2.");
+  });
+
+  test("meta records what the session loaded and the subscription utilization it last reported", () => {
+    const parsed = real();
+    expect(parsed.meta).toMatchObject({ sessionId: "sess-9", model: "claude-sonnet-5-5", claudeCodeVersion: "2.1.296", permissionMode: "bypassPermissions", toolCount: 3, plugins: ["ponytail", "vercel"], mcpServers: ["context7"], hooks: ["SessionStart:startup"], numTurns: 3 });
+    expect(parsed.meta.rateLimit).toEqual({ status: "allowed_warning", type: "seven_day", fiveHour: 0.31, sevenDay: 0.56 });
+  });
 });
 
 describe("codex exec --json parser", () => {
