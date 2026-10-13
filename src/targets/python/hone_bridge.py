@@ -14,6 +14,8 @@ For an agent built with a framework, `ctx.from_langchain(messages)` and
 from what the framework returns. Neither library is imported here.
 
 A third argument sets how many calls are served at once (threads; default 1).
+
+The protocol has stdout to itself: whatever the module prints goes to stderr.
 """
 from __future__ import annotations
 
@@ -213,12 +215,22 @@ def _call(fn, payload: dict):
 
 
 _out = threading.Lock()
+_protocol = sys.stdout
+
+
+def _own_stdout() -> None:
+    """Keep the real stdout for the protocol and point file descriptor 1 at stderr, so nothing the module prints, and
+    nothing a process it starts writes, can land between two protocol lines or pass for one."""
+    global _protocol
+    _protocol = os.fdopen(os.dup(sys.stdout.fileno()), "w", encoding="utf-8")
+    os.dup2(sys.stderr.fileno(), sys.stdout.fileno())
+    sys.stdout = sys.stderr
 
 
 def _emit(obj: dict) -> None:
     with _out:
-        sys.stdout.write(json.dumps(obj, default=str) + "\n")
-        sys.stdout.flush()
+        _protocol.write(json.dumps(obj, default=str) + "\n")
+        _protocol.flush()
 
 
 def _serve(fn, payload: dict) -> None:
@@ -233,6 +245,7 @@ def main() -> int:
     if len(sys.argv) not in (3, 4):
         sys.stderr.write("usage: hone_bridge.py <module> <fn> [workers]\n")
         return 2
+    _own_stdout()
     try:
         fn = _load(sys.argv[1], sys.argv[2])
     except BaseException as e:  # noqa: BLE001

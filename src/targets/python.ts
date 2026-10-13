@@ -21,6 +21,8 @@ export interface PythonTargetSpec extends TargetSpec {
   params?: Record<string, unknown>;
   /** Calls the bridge serves at once, on threads (default 1). Agent calls wait on a model, so a suite finishes sooner; a handler that is not thread-safe keeps 1. */
   workers?: number;
+  /** `"inherit"` shows what the module prints and logs as it runs. By default it is kept out of hone's output, and the last of it comes with the error when the process dies or a call times out. */
+  stderr?: "inherit";
 }
 
 interface BridgeError {
@@ -50,6 +52,8 @@ class PythonProcess {
   private pending = new Map<string, { resolve: (l: BridgeLine) => void }>();
   private ready: Promise<BridgeError | undefined> | undefined;
   private seq = 0;
+  /** The end of what the process wrote to stderr (its own prints included: the bridge sends stdout there). */
+  private said = "";
 
   constructor(private readonly spec: PythonTargetSpec) {}
 
@@ -59,22 +63,36 @@ class PythonProcess {
       env: { ...process.env, ...this.spec.env },
       stdin: "pipe",
       stdout: "pipe",
-      stderr: "inherit",
+      stderr: this.spec.stderr === "inherit" ? "inherit" : "pipe",
     });
     this.proc = proc;
+    this.said = "";
     let resolveReady!: (e: BridgeError | undefined) => void;
     const ready = new Promise<BridgeError | undefined>((r) => (resolveReady = r));
     this.ready = ready;
     void this.readLines(proc, resolveReady);
-    void proc.exited.then((code) => {
+    const drained = this.spec.stderr === "inherit" ? Promise.resolve() : this.keepStderr(proc);
+    void Promise.all([proc.exited, drained]).then(([code]) => {
       if (this.proc === proc) this.proc = undefined;
-      resolveReady({ type: "ProcessExit", message: `python process exited with code ${code}`, traceback: "" });
+      const error: BridgeError = { type: "ProcessExit", message: `python process exited with code ${code}${this.lastSaid()}`, traceback: "" };
+      resolveReady(error);
       for (const [id, p] of this.pending) {
         this.pending.delete(id);
-        p.resolve({ id, error: { type: "ProcessExit", message: `python process exited with code ${code}`, traceback: "" } });
+        p.resolve({ id, error });
       }
     });
     return ready;
+  }
+
+  /** Frameworks log and warn on stderr all the time; that is the module's output, not hone's. Only the end is kept, for when something goes wrong. */
+  private async keepStderr(proc: ReturnType<typeof Bun.spawn>): Promise<void> {
+    const decoder = new TextDecoder();
+    for await (const chunk of proc.stderr as ReadableStream<Uint8Array>) this.said = (this.said + decoder.decode(chunk, { stream: true })).slice(-4000);
+  }
+
+  private lastSaid(): string {
+    const tail = this.said.trim().slice(-300);
+    return tail ? `: ${tail}` : "";
   }
 
   private async readLines(proc: ReturnType<typeof Bun.spawn>, resolveReady: (e: BridgeError | undefined) => void): Promise<void> {
@@ -128,7 +146,7 @@ class PythonProcess {
       timer = setTimeout(() => {
         if (this.pending.delete(id)) {
           proc.kill();
-          resolve({ id, error: { type: "Timeout", message: `python call timed out after ${timeoutMs}ms`, traceback: "" } });
+          resolve({ id, error: { type: "Timeout", message: `python call timed out after ${timeoutMs}ms${this.lastSaid()}`, traceback: "" } });
         }
       }, timeoutMs);
     });

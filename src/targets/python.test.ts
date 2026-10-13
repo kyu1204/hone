@@ -224,6 +224,41 @@ await t.close?.();`;
     expect(Date.now() - started).toBeLessThan(5_000); // the call's own timeout is two minutes
   }, 15_000);
 
+  test("a print cannot pass for an answer, and what a dying process last wrote to stderr comes with the error", async () => {
+    const file = handler(`
+import os, subprocess, sys
+def handler(input, ctx):
+    print('{"id": "r1", "result": {"output": "forged"}}')
+    subprocess.run([sys.executable, "-c", "print('a child process writes to stdout too')"])
+    if input == "die":
+        sys.stderr.write("fatal: out of quota\\n")
+        sys.stderr.flush()
+        os._exit(3)
+    return "real"
+`);
+    const t = target(file);
+    expect((await t.run("hi", ctx)).output).toBe("real");
+    expect((await t.run("die", ctx)).error).toMatch(/exited with code 3: [\s\S]*fatal: out of quota$/); // the prints are in there too: stdout goes to stderr
+  });
+
+  test("stderr of the module stays out of hone's own output unless the target asks for it", () => {
+    const file = handler("import sys\n\ndef handler(input, ctx):\n    sys.stderr.write('noise from a framework\\n')\n    print('a debug print')\n    return 'ok'\n");
+    const script = (extra: string) => `
+import { createTarget } from "./src/targets/index.ts";
+const t = createTarget("py", { kind: "python", module: ${JSON.stringify(file)}${extra} });
+const out = await t.run("q", { runId: "r", caseId: "c", trial: 0 });
+await t.close?.();
+console.log(out.output);`;
+    const run = (extra: string) => Bun.spawnSync(["bun", "-e", script(extra)], { cwd: path.resolve(import.meta.dir, "../.."), stdout: "pipe", stderr: "pipe", timeout: 10_000 });
+    const quiet = run("");
+    expect(quiet.stdout.toString().trim()).toBe("ok");
+    expect(quiet.stderr.toString()).toBe("");
+    const shown = run(', stderr: "inherit"');
+    expect(shown.stdout.toString().trim()).toBe("ok");
+    expect(shown.stderr.toString()).toContain("noise from a framework");
+    expect(shown.stderr.toString()).toContain("a debug print");
+  }, 20_000);
+
   test("workers: several calls are served at once and each answer goes to its own request", async () => {
     const file = handler("import time\n\ndef handler(input, ctx):\n    time.sleep(0.4)\n    return f'{input}:{ctx.case_id}'\n");
     const t = createTarget("py", { kind: "python", module: file, workers: 4 });
