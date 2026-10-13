@@ -21,6 +21,7 @@ hone stores every result as a trace (messages + spans) in `.hone/` and reports p
 
 - It tries **changes**: files under `sharpen/` that call `change(name, { why, text, config })`. Write one file per hypothesis after reading why cases fail. `text` is a new version of the text declared in `sharpen.text`; `config` is a function from a config to a config. Put new code in a new file and point the config at it; never edit a file the baseline runs. Inline `sharpen.variants` and, with a key, a model's rewrites are tried too.
 - Verdicts: `PROVEN` (adopt it), `PROMISING, not proven` (the account says how many held-out cases would settle it; do not report it as an improvement), `NO GAIN` (keep what you have), `Nothing to sharpen`, `Nothing to change`, `Cannot measure` (the system errored; fix that first).
+- Before writing a change, run `hone sharpen --budget 0` and read the page it names, `.hone/sharpen/<id>-diagnosis.md`: the failure modes with failing cases in full. Do not open the case files themselves; some cases are held out for the final check.
 - The winning text is in `.hone/sharpen/<id>-best.txt`, the full ledger in `.hone/sharpen/<id>.json`. `--json` prints the ledger; `--budget`, `--max-cost` and `--until` bound the search.
 - Without an LLM key it tries the variants only and says that rewrites were skipped.
 
