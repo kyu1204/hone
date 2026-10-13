@@ -77,6 +77,16 @@ describe("hone sharpen", () => {
     expect(doc.candidates).toEqual([]);
   });
 
+  test("--budget 0 only diagnoses and names the file to read", async () => {
+    const dir = project();
+    const o = io(dir);
+    expect(await sharpenCommand(["--budget", "0", "--no-cache", "--quiet"], o, { chat })).toBe(0);
+    const m = o.out.match(/Examples of each, and how to write a change: (\.hone\/sharpen\/\d+-diagnosis\.md)/);
+    expect(m).not.toBeNull();
+    expect(fs.readFileSync(path.join(dir, m![1]!), "utf8")).toMatch(/^# Why cases fail/);
+    expect(o.out).toMatch(/Nothing was tried\./);
+  });
+
   test("without an LLM key it says what is missing instead of failing", async () => {
     const o = io(project());
     expect(await sharpenCommand(["--no-cache", "--quiet"], o)).toBe(0);

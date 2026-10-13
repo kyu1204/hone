@@ -8,7 +8,7 @@ import type { CommandIo } from "./run";
 
 export const SHARPEN_SPEC = { flags: ["json", "no-cache", "quiet"], strings: [], numbers: ["budget", "max-cost", "until", "trials", "holdout", "seed", "alpha"], repeatable: [] } as const;
 const HELP: Record<string, string> = {
-  budget: "changes to try (default 6)",
+  budget: "changes to try (default 6); 0 only measures and writes the diagnosis",
   "max-cost": "stop trying changes when the spend on the system under test (USD) reaches this",
   until: "stop trying changes once this pass rate is reached, e.g. 0.9",
   trials: "trials per case",

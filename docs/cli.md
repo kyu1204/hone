@@ -82,7 +82,7 @@ The whole cycle: evaluate, find why cases fail, try changes, re-test them, and c
   --json      print the whole result as JSON
   --no-cache  re-run the system instead of using cached outputs
   --quiet     no progress on stderr
-  --budget    changes to try (default 6)
+  --budget    changes to try (default 6); 0 only measures and writes the diagnosis
   --max-cost  stop trying changes when the spend on the system under test (USD) reaches this
   --until     stop trying changes once this pass rate is reached, e.g. 0.9
   --trials    trials per case

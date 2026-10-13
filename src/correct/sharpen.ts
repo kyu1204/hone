@@ -9,7 +9,7 @@ import { induceTaxonomy } from "../analysis/taxonomy";
 import { Cache } from "../core/cache";
 import { type HoneConfig, loadCases } from "../core/config";
 import { Store } from "../core/store";
-import type { Trial } from "../core/types";
+import type { Case, Trial } from "../core/types";
 import { offlineEmbed } from "../providers/embed";
 import { compareTargets, mcnemarExact } from "../stats/paired";
 import { pairedPowerN } from "../stats/power";
@@ -54,7 +54,10 @@ export interface SharpenResult {
   id: string;
   split: { dev: string[]; holdout: string[]; inSample: boolean };
   baseline: { dev: number; trials: number; errors: number; costUsd: number; runId: string };
-  diagnosis: { code: string; definition: string; size: number; example: string }[];
+  /** The failure modes of the baseline on the dev cases: `cases` are the dev case ids in the mode, the most typical first. */
+  diagnosis: { code: string; definition: string; size: number; example: string; cases: string[] }[];
+  /** The same as a page a proposer reads before writing a change. */
+  diagnosisPath?: string;
   candidates: SharpenCandidate[];
   /** The best candidate against the baseline on the confirmation cases (held out, or the dev cases when nothing could be held out). */
   best?: { id: string; label: string; cases: number; baseline: number; candidate: number; diff: number; lo: number; hi: number; p: number; costRatio?: number; needed?: number };
@@ -151,11 +154,47 @@ async function diagnose(trials: Trial[], chat: ChatFn | undefined, seed: number)
   for (const c of clusters) {
     const named = chat ? (await induceTaxonomy([c], { chat }))[0] : undefined;
     const code = named?.code ?? c.id;
+    const cases = [...new Set([c.representative, ...c.trialIds].map((id) => caseOf.get(id) ?? ""))].filter(Boolean);
     const same = out.find((o) => o.code === code); // two clusters the model gave one name are one failure mode
-    if (same) same.size += c.size;
-    else out.push({ code, definition: named?.definition ?? `common words: ${c.topTerms.join(", ")}`, size: c.size, example: caseOf.get(c.representative) ?? "" });
+    if (same) {
+      same.size += c.size;
+      same.cases.push(...cases.filter((x) => !same.cases.includes(x)));
+    } else out.push({ code, definition: named?.definition ?? `common words: ${c.topTerms.join(", ")}`, size: c.size, example: cases[0] ?? "", cases });
   }
   return out.sort((a, b) => b.size - a.size);
+}
+
+const shown = (value: unknown, max = 600): string => {
+  const text = typeof value === "string" ? value : JSON.stringify(value ?? null);
+  return text.length > max ? `${text.slice(0, max)} [cut at ${max} of ${text.length} characters]` : text;
+};
+
+/**
+ * The page a proposer reads before writing a change: every failure mode with a few failing cases in full, what may
+ * change, and a change file to copy. It is built from the dev cases only; a held-out case never appears in it.
+ */
+function diagnosisPage(x: { r: Omit<SharpenResult, "message" | "path">; trials: Trial[]; cases: Case[]; seed?: string; variants: string[]; changes: Change[] }): string {
+  const { r } = x;
+  const failed = r.diagnosis.reduce((s, d) => s + d.size, 0);
+  const caseOf = new Map(x.cases.map((c) => [c.id, c]));
+  const out = ["# Why cases fail", "", `${pct(r.baseline.dev)} of ${r.split.dev.length} cases pass. ${r.split.inSample ? "No case is held out." : `${r.split.holdout.length} more cases are held out and do not appear here: do not open the case files to find them, or the final check means nothing.`}`, ""];
+  r.diagnosis.forEach((d, i) => {
+    out.push(`## ${i + 1}. ${d.code} (${d.size} of ${failed} failed trials)`, "", d.definition, "");
+    for (const id of d.cases.slice(0, 3)) {
+      const trial = x.trials.find((t) => t.trace.caseId === id && t.pass === false);
+      const c = caseOf.get(id);
+      out.push(`### ${id}`, `- input: ${shown(c?.input)}`, ...(c?.expected !== undefined ? [`- expected: ${shown(c.expected)}`] : []), `- output: ${shown(trial?.trace.error ? `error: ${trial.trace.error}` : trial?.trace.output)}`);
+      for (const sc of trial?.scores ?? []) if (sc.pass === false) out.push(`- ${sc.scorer}: ${shown(sc.reason ?? `value ${sc.value}`, 300)}`);
+      out.push("");
+    }
+    if (d.cases.length > 3) out.push(`Also: ${d.cases.slice(3, 15).join(", ")}${d.cases.length > 15 ? `, and ${d.cases.length - 15} more` : ""}`, "");
+  });
+  out.push("## What may change", "");
+  out.push(x.seed !== undefined ? "- the text (`sharpen.text` in hone.config.ts), now:" : "- no text is declared (`sharpen.text` in hone.config.ts says where a new text goes)");
+  if (x.seed !== undefined) out.push(...shown(x.seed, 4000).split("\n").map((l) => `  > ${l}`));
+  out.push(`- variants in the config: ${x.variants.join(", ") || "none"}`, `- change files: ${x.changes.length ? [...new Set(x.changes.map((c) => c.file ?? "?"))].map((f) => `${f} (${x.changes.filter((c) => (c.file ?? "?") === f).map((c) => c.name).join(", ")})`).join("; ") : "none yet"}`, "");
+  out.push("## Write a change", "", "One file per idea under `sharpen/`, with the failure it fixes as `why`. Then run `hone sharpen`.", "", "```ts", "// sharpen/<what-it-does>.ts", 'import { change } from "hone-eval";', "", 'change("what it does", {', '  why: "which failure mode above, and why this fixes it",', '  text: "the new text",                 // a new version of the text above', "  // config: (config) => ({ ...config }),  // or a change to the config: a setting, a model, new code", "});", "```", "", "New code goes into a new file that the `config` function points at. Do not edit a file the current system runs: the comparison needs it unchanged.", "");
+  return out.join("\n");
 }
 
 const pct = (x: number): string => `${Math.round(x * 100)}%`;
@@ -173,6 +212,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
   if (r.diagnosis.length) {
     const failed = r.diagnosis.reduce((s, d) => s + d.size, 0);
     lines.push("Why it fails:", ...r.diagnosis.map((d, i) => `  ${i + 1}. ${d.code} (${d.size} of ${failed} failed trials, e.g. ${d.example}): ${clip(d.definition, 110)}`));
+    if (r.diagnosisPath) lines.push(`  Examples of each, and how to write a change: ${path.relative(x.cwd, r.diagnosisPath)}`);
   }
   if (r.verdict === "nothing to change") {
     lines.push(
@@ -184,7 +224,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     );
     return `${lines.join("\n")}\n`;
   }
-  lines.push(`Tried ${plural(r.candidates.length, "change")}:`);
+  if (r.candidates.length) lines.push(`Tried ${plural(r.candidates.length, "change")}:`);
   const width = Math.max(0, ...r.candidates.map((c) => c.id.length)) + 2;
   for (const c of r.candidates) {
     const note = c.parent === "baseline" || c.source === "model" ? (c.why ?? c.rationale) : undefined; // a pairing reuses a change already listed with its reason
@@ -272,6 +312,9 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     if (failing(base.run, split.dev).length === 0) return finish("nothing to sharpen");
     opts.log?.(`finding why ${base.run.trials.filter((t) => t.pass === false).length} trials fail\n`);
     r.diagnosis = await diagnose(base.run.trials, opts.chat, seed);
+    r.diagnosisPath = path.join(root, "sharpen", `${id}-diagnosis.md`);
+    fs.mkdirSync(path.dirname(r.diagnosisPath), { recursive: true });
+    fs.writeFileSync(r.diagnosisPath, diagnosisPage({ r, trials: base.run.trials, cases: allCases, seed: textHook?.seed, variants: inline.map((v) => v.name), changes }));
     if (!canRewrite && changes.length === 0 && inline.length === 0) return finish("nothing to change");
 
     const members: Member[] = [base];

@@ -107,6 +107,42 @@ describe("sharpen", () => {
     expect(r.message).toContain(`.hone/sharpen/${r.id}-best.txt`);
   });
 
+  test("the diagnosis is a file a proposer can read: modes with example cases, what may change, and no held-out case", async () => {
+    const cwd = tmp();
+    const { chat } = stubChat();
+    const cfg = config((_id, text) => text.includes("UPPERCASE"), { text: true, variants: ["wide"] });
+    const r = await sharpen({ config: cfg, changes: [{ name: "idea", why: "w", config: (c) => c, file: "sharpen/idea.ts" }], hash: "h", cwd, chat, budget: 0, useCache: false });
+    // budget 0 is the proposer's first step: measure, diagnose, write the file, try nothing
+    expect(r.candidates).toEqual([]);
+    expect(r.stopped).toBe("budget");
+    expect(r.message).toMatch(/Result: NO GAIN\. Nothing was tried\./);
+    expect(r.message).not.toMatch(/Tried 0/);
+    expect(r.diagnosisPath).toBe(path.join(cwd, ".hone", "sharpen", `${r.id}-diagnosis.md`));
+    expect(r.message).toContain(`  Examples of each, and how to write a change: .hone/sharpen/${r.id}-diagnosis.md`);
+    const md = fs.readFileSync(r.diagnosisPath!, "utf8");
+    expect(md).toMatch(/^# Why cases fail\n/);
+    expect(md).toContain("0% of 20 cases pass");
+    expect(md).toContain("10 more cases are held out and do not appear here");
+    expect(md).toMatch(/## 1\. answers-lowercase \(20 of 20 failed trials\)\n\noutputs were not capitalised/);
+    // an example case with what went in, what was expected, what came out and why it failed
+    const example = r.diagnosis[0]!.cases[0]!;
+    const n = example.slice(1);
+    expect(md).toContain(`### ${example}`);
+    expect(md).toContain(`- input: w${n}`);
+    expect(md).toContain(`- expected: W${n}`);
+    expect(md).toContain(`- output: w${n}`);
+    expect(md).toMatch(/- exact: .+/);
+    expect((md.match(/^### /gm) ?? []).length).toBe(3); // three examples per mode, not all twenty
+    expect(r.diagnosis[0]!.cases).toHaveLength(20);
+    for (const id of r.split.holdout) expect(md).not.toMatch(new RegExp(`\\b${id}\\b`));
+    // what may change, and a change file to start from
+    expect(md).toContain("## What may change");
+    expect(md).toContain("> Answer.");
+    expect(md).toContain("- variants in the config: wide");
+    expect(md).toContain("- change files: sharpen/idea.ts (idea)");
+    expect(md).toContain('import { change } from "hone-eval";');
+  });
+
   test("a variant and a rewrite that each fix half combine without anyone deciding to combine them", async () => {
     const { chat } = stubChat();
     const cfg = config((id, text, variant) => (even(id) ? variant === "wide" : text.includes("UPPERCASE")), { text: true, variants: ["wide"] });
