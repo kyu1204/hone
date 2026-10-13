@@ -11,7 +11,7 @@ import { type HoneConfig, loadCases } from "../core/config";
 import { Store } from "../core/store";
 import type { Trial } from "../core/types";
 import { offlineEmbed } from "../providers/embed";
-import { compareTargets } from "../stats/paired";
+import { compareTargets, mcnemarExact } from "../stats/paired";
 import { pairedPowerN } from "../stats/power";
 import { type RunOutcome, runConfig } from "./ablation";
 import { type ChatFn, parseProposal, REFLECT_SYSTEM } from "./evolve";
@@ -69,13 +69,25 @@ export interface SharpenOptions {
   log?: (s: string) => void;
 }
 
-/** Hold out a share of the cases, chosen by a hash of seed and id so the split is the same on every run. */
-export function splitCases(ids: string[], holdout = 1 / 3, seed = 1): SharpenResult["split"] {
+/**
+ * Hold out a share of the cases, chosen by a hash of the seed and the id so the split is the same on every run.
+ * Cases that declare the same `cluster` (two phrasings of one question, say) go to the same side: a held-out case
+ * whose twin was seen by a proposal is not unseen.
+ */
+export function splitCases(cases: (string | { id: string; cluster?: string })[], holdout = 1 / 3, seed = 1): SharpenResult["split"] {
+  const items = cases.map((c) => (typeof c === "string" ? { id: c, group: c } : { id: c.id, group: c.cluster ?? c.id }));
+  const ids = items.map((c) => c.id);
   const n = Math.ceil(ids.length * holdout);
-  if (ids.length < 12 || n < 4) return { dev: [...ids], holdout: [], inSample: true };
-  const key = (id: string): string => createHash("sha256").update(`${seed}:${id}`).digest("hex");
-  const held = new Set([...ids].sort((a, b) => key(a).localeCompare(key(b))).slice(0, n));
-  return { dev: ids.filter((i) => !held.has(i)), holdout: ids.filter((i) => held.has(i)), inSample: false };
+  const key = (group: string): string => createHash("sha256").update(`${seed}:${group}`).digest("hex");
+  const held = new Set<string>();
+  let count = 0;
+  for (const group of [...new Set(items.map((c) => c.group))].sort((x, y) => key(x).localeCompare(key(y)))) {
+    if (count >= n) break;
+    held.add(group);
+    count += items.filter((c) => c.group === group).length;
+  }
+  if (ids.length < 12 || n < 4 || count >= ids.length) return { dev: ids, holdout: [], inSample: true };
+  return { dev: items.filter((c) => !held.has(c.group)).map((c) => c.id), holdout: items.filter((c) => held.has(c.group)).map((c) => c.id), inSample: false };
 }
 
 interface Member {
@@ -113,7 +125,7 @@ async function diagnose(trials: Trial[], chat: ChatFn | undefined, seed: number)
     const code = named?.code ?? c.id;
     const same = out.find((o) => o.code === code); // two clusters the model gave one name are one failure mode
     if (same) same.size += c.size;
-    else out.push({ code, definition: named?.definition ?? c.topTerms.join(", "), size: c.size, example: caseOf.get(c.representative) ?? "" });
+    else out.push({ code, definition: named?.definition ?? `common words: ${c.topTerms.join(", ")}`, size: c.size, example: caseOf.get(c.representative) ?? "" });
   }
   return out.sort((a, b) => b.size - a.size);
 }
@@ -121,6 +133,8 @@ async function diagnose(trials: Trial[], chat: ChatFn | undefined, seed: number)
 const pct = (x: number): string => `${Math.round(x * 100)}%`;
 const pts = (x: number): string => `${x >= 0 ? "+" : ""}${Math.round(x * 100)}`;
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" : "s"}`;
+// the account stays readable; the ledger file keeps the full text
+const clip = (text: string, n: number): string => (text.length > n ? `${text.slice(0, n - 3).trimEnd()}...` : text);
 
 /** The plain account: what is, why it fails, what was tried, and what is proven. Statistics come second, in parentheses. */
 function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; noKey: boolean }): string {
@@ -130,7 +144,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
   const lines = [`Now: ${pct(r.baseline.dev)} of ${n} cases pass. ${r.split.inSample ? "Too few cases to hold any out, so the final check uses the cases it learned from." : `${r.split.holdout.length} more cases are held out for the final check.`}`];
   if (r.diagnosis.length) {
     const failed = r.diagnosis.reduce((s, d) => s + d.size, 0);
-    lines.push("Why it fails:", ...r.diagnosis.map((d, i) => `  ${i + 1}. ${d.code} (${d.size} of ${failed} failed trials): ${d.definition}, e.g. ${d.example}`));
+    lines.push("Why it fails:", ...r.diagnosis.map((d, i) => `  ${i + 1}. ${d.code} (${d.size} of ${failed} failed trials, e.g. ${d.example}): ${clip(d.definition, 110)}`));
   }
   if (r.verdict === "nothing to change") {
     lines.push(
@@ -143,11 +157,11 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
   lines.push(`Tried ${plural(r.candidates.length, "change")}:`);
   const width = Math.max(0, ...r.candidates.map((c) => c.id.length)) + 2;
   for (const c of r.candidates) {
-    const what = c.dropped === "unparseable" ? "dropped: the model's reply was not usable" : c.dropped === "sample" ? `dropped early: ${pct(c.sample!.candidate)} against ${pct(c.sample!.parent)} on a sample` : `${pct(r.baseline.dev)} -> ${pct(c.dev ?? 0)}${c.rationale ? `   ${c.rationale}` : ""}`;
+    const what = c.dropped === "unparseable" ? "dropped: the model's reply was not usable" : c.dropped === "sample" ? `dropped early: ${pct(c.sample!.candidate)} against ${pct(c.sample!.parent)} on a sample` : `${pct(r.baseline.dev)} -> ${pct(c.dev ?? 0)}${c.rationale ? `   ${clip(c.rationale, 90)}` : ""}`;
     lines.push(`  ${c.dev !== undefined && c.dev > r.baseline.dev ? "+" : "-"} ${c.id.padEnd(width)}${what}`);
   }
   const b = r.best;
-  if (!b) lines.push(`Result: NO GAIN. None of the ${plural(r.candidates.length, "change")} beat what you have.`);
+  if (!b) lines.push(`Result: NO GAIN. ${r.candidates.length === 0 ? "Nothing was tried." : r.candidates.length === 1 ? "The one change tried did not beat what you have." : `None of the ${r.candidates.length} changes beat what you have.`}`);
   else if (r.verdict === "no gain") {
     const dev = r.candidates.find((c) => c.id === b.id)?.dev ?? 0;
     lines.push(`Result: NO GAIN. ${b.label} looked better on the cases it learned from (${pct(r.baseline.dev)} -> ${pct(dev)}) but not on ${b.cases} cases it never saw (${pct(b.baseline)} -> ${pct(b.candidate)}). Keep what you have.`);
@@ -155,12 +169,13 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     const where = r.split.inSample ? `On the ${b.cases} cases it learned from` : `On ${b.cases} cases it never saw`;
     const stats = `(${pts(b.diff)} points, ${Math.round((1 - x.alpha) * 100)}% interval ${pts(b.lo)} to ${pts(b.hi)}, ${b.p < 0.001 ? "p < 0.001" : `p = ${b.p.toFixed(b.p < 0.01 ? 3 : 2)}`}).`;
     const cost = b.costRatio !== undefined ? ` Cost per case: ${b.costRatio.toFixed(1)}x.` : "";
-    const more = r.verdict === "proven" ? "" : `${b.needed ? ` About ${b.needed} held-out cases would settle it.` : ""}${r.split.inSample ? " Add cases (12 or more) so some can be held out." : ""}`;
+    const more = r.verdict === "proven" ? "" : `${b.needed ? ` About ${b.needed} held-out cases would settle it.` : ""}${r.split.inSample ? " Add cases (18 or more) so that at least six can be held out." : ""}`;
     lines.push(`Result: ${r.verdict === "proven" ? "PROVEN" : "PROMISING, not proven"}. ${where}, ${b.label} takes the pass rate from ${pct(b.baseline)} to ${pct(b.candidate)}`, `${stats}${cost}${more}`);
     if (x.textFile) lines.push(`The new text is in ${path.relative(x.cwd, x.textFile)}`);
     const variant = r.candidates.find((c) => c.id === b.id)?.variant;
     if (variant) lines.push(`It uses the variant "${variant}" from sharpen.variants.`);
   }
+  if (x.noKey) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
   return `${lines.join("\n")}\n`;
 }
 
@@ -178,7 +193,9 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
   const deps = { cwd: opts.cwd, store, cache, hash: opts.hash, trials: opts.trials, useCache: opts.useCache ?? true, log: opts.log };
   const id = new Date().toISOString().replace(/[-:.TZ]/g, "").slice(0, 14);
   try {
-    const split = splitCases((await loadCases(config.cases, opts.cwd)).map((c) => c.id), opts.holdout, seed);
+    const allCases = await loadCases(config.cases, opts.cwd);
+    const split = splitCases(allCases, opts.holdout, seed);
+    const groupOf = new Map(allCases.map((c) => [c.id, c.cluster ?? c.id]));
     const build = (m: { variant?: string; text?: string }): HoneConfig => {
       const c = m.variant ? variants[m.variant]!(config) : config;
       return textHook && m.text !== undefined ? textHook.apply(c, m.text) : c;
@@ -281,13 +298,21 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     // confirm on cases no proposal has seen; without a held-out set the same comparison is in-sample and can only be promising
     const cases = split.inSample ? split.dev : split.holdout;
     const [b, w] = split.inSample ? [base.run, winner.run] : [await run({}, "baseline, held-out cases", cases), await run(winner, `${winner.id}, held-out cases`, cases)];
-    const cmp = cases.length >= 2 ? compareTargets(cases.map((caseId) => ({ caseId, a: w.perCase.get(caseId) ?? 0, b: b.perCase.get(caseId) ?? 0 })), 1 - alpha).paired : undefined;
+    // the unit of the test is the cluster when cases declare one: two phrasings of one question are one piece of evidence
+    const units = [...new Set(cases.map((c) => groupOf.get(c)!))].map((group) => {
+      const members = cases.filter((c) => groupOf.get(c) === group);
+      return { caseId: group, a: rate(w, members), b: rate(b, members) };
+    });
+    const cmp = units.length >= 2 ? compareTargets(units, 1 - alpha).paired : undefined;
+    // an exact sign test as a floor: with identical differences the t test has no variance and reports p = 0 for any n
+    const sign = mcnemarExact(units.filter((u) => u.a > u.b).length, units.filter((u) => u.a < u.b).length).p;
     const diff = rate(w, cases) - rate(b, cases);
     const perTrial = (x: RunOutcome): number => cost(x) / Math.max(1, x.trials.length);
-    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.variant ? `${winner.id} (on variant ${winner.variant})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: cmp?.p ?? 1, ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
+    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.variant ? `${winner.id} (on variant ${winner.variant})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: Math.max(cmp?.p ?? 1, sign), ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
     if (diff <= 0) return finish("no gain");
     if (r.best.p < alpha && !split.inSample) return finish("proven");
-    if (cmp && cmp.se > 0) r.best.needed = Math.ceil(pairedPowerN({ effect: diff / (cmp.se * Math.sqrt(cmp.n)), alpha }));
+    // six units that all improve are the fewest an exact test can call at 0.05
+    r.best.needed = Math.max(6, cmp && cmp.se > 0 ? Math.ceil(pairedPowerN({ effect: diff / (cmp.se * Math.sqrt(cmp.n)), alpha })) : 0);
     return finish("promising");
   } finally {
     store.close();
