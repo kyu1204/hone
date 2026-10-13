@@ -259,6 +259,30 @@ console.log(out.output);`;
     expect(shown.stderr.toString()).toContain("a debug print");
   }, 20_000);
 
+  test("version follows every Python file under cwd, not only the module named; virtual environments and hidden directories are not its code", async () => {
+    const d = tmp();
+    fs.writeFileSync(path.join(d, "agent.py"), "import tools\n\ndef handler(input, ctx):\n    return tools.answer()\n");
+    fs.writeFileSync(path.join(d, "tools.py"), "def answer():\n    return 'a'\n");
+    fs.mkdirSync(path.join(d, ".venv/lib"), { recursive: true });
+    fs.writeFileSync(path.join(d, ".venv/lib/dep.py"), "x = 1\n");
+    fs.mkdirSync(path.join(d, "env"));
+    fs.writeFileSync(path.join(d, "env/pyvenv.cfg"), "home = /usr/bin\n");
+    fs.writeFileSync(path.join(d, "env/dep.py"), "x = 1\n");
+    const byName = () => createTarget("py", { kind: "python", module: "agent", cwd: d }).version();
+    const byPath = () => createTarget("py", { kind: "python", module: "agent.py", cwd: d }).version();
+    const [n1, p1] = [await byName(), await byPath()];
+    fs.writeFileSync(path.join(d, ".venv/lib/dep.py"), "x = 2\n");
+    fs.writeFileSync(path.join(d, "env/dep.py"), "x = 2\n");
+    expect([await byName(), await byPath()]).toEqual([n1, p1]);
+    fs.writeFileSync(path.join(d, "tools.py"), "def answer():\n    return 'b'\n"); // a file the module imports, not the module
+    expect(await byName()).not.toBe(n1);
+    expect(await byPath()).not.toBe(p1);
+    // two callables of one module are two targets
+    expect(await createTarget("py", { kind: "python", module: "agent.py", fn: "other", cwd: d }).version()).not.toBe(await byPath());
+    // what the files cannot show (a remote index, a prompt registry) is the caller's to name
+    expect(await createTarget("py", { kind: "python", module: "agent", cwd: d, version: "index-2026-10" }).version()).toBe("index-2026-10");
+  });
+
   test("workers: several calls are served at once and each answer goes to its own request", async () => {
     const file = handler("import time\n\ndef handler(input, ctx):\n    time.sleep(0.4)\n    return f'{input}:{ctx.case_id}'\n");
     const t = createTarget("py", { kind: "python", module: file, workers: 4 });

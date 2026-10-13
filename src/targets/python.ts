@@ -21,6 +21,8 @@ export interface PythonTargetSpec extends TargetSpec {
   params?: Record<string, unknown>;
   /** Calls the bridge serves at once, on threads (default 1). Agent calls wait on a model, so a suite finishes sooner; a handler that is not thread-safe keeps 1. */
   workers?: number;
+  /** What the cache keys on. By default a hash of the Python files under `cwd`, so editing the agent or anything it imports from there runs it again; name it yourself when the files cannot show what changed (a remote index, a prompt registry). */
+  version?: string | (() => Promise<string>);
   /** `"inherit"` shows what the module prints and logs as it runs. By default it is kept out of hone's output, and the last of it comes with the error when the process dies or a call times out. */
   stderr?: "inherit";
 }
@@ -35,6 +37,30 @@ interface BridgeLine {
   ready?: boolean;
   result?: TargetOutput;
   error?: BridgeError;
+}
+
+const NOT_SOURCE = new Set(["node_modules", "__pycache__", "site-packages"]);
+
+/** A hash of the Python files under `root`: the code a target there runs. Hidden directories and virtual environments are not its own code.
+ *  ponytail: reads every .py file on each run; in a tree with very many of them, set `version` on the target instead. */
+function sourceHash(root: string): string {
+  const h = createHash("sha256");
+  const walk = (dir: string): void => {
+    let entries: fs.Dirent[];
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return; // unreadable: nothing of ours in there
+    }
+    for (const e of entries.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0))) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (!e.name.startsWith(".") && !NOT_SOURCE.has(e.name) && !fs.existsSync(path.join(p, "pyvenv.cfg"))) walk(p);
+      } else if (e.isFile() && e.name.endsWith(".py")) h.update(`${path.relative(root, p)}\0`).update(fs.readFileSync(p));
+    }
+  };
+  walk(root);
+  return h.digest("hex");
 }
 
 /** The bridge script is embedded at build time and materialised once per process. */
@@ -197,12 +223,17 @@ export function pythonTarget(id: string, spec: PythonTargetSpec): Target {
     id,
     kind: "python",
     async version() {
+      if (typeof spec.version === "string") return spec.version;
+      if (typeof spec.version === "function") return spec.version();
+      // The module is rarely the whole agent: its tools and prompts sit in the files next to it. An edit to any of them
+      // has to run the cases again, so the version covers the Python source of the working directory (and of the
+      // module's own directory when that lies outside it).
+      const cwd = path.resolve(spec.cwd ?? process.cwd());
+      const file = path.resolve(cwd, spec.module);
+      const outside = spec.module.endsWith(".py") && fs.existsSync(file) && !file.startsWith(cwd + path.sep);
+      const source = [cwd, ...(outside ? [path.dirname(file)] : [])].map(sourceHash);
       // params and env are part of what runs: two variants of one module must not share cached outputs
-      const variant = spec.params || spec.env ? cacheKey({ params: spec.params ?? null, env: spec.env ?? null }) : "";
-      const file = path.resolve(spec.cwd ?? process.cwd(), spec.module);
-      if (spec.module.endsWith(".py") && fs.existsSync(file)) return createHash("sha256").update(fs.readFileSync(file)).update(variant).digest("hex");
-      const py = Bun.spawnSync([spec.python ?? "python3", "--version"]).stdout.toString().trim();
-      return cacheKey({ kind: "python", module: spec.module, fn: spec.fn ?? "handler", py, variant });
+      return cacheKey({ kind: "python", module: spec.module, fn: spec.fn ?? "handler", source, params: spec.params ?? null, env: spec.env ?? null });
     },
     run: (input, ctx) => run(input, ctx, ctx.prefix),
     resume: (prefix, input, ctx) => run(input, ctx, prefix),
