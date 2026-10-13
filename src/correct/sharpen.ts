@@ -377,7 +377,9 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
 
     const members: Member[] = [base];
     const dev = (m: Member): number => rate(m.run, split.dev);
-    const best = (): Member => members.reduce((a, b) => (dev(b) > dev(a) || (dev(b) === dev(a) && cost(b.run) < cost(a.run)) ? b : a));
+    const size = (m: Member): number => (m.cfg ? 1 : 0) + (m.text !== undefined ? 1 : 0);
+    // the highest pass rate; equal rates go to the cheaper one, and at equal cost to the one that changes less
+    const best = (): Member => members.reduce((a, b) => (dev(b) > dev(a) || (dev(b) === dev(a) && (cost(b.run) < cost(a.run) || (cost(b.run) === cost(a.run) && size(b) < size(a)))) ? b : a));
     let spent = cost(base.run);
     let tried = 0;
     const over = (): SharpenResult["stopped"] | undefined => (opts.maxCost !== undefined && spent >= opts.maxCost ? "maxCost" : opts.until !== undefined && dev(best()) >= opts.until ? "until" : tried >= budget ? "budget" : undefined);
@@ -397,9 +399,9 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       r.candidates.push({ id: cid, kind: "variant", source: cfg.file ? "file" : "config", parent: parent.id, ...(cfg.file ? { file: cfg.file } : {}), ...(cfg.why ? { why: cfg.why } : {}), ...carried(child), dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
     };
     /** A text on top of `parent`: first on the parent's failing cases plus eight passing ones, and only then in full. */
-    const tryText = async (parent: Member, cid: string, text: { cfg?: ConfigChange; text: string; textFile?: string }, meta: Pick<SharpenCandidate, "kind" | "source" | "file" | "why" | "rationale">): Promise<void> => {
+    const tryText = async (parent: Member, cid: string, text: { cfg?: ConfigChange; text: string; textFile?: string; textFrom?: string }, meta: Pick<SharpenCandidate, "kind" | "source" | "file" | "why" | "rationale">): Promise<void> => {
       tried++;
-      const child = { ...text, textFrom: cid };
+      const child = { ...text, textFrom: text.textFrom ?? cid };
       const failed = failing(parent.run, split.dev);
       const sampleCases = [...failed, ...split.dev.filter((c) => !failed.includes(c)).slice(0, 8)];
       const quick = await run(child, `${cid} sample`, sampleCases);
@@ -463,6 +465,16 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       await tryText(parent, cid, { cfg: parent.cfg, text: proposal.text }, { kind: "text", source: "model", rationale: proposal.rationale });
     }
     r.stopped = stopped ?? "exhausted";
+
+    // A rewrite written on top of a config change may not need it: the variant won the first round, so every rewrite
+    // was measured with it. The same text is tried once without it, outside the budget like the held-out runs, and
+    // when it does as well the smaller change is the winner.
+    const top = best();
+    const topEntry = r.candidates.find((c) => c.id === top.id);
+    if (top.cfg && top.text !== undefined && topEntry?.kind === "text" && !r.candidates.some((c) => c.variant === undefined && c.text === top.text)) {
+      const origin = r.candidates.find((c) => c.id === top.textFrom) ?? topEntry;
+      await tryText(base, `${origin.id} without ${top.cfg.name}`, { text: top.text, textFile: top.textFile, textFrom: origin.id }, { kind: "text", source: origin.source, ...(origin.file ? { file: origin.file } : {}) });
+    }
 
     const winner = best();
     if (winner === base) return finish("no gain");
