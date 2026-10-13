@@ -211,6 +211,19 @@ def handler(input, ctx):
     expect(out.usage!.costUsd).toBeGreaterThan(0);
   });
 
+  test("a finished call leaves no timer behind: a script that used a target ends when it is done", () => {
+    const file = handler("def handler(input, ctx):\n    return 'ok'\n");
+    const script = `
+import { createTarget } from "./src/targets/index.ts";
+const t = createTarget("py", { kind: "python", module: ${JSON.stringify(file)} });
+console.log((await t.run("q", { runId: "r", caseId: "c", trial: 0 })).output);
+await t.close?.();`;
+    const started = Date.now();
+    const r = Bun.spawnSync(["bun", "-e", script], { cwd: path.resolve(import.meta.dir, "../.."), stdout: "pipe", stderr: "pipe", timeout: 10_000 });
+    expect(r.stdout.toString().trim()).toBe("ok");
+    expect(Date.now() - started).toBeLessThan(5_000); // the call's own timeout is two minutes
+  }, 15_000);
+
   test("workers: several calls are served at once and each answer goes to its own request", async () => {
     const file = handler("import time\n\ndef handler(input, ctx):\n    time.sleep(0.4)\n    return f'{input}:{ctx.case_id}'\n");
     const t = createTarget("py", { kind: "python", module: file, workers: 4 });

@@ -123,15 +123,17 @@ class PythonProcess {
     const line = new Promise<BridgeLine>((resolve) => this.pending.set(id, { resolve }));
     (proc.stdin as import("bun").FileSink).write(`${JSON.stringify({ id, ...payload })}\n`);
     (proc.stdin as import("bun").FileSink).flush();
-    const timeout = new Promise<BridgeLine>((resolve) =>
-      setTimeout(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<BridgeLine>((resolve) => {
+      timer = setTimeout(() => {
         if (this.pending.delete(id)) {
           proc.kill();
           resolve({ id, error: { type: "Timeout", message: `python call timed out after ${timeoutMs}ms`, traceback: "" } });
         }
-      }, timeoutMs),
-    );
-    return Promise.race([line, timeout]);
+      }, timeoutMs);
+    });
+    // an answered call must not leave its timer running: it would keep the caller's process alive for the whole timeout
+    return Promise.race([line, timeout]).finally(() => clearTimeout(timer));
   }
 
   async close(): Promise<void> {
