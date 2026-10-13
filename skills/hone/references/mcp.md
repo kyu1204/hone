@@ -11,7 +11,7 @@ The server runs in the project directory and returns what the CLI prints with `-
 | Tool | Does |
 | --- | --- |
 | `hone_test` | runs the cases (optionally some `cases`, `targets`, `trials`) and returns the run summary |
-| `hone_sharpen` | runs the cycle (`budget`, `until`, `maxCost`, `trials`) and returns the result document: split, diagnosis, every candidate, verdict, and the account as `message` |
+| `hone_sharpen` | runs the cycle (`budget`, `until`, `maxCost`, `trials`, `rewrites: false` to have only your own changes judged) and returns the result document: split, diagnosis, every candidate, verdict, and the account as `message` |
 | `hone_guide` | returns this skill, or one topic of it |
 | `hone_list_runs`, `hone_matrix`, `hone_compare`, `hone_explain`, `hone_cluster`, `hone_fork` | the single steps (topic `steps`) |
 

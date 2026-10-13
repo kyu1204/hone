@@ -98,6 +98,8 @@ export default defineConfig({ targets: make("Answer."), cases: Array.from({ leng
     expect(result.verdict).toBe("proven");
     expect(result.candidates[0]).toMatchObject({ id: "uppercase", source: "file" });
     expect(result.message).toMatch(/Result: PROVEN\./);
+    const own = JSON.parse(text(await call(server, 6, "tools/call", { name: "hone_sharpen", arguments: { rewrites: false } }))) as { message: string };
+    expect(own.message).toMatch(/Rewrites by a model were off/);
   });
 
   test("fork re-runs through the config; bad arguments and unknown trials are tool errors, not protocol errors", async () => {

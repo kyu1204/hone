@@ -88,6 +88,15 @@ describe("hone sharpen", () => {
     expect(o.out).toMatch(/Nothing was tried\./);
   });
 
+  test("--no-rewrites: a model is there but writes nothing, so only a person's change can be tried", async () => {
+    const o = io(project());
+    expect(await sharpenCommand(["--no-rewrites", "--no-cache", "--quiet"], o, { chat })).toBe(0);
+    expect(o.out).toMatch(/Why it fails:\n {2}1\. answers-lowercase/); // the model still names what fails
+    expect(o.out).toMatch(/Nothing to change/);
+    expect(o.out).toMatch(/Rewrites by a model were off, so only a change you write can be tried\./);
+    expect(o.out).not.toMatch(/rewrite 1/);
+  });
+
   test("without an LLM key it says what is missing instead of failing", async () => {
     const o = io(project());
     expect(await sharpenCommand(["--no-cache", "--quiet"], o)).toBe(0);

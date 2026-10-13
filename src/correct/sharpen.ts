@@ -90,6 +90,8 @@ export interface SharpenOptions {
   changes?: Change[];
   /** Names the failure modes and writes rewrites. Without it only the changes from files and the declared variants are tried. */
   chat?: ChatFn;
+  /** `false`: the model still names the failure modes but writes no rewrite, so exactly what a person or an agent proposed is judged. */
+  rewrites?: boolean;
   /** Candidates to try (default 6). */
   budget?: number;
   /** Share of cases kept away from every proposal for the final check (default 1/3). */
@@ -234,7 +236,7 @@ const wrap = (line: string): string[] => {
 const page = (lines: string[]): string => `${lines.flatMap(wrap).join("\n")}\n`;
 
 /** The plain account: what is, why it fails, what was tried, and what is proven. Statistics come second, in parentheses. */
-function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; changeFile?: string; noKey: boolean }): string {
+function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; changeFile?: string; noKey: boolean; noRewrites: boolean }): string {
   const n = r.split.dev.length;
   if (r.verdict === "cannot measure") return page([`Cannot measure: the system failed to run in ${r.baseline.errors} of ${r.baseline.trials} trials (first error: ${clip(x.error ?? "unknown", 300)}). Fix that first; an error is not a wrong answer.`]);
   if (r.verdict === "nothing to sharpen") return page([`Nothing to sharpen: ${n === 1 ? "the one case passes" : `all ${n} cases pass`}. Add cases that are harder.`]);
@@ -250,7 +252,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
       '  import { change } from "hone-eval";',
       '  change("what it does", { why: "which failure it fixes", text: "the new text" });',
       "A `text` needs `sharpen: { text: { seed, apply } }` in hone.config.ts, which says where a text goes; a `config` function needs nothing.",
-      x.noKey ? "sharpen.text is declared, but there is no LLM key for the model to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)." : "With `sharpen.text` declared and an LLM key set, a model writes rewrites too.",
+      x.noRewrites ? "Rewrites by a model were off, so only a change you write can be tried." : x.noKey ? "sharpen.text is declared, but there is no LLM key for the model to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)." : "With `sharpen.text` declared and an LLM key set, a model writes rewrites too.",
     );
     return page(lines);
   }
@@ -283,7 +285,8 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     if (w?.text !== undefined) lines.push(...(w.textFile ? [`The text comes from ${w.textFile}.`] : [`The new text is in ${path.relative(x.cwd, x.textFile ?? "")}`, `As a change file: ${path.relative(x.cwd, x.changeFile ?? "")}`]));
     if (w?.variant) lines.push(w.variantFile ? `It uses the change "${w.variant}" from ${w.variantFile}.` : `It uses the variant "${w.variant}" from sharpen.variants.`);
   }
-  if (x.noKey && !r.candidates.some((c) => c.textFile)) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
+  if (x.noRewrites) lines.push("Rewrites by a model were off: only the changes from files and the variants were tried.");
+  else if (x.noKey && !r.candidates.some((c) => c.textFile)) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
   return page(lines);
 }
 
@@ -324,7 +327,7 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
   const fromFiles: ConfigChange[] = changes.filter((c) => c.config && c.text === undefined).map((c) => ({ key: c.name, name: c.name, apply: c.config!, file: c.file, why: c.why }));
   const inline: ConfigChange[] = Object.entries(config.sharpen?.variants ?? {}).map(([name, apply]) => ({ key: `variant ${name}`, name, apply }));
   const fileTexts = changes.filter((c) => c.text !== undefined && !c.config);
-  const canRewrite = Boolean(textHook && opts.chat);
+  const canRewrite = Boolean(textHook && opts.chat) && opts.rewrites !== false;
   const root = path.resolve(opts.cwd, config.cacheDir ?? ".hone");
   const store = new Store(root);
   const cache = new Cache(path.join(root, "cache"));
@@ -357,7 +360,7 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
         fs.writeFileSync(textFile, winner!.text!);
         fs.writeFileSync(changeFile, asChangeFile(winner!, r.candidates.find((c) => c.id === winner!.textFrom) ?? winner!, verdict));
       }
-      const out: SharpenResult = { ...r, message: describe(r, { cwd: opts.cwd, alpha, error: errored[0]?.trace.error, textFile, changeFile, noKey: Boolean(textHook) && !opts.chat }), path: path.join(dir, `${id}.json`) };
+      const out: SharpenResult = { ...r, message: describe(r, { cwd: opts.cwd, alpha, error: errored[0]?.trace.error, textFile, changeFile, noKey: Boolean(textHook) && !opts.chat, noRewrites: opts.rewrites === false }), path: path.join(dir, `${id}.json`) };
       fs.writeFileSync(out.path, `${JSON.stringify(out, null, 2)}\n`);
       return out;
     };
