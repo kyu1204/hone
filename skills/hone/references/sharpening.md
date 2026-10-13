@@ -12,7 +12,8 @@ This measures, diagnoses and tries nothing. It prints the failure modes and name
 
 ```
 Why it fails:
-  1. chatty-answer-wrapper (5 of 12 failed trials, e.g. ship-abroad): The assistant wraps the answer in ...
+  1. chatty-answer-wrapper (5 of 12 failed trials, e.g. ship-abroad)
+     The assistant wraps the answer in conversational filler instead of returning the bare answer...
   Examples of each, and how to write a change: .hone/sharpen/<id>-diagnosis.md
 ```
 
@@ -81,10 +82,10 @@ Order of candidates: every change from a file alone, then inline variants from t
 ```
 Tried 3 changes:
   - loose matching               0% -> 0%   questions with extra words around them find nothing...
-  + rewrite 1                    0% -> 50%   Replaces the polite full-sentence instruction...
+  + rewrite 1                    0% -> 50%   Replaces the polite full-sentence instruction with...
   + loose matching on rewrite 1  0% -> 100%
-Result: PROVEN. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to 100%
-(+100 points, 95% interval +100 to +100, p = 0.03).
+Result: PROVEN. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to
+100% (+100 points, 95% interval +100 to +100, p = 0.03).
 ```
 
 `+` marks a candidate that beat the current system on the cases it learned from. Only the `Result:` line says whether it holds up (topic `results`). The full ledger, with every dropped candidate and why, is `.hone/sharpen/<id>.json`. A winning text written by the model is saved as `.hone/sharpen/<id>-best.ts`, a change file you can move into `sharpen/`.

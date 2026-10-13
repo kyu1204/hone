@@ -217,16 +217,31 @@ const pts = (x: number): string => `${x >= 0 ? "+" : ""}${Math.round(x * 100)}`;
 const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" : "s"}`;
 // the account stays readable; the ledger file keeps the full text
 const clip = (text: string, n: number): string => (text.length > n ? `${text.slice(0, n - 3).trimEnd()}...` : text);
+/** The account fits a terminal: sentences are wrapped at this width; indented rows (lists, tables, code) are built to fit. */
+const WIDTH = 100;
+const wrap = (line: string): string[] => {
+  if (line.length <= WIDTH || line.startsWith("  ")) return [line];
+  const out: string[] = [];
+  let current = "";
+  for (const word of line.split(" ")) {
+    if (current && current.length + 1 + word.length > WIDTH) {
+      out.push(current);
+      current = word;
+    } else current = current ? `${current} ${word}` : word;
+  }
+  return current ? [...out, current] : out;
+};
+const page = (lines: string[]): string => `${lines.flatMap(wrap).join("\n")}\n`;
 
 /** The plain account: what is, why it fails, what was tried, and what is proven. Statistics come second, in parentheses. */
 function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; changeFile?: string; noKey: boolean }): string {
   const n = r.split.dev.length;
-  if (r.verdict === "cannot measure") return `Cannot measure: the system failed to run in ${r.baseline.errors} of ${r.baseline.trials} trials (first error: ${x.error ?? "unknown"}). Fix that first; an error is not a wrong answer.\n`;
-  if (r.verdict === "nothing to sharpen") return `Nothing to sharpen: ${n === 1 ? "the one case passes" : `all ${n} cases pass`}. Add cases that are harder.\n`;
+  if (r.verdict === "cannot measure") return page([`Cannot measure: the system failed to run in ${r.baseline.errors} of ${r.baseline.trials} trials (first error: ${clip(x.error ?? "unknown", 300)}). Fix that first; an error is not a wrong answer.`]);
+  if (r.verdict === "nothing to sharpen") return page([`Nothing to sharpen: ${n === 1 ? "the one case passes" : `all ${n} cases pass`}. Add cases that are harder.`]);
   const lines = [`Now: ${pct(r.baseline.dev)} of ${n} cases pass. ${r.split.inSample ? "Too few cases to hold any out, so the final check uses the cases it learned from." : `${r.split.holdout.length} more cases are held out for the final check.`}`];
   if (r.diagnosis.length) {
     const failed = r.diagnosis.reduce((s, d) => s + d.size, 0);
-    lines.push("Why it fails:", ...r.diagnosis.map((d, i) => `  ${i + 1}. ${d.code} (${d.size} of ${failed} failed trials, e.g. ${d.example}): ${clip(d.definition, 110)}`));
+    lines.push("Why it fails:", ...r.diagnosis.flatMap((d, i) => [clip(`  ${i + 1}. ${d.code} (${d.size} of ${failed} failed trials, e.g. ${d.example})`, WIDTH), `     ${clip(d.definition, WIDTH - 5)}`]));
     if (r.diagnosisPath) lines.push(`  Examples of each, and how to write a change: ${path.relative(x.cwd, r.diagnosisPath)}`);
   }
   if (r.verdict === "nothing to change") {
@@ -237,14 +252,18 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
       "A `text` needs `sharpen: { text: { seed, apply } }` in hone.config.ts, which says where a text goes; a `config` function needs nothing.",
       x.noKey ? "sharpen.text is declared, but there is no LLM key for the model to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)." : "With `sharpen.text` declared and an LLM key set, a model writes rewrites too.",
     );
-    return `${lines.join("\n")}\n`;
+    return page(lines);
   }
   if (r.candidates.length) lines.push(`Tried ${plural(r.candidates.length, "change")}:`);
-  const width = Math.max(0, ...r.candidates.map((c) => c.id.length)) + 2;
+  const name = (c: SharpenCandidate): string => clip(c.id, 58);
+  const width = Math.max(0, ...r.candidates.map((c) => name(c).length)) + 2;
   for (const c of r.candidates) {
-    const note = c.parent === "baseline" || c.source === "model" ? (c.why ?? c.rationale) : undefined; // a pairing reuses a change already listed with its reason
-    const what = c.dropped === "unparseable" ? "dropped: the model's reply was not usable" : c.dropped === "sample" ? `dropped early: ${pct(c.sample!.candidate)} against ${pct(c.sample!.parent)} on a sample` : `${pct(r.baseline.dev)} -> ${pct(c.dev ?? 0)}${note ? `   ${clip(note, 90)}` : ""}`;
-    lines.push(`  ${c.dev !== undefined && c.dev > r.baseline.dev ? "+" : "-"} ${c.id.padEnd(width)}${what}`);
+    const row = `  ${c.dev !== undefined && c.dev > r.baseline.dev ? "+" : "-"} ${name(c).padEnd(width)}`;
+    const what = c.dropped === "unparseable" ? "dropped: the model's reply was not usable" : c.dropped === "sample" ? `dropped early: ${pct(c.sample!.candidate)} against ${pct(c.sample!.parent)} on a sample` : `${pct(r.baseline.dev)} -> ${pct(c.dev ?? 0)}`;
+    // the reason, when the row has room for it; a pairing reuses a change already listed with its reason
+    const note = !c.dropped && (c.parent === "baseline" || c.source === "model") ? (c.why ?? c.rationale) : undefined;
+    const room = WIDTH - row.length - what.length - 3;
+    lines.push(`${row}${what}${note && room >= 24 ? `   ${clip(note, room)}` : ""}`);
   }
   const b = r.best;
   if (!b) lines.push(`Result: NO GAIN. ${r.candidates.length === 0 ? "Nothing was tried." : r.candidates.length === 1 ? "The one change tried did not beat what you have." : `None of the ${r.candidates.length} changes beat what you have.`}`);
@@ -256,15 +275,16 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     const stats = `(${pts(b.diff)} points, ${Math.round((1 - x.alpha) * 100)}% interval ${pts(b.lo)} to ${pts(b.hi)}, ${b.p < 0.001 ? "p < 0.001" : `p = ${b.p.toFixed(b.p < 0.01 ? 3 : 2)}`}).`;
     const cost = b.costRatio !== undefined ? ` Cost per case: ${b.costRatio.toFixed(1)}x.` : "";
     const more = r.verdict === "proven" ? "" : `${b.needed ? ` About ${b.needed} held-out cases would settle it.` : ""}${r.split.inSample ? " Add cases (18 or more) so that at least six can be held out." : ""}`;
-    lines.push(`Result: ${r.verdict === "proven" ? "PROVEN" : "PROMISING, not proven"}. ${where}, ${b.label} takes the pass rate from ${pct(b.baseline)} to ${pct(b.candidate)}`, `${stats}${cost}${more}`);
+    // one paragraph, wrapped: the statement first, the statistics after it in parentheses
+    lines.push(`Result: ${r.verdict === "proven" ? "PROVEN" : "PROMISING, not proven"}. ${where}, ${b.label} takes the pass rate from ${pct(b.baseline)} to ${pct(b.candidate)} ${stats}${cost}${more}`);
     if (b.confirmations > 1) lines.push(`These ${b.cases} held-out cases have now judged ${b.confirmations} different changes, so this one had to reach p < ${Number(b.alpha.toPrecision(2))}. New cases restore the bar.`);
     // what to adopt, and where it is
     const w = r.candidates.find((c) => c.id === b.id);
-    if (w?.text !== undefined) lines.push(w.textFile ? `The text comes from ${w.textFile}.` : `The new text is in ${path.relative(x.cwd, x.textFile ?? "")} (as a change file: ${path.relative(x.cwd, x.changeFile ?? "")})`);
+    if (w?.text !== undefined) lines.push(...(w.textFile ? [`The text comes from ${w.textFile}.`] : [`The new text is in ${path.relative(x.cwd, x.textFile ?? "")}`, `As a change file: ${path.relative(x.cwd, x.changeFile ?? "")}`]));
     if (w?.variant) lines.push(w.variantFile ? `It uses the change "${w.variant}" from ${w.variantFile}.` : `It uses the variant "${w.variant}" from sharpen.variants.`);
   }
   if (x.noKey && !r.candidates.some((c) => c.textFile)) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
-  return `${lines.join("\n")}\n`;
+  return page(lines);
 }
 
 /**

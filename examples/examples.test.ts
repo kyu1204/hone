@@ -68,7 +68,7 @@ describe("examples", () => {
     expect(o.out).toMatch(/- loose matching\s+0% -> 0%/);
     expect(o.out).toMatch(/\+ rewrite 1\s+0% -> 50%/);
     expect(o.out).toMatch(/\+ loose matching on rewrite 1\s+0% -> 100%/);
-    expect(o.out).toMatch(/Result: PROVEN\. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to 100%/);
+    expect(o.out.replace(/\s+/g, " ")).toMatch(/Result: PROVEN\. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to 100% \(\+100 points/); // sentences wrap at 100 columns
     expect(o.out).toContain('It uses the change "loose matching" from sharpen/loose-matching.ts.');
 
     // without a key the cycle still runs, tries what needs no model, and says what it skipped
@@ -79,6 +79,7 @@ describe("examples", () => {
     expect(await sharpenCommand(["--quiet", "--no-cache"], offline)).toBe(0);
     expect(offline.out).toMatch(/Result: NO GAIN\. The one change tried did not beat what you have\./);
     expect(offline.out).toMatch(/No LLM key/);
+    for (const out of [o.out, offline.out]) expect(Math.max(...out.split("\n").map((l) => l.length))).toBeLessThanOrEqual(100);
   });
 
   test("agent-claude-code falls back to replay traces when claude is not installed", async () => {
