@@ -176,7 +176,11 @@ export function processTarget(id: string, spec: ProcessTargetSpec): Target {
       meta: { ...parsed.meta, agent: spec.agent, workspace: dir, ...(prefix?.length ? { resumeMode: "rendered-prefix" } : {}) },
     };
     if (timedOut) out.error = "timeout";
-    else if (code !== 0) out.error = `${spec.agent} exited with exit code ${code}: ${stderr.trim().slice(0, 300)}`;
+    else if (code !== 0) {
+      // agents often give the reason on stdout (Claude Code: "You've hit your session limit"), so fall back to it
+      const said = typeof parsed.output === "string" && parsed.output.trim() !== "" ? parsed.output.trim() : stdout.trim().slice(-300);
+      out.error = `${spec.agent} exited with exit code ${code}: ${(stderr.trim() || said).slice(0, 300)}`;
+    }
     return out;
   };
 

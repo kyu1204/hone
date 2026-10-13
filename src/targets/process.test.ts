@@ -84,6 +84,12 @@ describe("process target (generic)", () => {
     expect(out.artifacts?.stderr).toContain("oops");
   });
 
+  test("a non-zero exit with nothing on stderr reports what the agent said on stdout", async () => {
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["bash", "-c", "echo \"You've hit your session limit\"; exit 1"] });
+    const out = await t.run("x", ctx);
+    expect(out.error).toBe("generic exited with exit code 1: You've hit your session limit");
+  });
+
   test("isolate none runs in place inside a git repo and refuses without one", async () => {
     const ws = workspace();
     const noGit = createTarget("agent", { kind: "process", agent: "generic", workspace: ws, isolate: "none", command: ["echo", "x"] });
