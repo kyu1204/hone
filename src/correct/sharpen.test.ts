@@ -161,13 +161,36 @@ describe("sharpen", () => {
     const { chat } = stubChat();
     const cfg = config((id, text, variant) => (even(id) ? variant === "wide" : text.includes("UPPERCASE")), { text: true, variants: ["wide"] });
     const r = await sharpen({ config: cfg, hash: "h", cwd: tmp(), chat, budget: 3, useCache: false });
-    expect(r.candidates.map((c) => c.id)).toEqual(["variant wide", "rewrite 1"]);
+    // the rewrite was written on top of the variant, so it is also tried without it; here it needs the variant and the pairing stays
+    expect(r.candidates.map((c) => c.id)).toEqual(["variant wide", "rewrite 1", "rewrite 1 without wide"]);
+    expect(r.candidates[2]).toMatchObject({ kind: "text", source: "model", parent: "baseline", textFrom: "rewrite 1", text: "Answer in UPPERCASE." });
+    expect(r.candidates[2]!.variant).toBeUndefined();
+    expect(r.candidates[2]!.dev).toBeLessThan(0.8);
     expect(r.candidates[0]!.dev).toBeGreaterThan(0.2);
     expect(r.candidates[0]!.dev).toBeLessThan(0.8);
     expect(r.candidates[1]).toMatchObject({ kind: "text", parent: "variant wide", variant: "wide", text: "Answer in UPPERCASE.", dev: 1 });
     expect(r.best).toMatchObject({ id: "rewrite 1", baseline: 0, candidate: 1 });
     expect(r.verdict).toBe("proven");
     expect(r.message).toMatch(/variant wide \+ rewrite 1|rewrite 1 \(on variant wide\)/);
+  });
+
+  test("a rewrite written on top of a variant is tried without it, and the smaller change wins when it is as good", async () => {
+    // the variant fixes a few cases, so the first rewrite is written on top of it; the rewrite alone fixes everything
+    const { chat } = stubChat();
+    const cwd = tmp();
+    const cfg = config((id, text, variant) => text.includes("UPPERCASE") || (variant === "wide" && even(id)), { text: true, variants: ["wide"] });
+    const r = await sharpen({ config: cfg, hash: "h", cwd, chat, budget: 2, useCache: false });
+    expect(r.candidates.map((c) => c.id)).toEqual(["variant wide", "rewrite 1", "rewrite 1 without wide"]); // the third is beyond the budget of two: it belongs to confirming
+    expect(r.candidates[1]).toMatchObject({ parent: "variant wide", variant: "wide", dev: 1 });
+    expect(r.candidates[2]).toMatchObject({ parent: "baseline", dev: 1, textFrom: "rewrite 1" });
+    expect(r.best).toMatchObject({ id: "rewrite 1 without wide", label: "rewrite 1 without wide", baseline: 0, candidate: 1 });
+    expect(r.verdict).toBe("proven");
+    expect(r.message).toMatch(/\+ rewrite 1 without wide\s+0% -> 100%\n/); // the reason is on the row of the rewrite, not repeated here
+    expect(flat(r.message)).not.toContain('It uses the variant "wide"');
+    // what is saved is the rewrite, under its own name: the variant was never part of what won
+    const saved = fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`), "utf8");
+    expect(saved).toContain('change("rewrite 1", {');
+    expect(saved).not.toContain("wide");
   });
 
   test("a variant that only helps together with a rewrite is tried again on top of it", async () => {
