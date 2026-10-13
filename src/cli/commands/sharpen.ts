@@ -8,7 +8,7 @@ import type { CommandIo } from "./run";
 
 export const SHARPEN_SPEC = { flags: ["json", "no-cache", "no-rewrites", "quiet"], strings: [], numbers: ["budget", "max-cost", "until", "trials", "holdout", "seed", "alpha"], repeatable: [] } as const;
 const HELP: Record<string, string> = {
-  budget: "changes to try (default 6); 0 only measures and writes the diagnosis",
+  budget: "changes to try (default 6, or enough for every change file and its stack); 0 only measures and writes the diagnosis",
   "max-cost": "stop trying changes when the spend on the system under test (USD) reaches this",
   until: "stop trying changes once this pass rate is reached, e.g. 0.9",
   trials: "trials per case",
@@ -22,7 +22,7 @@ const HELP: Record<string, string> = {
 };
 
 export function sharpenUsage(): string {
-  return `usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-rewrites] [--no-cache] [--quiet] [--json]\n\nThe whole cycle: evaluate, find why cases fail, try changes, re-test them, and confirm the best one on cases no proposal has seen. A change is a file under sharpen/ that calls change(name, { why, text, config }), a variant in config.sharpen.variants, or a rewrite of config.sharpen.text by a model; changes that only help together are paired. Writes .hone/sharpen/<id>.json.\n\n${usageLine(SHARPEN_SPEC, HELP)}\n`;
+  return `usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-rewrites] [--no-cache] [--quiet] [--json]\n\nThe whole cycle: evaluate, find why cases fail, try changes, re-test them, and confirm the best one on cases no proposal has seen. A change is a file under sharpen/ that calls change(name, { why, add, text, config }), a variant in config.sharpen.variants, or a rewrite of config.sharpen.text by a model; additions to the text are stacked, and changes that only help together are paired. Writes .hone/sharpen/<id>.json.\n\n${usageLine(SHARPEN_SPEC, HELP)}\n`;
 }
 
 export async function sharpenCommand(argv: string[], io: CommandIo, deps: { chat?: ChatFn } = {}): Promise<number> {

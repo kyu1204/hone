@@ -40,16 +40,17 @@ The full documentation ships in the `docs/` directory of the installed package (
 
    change("answer with the bare value", {
      why: "the cases expect the answer alone; the bot wraps it in a sentence",
-     text: "Reply with only the answer.",
+     add: "Reply with only the answer.",
    });
    ```
+   `add` is one paragraph for the text as it is; hone stacks the additions that help into one text. `text` replaces the whole text.
 5. Run the cycle: `hone sharpen`. It tries every change, pairs changes that only help together, and checks the best one on the held-out cases.
 6. Report the `Result:` line as printed, with what was tried. Apply a change to the project only when the verdict is `PROVEN`, or when the user decides otherwise knowing the verdict. After applying one, delete its file from `sharpen/`: it is now part of the system and would only be tried against itself.
 
 ## Rules
 
 - Run the CLI as `hone ...` (`bunx hone-eval ...` when it is not installed in the project).
-- One hypothesis per change, and say it in `why`. A change that does three things cannot tell you which one helped.
+- One hypothesis per change, and say it in `why`. A change that does three things cannot tell you which one helped. For a text, that means one `add` per rule: do not write one big text yourself, hone puts the additions together and shows what each was worth.
 - Never edit a file the current system runs. Put new code in a new file and point the change's `config` function at it. If the baseline changes too, there is nothing left to compare against.
 - Do not open the case files to tune against them, and never copy a case's expected answer into a prompt or into code. A third of the cases is held out for the final check; the diagnosis page shows you the ones you may learn from.
 - Do not edit cases or scorers to make a change look better. If a case or a scorer is wrong, say so and fix it as its own step, then measure again from the start.

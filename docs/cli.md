@@ -78,13 +78,13 @@ Run, check per-axis gates, exit non-zero on the failing axis, leave artifacts.
 ```
 usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-rewrites] [--no-cache] [--quiet] [--json]
 
-The whole cycle: evaluate, find why cases fail, try changes, re-test them, and confirm the best one on cases no proposal has seen. A change is a file under sharpen/ that calls change(name, { why, text, config }), a variant in config.sharpen.variants, or a rewrite of config.sharpen.text by a model; changes that only help together are paired. Writes .hone/sharpen/<id>.json.
+The whole cycle: evaluate, find why cases fail, try changes, re-test them, and confirm the best one on cases no proposal has seen. A change is a file under sharpen/ that calls change(name, { why, add, text, config }), a variant in config.sharpen.variants, or a rewrite of config.sharpen.text by a model; additions to the text are stacked, and changes that only help together are paired. Writes .hone/sharpen/<id>.json.
 
   --json         print the whole result as JSON
   --no-cache     re-run the system instead of using cached outputs
   --no-rewrites  the model writes no rewrite: only the changes from files and the variants are tried
   --quiet        no progress on stderr
-  --budget       changes to try (default 6); 0 only measures and writes the diagnosis
+  --budget       changes to try (default 6, or enough for every change file and its stack); 0 only measures and writes the diagnosis
   --max-cost     stop trying changes when the spend on the system under test (USD) reaches this
   --until        stop trying changes once this pass rate is reached, e.g. 0.9
   --trials       trials per case
