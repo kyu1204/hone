@@ -31,7 +31,7 @@ describe("embed", () => {
     expect(offline.vectors).toHaveLength(2);
     let seen: unknown;
     const srv = Bun.serve({
-      port: 0,
+      port: 0, hostname: "127.0.0.1",
       fetch: async (req) => {
         seen = { url: new URL(req.url).pathname, body: await req.json(), auth: req.headers.get("authorization") };
         return Response.json({ data: [{ index: 0, embedding: [1, 0] }, { index: 1, embedding: [0, 1] }], usage: { prompt_tokens: 4 } });

@@ -85,7 +85,7 @@ describe("question builders", () => {
 
 type Handler = (req: Request) => Response | Promise<Response>;
 function serve(handler: Handler): { url: string; stop: () => void } {
-  const server = Bun.serve({ port: 0, fetch: handler });
+  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: handler });
   return { url: `http://127.0.0.1:${server.port}/v1/systemone`, stop: () => server.stop(true) };
 }
 

@@ -12,7 +12,7 @@ type Req = { messages: { role: string; content: string }[]; response_format?: un
 function stub(reply: (req: Req, n: number) => string): { provider: LlmProvider; reqs: Req[]; stop: () => void } {
   const reqs: Req[] = [];
   const s = Bun.serve({
-    port: 0,
+    port: 0, hostname: "127.0.0.1",
     fetch: async (req) => {
       const body = (await req.json()) as Req;
       reqs.push(body);

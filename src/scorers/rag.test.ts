@@ -20,7 +20,7 @@ type Seen = { state: unknown; questions: Record<string, JevQuestion> }[];
 function jevStub(answer: (q: JevQuestion, id: string) => unknown): { client: JevClient; seen: Seen; stop: () => void } {
   const seen: Seen = [];
   const s = Bun.serve({
-    port: 0,
+    port: 0, hostname: "127.0.0.1",
     fetch: async (req) => {
       const body = (await req.json()) as { state: unknown; questions: Record<string, JevQuestion> };
       seen.push(body);
