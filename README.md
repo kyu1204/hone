@@ -69,6 +69,8 @@ change("answer with the bare value", {
 
 `hone init` also installs a skill for Claude Code, Codex and Cursor (`.agents/skills/hone`, `.claude/skills/hone`) and registers an MCP server in `.mcp.json`. The skill teaches the agent the same loop a person follows: run `hone sharpen --budget 0`, read the diagnosis page it names, write one change file per hypothesis under `sharpen/`, run `hone sharpen`, and report the verdict as printed. The agent proposes; hone holds cases out and decides. `hone guide` prints the skill.
 
+Checked once with a real session ([`docs/benchmarks/agent-writes-changes.md`](./docs/benchmarks/agent-writes-changes.md)): Claude Code, told only that the example bot had complaints and to use hone, loaded the skill, read the diagnosis page, wrote two change files, and hone confirmed the pair on six held-out cases in 31 seconds, with no model of its own available.
+
 ## Why
 
 Most eval tools stop at a number. The number is usually a single run, graded by a judge nobody calibrated, on a harness nobody controlled for. Then the real work starts: reading transcripts, guessing what broke, editing a prompt, running again, and hoping the change was not noise.
