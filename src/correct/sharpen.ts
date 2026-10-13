@@ -140,7 +140,7 @@ const clip = (text: string, n: number): string => (text.length > n ? `${text.sli
 function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; noKey: boolean }): string {
   const n = r.split.dev.length;
   if (r.verdict === "cannot measure") return `Cannot measure: the system failed to run in ${r.baseline.errors} of ${r.baseline.trials} trials (first error: ${x.error ?? "unknown"}). Fix that first; an error is not a wrong answer.\n`;
-  if (r.verdict === "nothing to sharpen") return `Nothing to sharpen: all ${n} cases pass. Add harder cases.\n`;
+  if (r.verdict === "nothing to sharpen") return `Nothing to sharpen: ${n === 1 ? "the one case passes" : `all ${n} cases pass`}. Add cases that are harder.\n`;
   const lines = [`Now: ${pct(r.baseline.dev)} of ${n} cases pass. ${r.split.inSample ? "Too few cases to hold any out, so the final check uses the cases it learned from." : `${r.split.holdout.length} more cases are held out for the final check.`}`];
   if (r.diagnosis.length) {
     const failed = r.diagnosis.reduce((s, d) => s + d.size, 0);
