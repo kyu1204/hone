@@ -8,7 +8,7 @@ Replaces one message of a stored trial and re-runs the target from that prefix (
 
 ## Evolve: `hone evolve`
 
-GEPA-style text evolution over `config.evolve.seed`:
+GEPA-style text evolution over `config.sharpen.text.seed`:
 
 1. Baseline run on all cases.
 2. For each of `--budget` candidates: pick a parent from the Pareto front, show an LLM the parent text and up to six failure summaries, ask for a revised text as JSON.
@@ -20,7 +20,7 @@ Writes `.hone/evolve/<id>.json` (candidates with intervals, cost, `pareto`, `rat
 
 ## Optimize: `hone optimize`
 
-Thompson sampling over `config.optimize` candidates plus `baseline`: each round allocates `--batch` trials by sampling from each arm's Beta posterior, runs them on the least-observed cells, and stops when `P(best) >= --confidence` (every arm having `--min-per-arm` trials) or at `--budget`. Then a verification top-up gives the baseline and the leader one trial on every case they have not seen, and a paired test over the shared cases decides. Writes `.hone/optimize/<id>.json`.
+Thompson sampling over the `config.sharpen.variants` candidates plus `baseline`: each round allocates `--batch` trials by sampling from each arm's Beta posterior, runs them on the least-observed cells, and stops when `P(best) >= --confidence` (every arm having `--min-per-arm` trials) or at `--budget`. Then a verification top-up gives the baseline and the leader one trial on every case they have not seen, and a paired test over the shared cases decides. Writes `.hone/optimize/<id>.json`.
 
 ## Ablate: `hone ablate`
 

@@ -31,7 +31,7 @@ function config(pBaseline: number, pBetter: number): HoneConfig {
     targets: arm(pBaseline, 1, "baseline"),
     cases: Array.from({ length: 12 }, (_, i) => ({ id: `c${i}`, input: `w${i}`, expected: `W${i}` })),
     scorers: [{ name: "exact" }],
-    optimize: { better: (c) => ({ ...c, targets: arm(pBetter, 2, "better") }) },
+    sharpen: { variants: { better: (c) => ({ ...c, targets: arm(pBetter, 2, "better") }) } },
   };
 }
 
@@ -79,10 +79,10 @@ describe("optimize", () => {
     expect(r.verdict).toMatch(/no measurable effect|baseline holds/);
   });
 
-  test("config without the optimize hook throws", async () => {
+  test("a config without variants throws", async () => {
     const cwd = fs.mkdtempSync(path.join(os.tmpdir(), "hone-opt3-"));
     dirs.push(cwd);
-    const { optimize: _o, ...cfg } = config(0.5, 0.5);
-    await expect(optimize({ config: cfg, hash: "h", cwd })).rejects.toThrow(/optimize/);
+    const { sharpen: _s, ...cfg } = config(0.5, 0.5);
+    await expect(optimize({ config: cfg, hash: "h", cwd })).rejects.toThrow(/sharpen: \{ variants: /);
   });
 });

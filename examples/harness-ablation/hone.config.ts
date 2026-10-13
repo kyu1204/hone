@@ -35,6 +35,8 @@ const base = defineConfig({
 export default defineConfig({
   ...withRules(base, RULES.join(" ")),
   ablations: Object.fromEntries(RULES.map((r) => [r.split(" ").slice(0, 2).join("-").toLowerCase().replace(/\W/g, ""), (c: HoneConfig) => withRules(c, RULES.filter((x) => x !== r).join(" "))])),
-  evolve: { seed: RULES.slice(0, 1).join(" "), apply: withRules },
-  optimize: { "no-rounding": (c: HoneConfig) => withRules(c, [RULES[0]!, RULES[2]!].join(" ")), "no-units-rule": (c: HoneConfig) => withRules(c, [RULES[0]!, RULES[1]!].join(" ")) },
+  sharpen: {
+    text: { seed: RULES.slice(0, 1).join(" "), apply: withRules },
+    variants: { "no-rounding": (c: HoneConfig) => withRules(c, [RULES[0]!, RULES[2]!].join(" ")), "no-units-rule": (c: HoneConfig) => withRules(c, [RULES[0]!, RULES[1]!].join(" ")) },
+  },
 });
