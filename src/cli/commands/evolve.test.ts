@@ -25,7 +25,7 @@ export default defineConfig({
   targets: { t: { kind: "fn", fn: (i) => String(i) } },
   cases: Array.from({ length: 6 }, (_, i) => ({ id: "c" + i, input: "w" + i, expected: "W" + i })),
   scorers: [{ name: "exact" }],
-  ${withHook ? 'evolve: { seed: "Answer.", apply: (c, text) => ({ ...c, targets: { t: { kind: "fn", fn: (i) => (text.includes("UPPERCASE") ? String(i).toUpperCase() : String(i)), version: text } } }) },' : ""}
+  ${withHook ? 'sharpen: { text: { seed: "Answer.", apply: (c, text) => ({ ...c, targets: { t: { kind: "fn", fn: (i) => (text.includes("UPPERCASE") ? String(i).toUpperCase() : String(i)), version: text } } }) } },' : ""}
 });
 `,
   );
@@ -48,9 +48,9 @@ describe("hone evolve", () => {
     expect(JSON.parse(j.out).file.kind).toBe("evolve");
   });
 
-  test("missing evolve hook exits 2", async () => {
+  test("a config that declares no text exits 2 and says which key to add", async () => {
     const o = io(project(false));
     expect(await evolveCommand([], o, { chat: async () => ({ text: "" }) })).toBe(2);
-    expect(o.err).toMatch(/evolve hook/);
+    expect(o.err).toMatch(/sharpen: \{ text: \{ seed, apply \} \}/);
   });
 });

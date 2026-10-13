@@ -27,8 +27,8 @@ export default defineConfig({
 | `concurrency` | parallel trials; default 4 |
 | `cacheDir` | store root; default `.hone` |
 | `ablations` | `{ name: (config) => config }` transforms measured by `hone ablate` |
-| `evolve` | `{ seed, apply }`: the text `hone evolve` rewrites and how it enters the config |
-| `optimize` | `{ name: (config) => config }` candidates `hone optimize` allocates trials across |
+| `sharpen.text` | `{ seed, apply }`: one text hone may rewrite (a prompt, a rule file, a rubric) and how it enters the config |
+| `sharpen.variants` | `{ name: (config) => config }`: named alternative configs hone may try (a setting, a model, a retrieval depth) |
 
 ## Target kinds
 

@@ -33,10 +33,13 @@ export interface HoneConfig {
   cacheDir?: string;
   /** Named pure transforms of the config, measured by `hone ablate`. */
   ablations?: Record<string, (config: HoneConfig) => HoneConfig>;
-  /** The mutable text `hone evolve` rewrites (a prompt, a rule file, a rubric) and how to put it into the config. */
-  evolve?: { seed: string; apply: (config: HoneConfig, text: string) => HoneConfig; label?: string };
-  /** Named candidate configs `hone optimize` allocates trials across; the unmodified config is the `baseline` arm. */
-  optimize?: Record<string, (config: HoneConfig) => HoneConfig>;
+  /** What hone may change when it looks for an improvement. */
+  sharpen?: {
+    /** One text it may rewrite (a prompt, a rule file, a rubric) and how to put a version of it into the config. */
+    text?: { seed: string; apply: (config: HoneConfig, text: string) => HoneConfig; label?: string };
+    /** Named alternative configs it may try (a setting, a model, a retrieval depth); the unmodified config is the baseline. */
+    variants?: Record<string, (config: HoneConfig) => HoneConfig>;
+  };
 }
 
 /** Identity with types: lets hone.config.ts get completion and checking. */

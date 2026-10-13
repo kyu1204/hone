@@ -9,7 +9,7 @@ export const EVOLVE_SPEC = { flags: ["json", "no-cache"], strings: [], numbers: 
 const HELP: Record<string, string> = { budget: "candidates to propose (default 6)", minibatch: "passing cases added to each minibatch (default 8)", trials: "trials per case", "max-cost": "stop when total spend (USD) reaches this", alpha: "significance for the final paired verdict (default 0.05)", "no-cache": "re-run targets instead of using cached outputs", json: "print the result as JSON" };
 
 export function evolveUsage(): string {
-  return `usage: hone evolve [--budget 6] [--minibatch 8] [--trials n] [--max-cost usd] [--alpha 0.05] [--no-cache] [--json]\n\nReflect on failures, propose revised text, verify on a minibatch then the full set, and keep the Pareto front (config.evolve).\n\n${usageLine(EVOLVE_SPEC, HELP)}\n`;
+  return `usage: hone evolve [--budget 6] [--minibatch 8] [--trials n] [--max-cost usd] [--alpha 0.05] [--no-cache] [--json]\n\nReflect on failures, propose revised text, verify on a minibatch then the full set, and keep the versions no other beats on both pass rate and cost (the text is config.sharpen.text).\n\n${usageLine(EVOLVE_SPEC, HELP)}\n`;
 }
 
 const pct = (x: number): string => `${(x * 100).toFixed(0)}%`;
@@ -47,8 +47,8 @@ export async function evolveCommand(argv: string[], io: CommandIo, deps: { chat?
     io.stderr(`${e instanceof ConfigNotFound ? e.message : `config error: ${e instanceof Error ? e.message : String(e)}`}\n`);
     return 2;
   }
-  if (!loaded.config.evolve) {
-    io.stderr("config has no evolve hook; add `evolve: { seed, apply }` to hone.config.ts\n");
+  if (!loaded.config.sharpen?.text) {
+    io.stderr("config declares no text to rewrite; add `sharpen: { text: { seed, apply } }` to hone.config.ts\n");
     return 2;
   }
   const chatFn: ChatFn = deps.chat ?? ((req) => chat(req, { provider: resolveLlmProvider(io.env, { cwd: io.cwd }) }));

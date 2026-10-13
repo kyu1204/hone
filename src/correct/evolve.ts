@@ -80,8 +80,8 @@ const stats = (run: RunOutcome): { passAt1: number; lo: number; hi: number; cost
 };
 
 export async function evolve(opts: EvolveOptions): Promise<EvolveResult> {
-  const hook = opts.config.evolve;
-  if (!hook) throw new Error("config has no evolve hook; add `evolve: { seed, apply }` to hone.config.ts");
+  const hook = opts.config.sharpen?.text;
+  if (!hook) throw new Error("config declares no text to rewrite; add `sharpen: { text: { seed, apply } }` to hone.config.ts");
   const budget = opts.budget ?? 6;
   const minibatchN = opts.minibatch ?? 8;
   const alpha = opts.alpha ?? 0.05;

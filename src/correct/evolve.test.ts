@@ -15,9 +15,11 @@ function config(seed: string): HoneConfig {
     targets: {},
     cases: Array.from({ length: 8 }, (_, i) => ({ id: `c${i}`, input: `w${i}`, expected: `W${i}` })),
     scorers: [{ name: "exact" }],
-    evolve: {
-      seed,
-      apply: (c, text) => ({ ...c, targets: { t: { kind: "fn", fn: (i: unknown) => (text.includes("UPPERCASE") ? String(i).toUpperCase() : String(i)), version: text } } }),
+    sharpen: {
+      text: {
+        seed,
+        apply: (c, text) => ({ ...c, targets: { t: { kind: "fn", fn: (i: unknown) => (text.includes("UPPERCASE") ? String(i).toUpperCase() : String(i)), version: text } } }),
+      },
     },
   };
 }

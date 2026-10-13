@@ -111,7 +111,7 @@ Inject silent faults into passing trials, re-score with one judge, and write .ho
 ```
 usage: hone evolve [--budget 6] [--minibatch 8] [--trials n] [--max-cost usd] [--alpha 0.05] [--no-cache] [--json]
 
-Reflect on failures, propose revised text, verify on a minibatch then the full set, and keep the Pareto front (config.evolve).
+Reflect on failures, propose revised text, verify on a minibatch then the full set, and keep the versions no other beats on both pass rate and cost (the text is config.sharpen.text).
 
   --json       print the result as JSON
   --no-cache   re-run targets instead of using cached outputs
@@ -127,7 +127,7 @@ Reflect on failures, propose revised text, verify on a minibatch then the full s
 ```
 usage: hone optimize [--budget 60] [--batch 10] [--confidence 0.95] [--alpha 0.05] [--min-per-arm 3] [--seed n] [--no-cache] [--json]
 
-Allocate trials across config.optimize candidates by Thompson sampling, then decide with a paired test.
+Allocate trials across the variants in config.sharpen.variants by Thompson sampling, then decide with a paired test.
 
   --json         print the result as JSON
   --no-cache     re-run targets instead of using cached outputs

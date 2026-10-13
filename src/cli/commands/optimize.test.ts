@@ -25,7 +25,7 @@ export default defineConfig({
   targets: { t: { kind: "fn", fn: (i) => String(i), version: "lower" } },
   cases: Array.from({ length: 6 }, (_, i) => ({ id: "c" + i, input: "w" + i, expected: "W" + i })),
   scorers: [{ name: "exact" }],
-  ${withHook ? 'optimize: { upper: (c) => ({ ...c, targets: { t: { kind: "fn", fn: (i) => String(i).toUpperCase(), version: "upper" } } }) },' : ""}
+  ${withHook ? 'sharpen: { variants: { upper: (c) => ({ ...c, targets: { t: { kind: "fn", fn: (i) => String(i).toUpperCase(), version: "upper" } } }) } },' : ""}
 });
 `,
   );
@@ -46,9 +46,9 @@ describe("hone optimize", () => {
     expect(JSON.parse(j.out).file.kind).toBe("optimize");
   });
 
-  test("missing optimize hook exits 2", async () => {
+  test("a config that declares no variants exits 2 and says which key to add", async () => {
     const o = io(project(false));
     expect(await optimizeCommand([], o)).toBe(2);
-    expect(o.err).toMatch(/optimize/);
+    expect(o.err).toMatch(/sharpen: \{ variants: /);
   });
 });

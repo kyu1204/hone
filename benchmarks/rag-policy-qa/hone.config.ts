@@ -182,15 +182,17 @@ const base = defineConfig({
 
 export default defineConfig({
   ...base,
-  // what the project's authors found by hand (README 9절): prompt v3 + top_k 30 + medium reasoning was the best
-  optimize: {
-    "prompt-v3": (c) => withEnv(c, { RAG_PROMPT: "v3" }, "v3-k5"),
-    k30: (c) => withEnv(c, { TOP_K: "30" }, "v1-k30"),
-    "v3-k30": (c) => withEnv(c, { RAG_PROMPT: "v3", TOP_K: "30" }, "v3-k30"),
-  },
   ablations: {
     "no-citation-rule": (c) => withEnv(c, { HONE_RAG_PROMPT: PROMPT_V1.replace(/2\. 사실을 말한 문장 끝마다[^\n]*\n/, "") }, "ablate-no-citation"),
   },
-  // hone evolve rewrites the system prompt starting from v1
-  evolve: { seed: PROMPT_V1, apply: (c, text) => withEnv(c, { HONE_RAG_PROMPT: text }, `evolved-${Bun.hash(text).toString(16)}`) },
+  sharpen: {
+    // the system prompt, starting from v1
+    text: { seed: PROMPT_V1, apply: (c, text) => withEnv(c, { HONE_RAG_PROMPT: text }, `evolved-${Bun.hash(text).toString(16)}`) },
+    // what the project's authors found by hand (README 9절): prompt v3 + top_k 30 + medium reasoning was the best
+    variants: {
+      "prompt-v3": (c) => withEnv(c, { RAG_PROMPT: "v3" }, "v3-k5"),
+      k30: (c) => withEnv(c, { TOP_K: "30" }, "v1-k30"),
+      "v3-k30": (c) => withEnv(c, { RAG_PROMPT: "v3", TOP_K: "30" }, "v3-k30"),
+    },
+  },
 });

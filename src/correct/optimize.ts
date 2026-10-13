@@ -78,8 +78,8 @@ interface ArmState {
 }
 
 export async function optimize(opts: OptimizeOptions): Promise<OptimizeResult> {
-  const hook = opts.config.optimize;
-  if (!hook || Object.keys(hook).length === 0) throw new Error("config has no optimize candidates; add `optimize: { name: (config) => config }` to hone.config.ts");
+  const hook = opts.config.sharpen?.variants;
+  if (!hook || Object.keys(hook).length === 0) throw new Error("config declares no variants; add `sharpen: { variants: { name: (config) => config } }` to hone.config.ts");
   if (hook.baseline) throw new Error('"baseline" is reserved for the unmodified config');
   const budget = opts.budget ?? 60;
   const batch = opts.batch ?? 10;
