@@ -38,6 +38,17 @@ function git(cwd: string, args: string[]): { code: number; stdout: string } {
   return { code: r.exitCode, stdout: r.stdout.toString() };
 }
 
+// What a running Claude Code session exports to its own children. hone is often started from inside such a session; an
+// agent it launches must not come up as that session's child (its effort level, its session id, its messaging socket).
+const SESSION_ENV = ["CLAUDECODE", "CLAUDE_CODE_ENTRYPOINT", "CLAUDE_CODE_SESSION_ID", "CLAUDE_CODE_CHILD_SESSION", "CLAUDE_CODE_SESSION_ATTENDED", "CLAUDE_CODE_MESSAGING_SOCKET", "CLAUDE_CODE_MESSAGING_TOKEN", "CLAUDE_CODE_EXECPATH", "CLAUDE_EFFORT", "CLAUDE_PID"];
+
+/** The child's environment: hone's own, minus the launching session's variables, plus the target's `env` (which always wins). */
+function childEnv(extra?: Record<string, string>): Record<string, string | undefined> {
+  const env: Record<string, string | undefined> = { ...process.env };
+  for (const k of SESSION_ENV) delete env[k];
+  return { ...env, ...extra };
+}
+
 /** Render a message prefix as markdown sections for agents that cannot resume a session. */
 export function renderPrefix(prefix: ChatMessage[]): string {
   return prefix
@@ -148,7 +159,7 @@ export function processTarget(id: string, spec: ProcessTargetSpec): Target {
     const sub = (s: string) => s.replaceAll("{prompt}", prompt).replaceAll("{model}", spec.model ?? "").replaceAll("{workspace}", dir);
     const argv = argvTemplate().map(sub);
     const startedAt = new Date().toISOString();
-    const proc = Bun.spawn(argv, { cwd: dir, env: { ...process.env, ...spec.env }, stdin: "ignore", stdout: "pipe", stderr: "pipe" });
+    const proc = Bun.spawn(argv, { cwd: dir, env: childEnv(spec.env), stdin: "ignore", stdout: "pipe", stderr: "pipe" });
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
