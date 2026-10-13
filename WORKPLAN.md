@@ -130,6 +130,7 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 - [ ] T-1103 Benchmark: the cycle on both, by hone's own rewrites and by a coding agent (Codex) writing changes (M)
 - [ ] T-1104 `hone init` recognises LangChain and Strands projects (S)
 - [ ] T-1105 README rewritten around what hone is now, with a new demo recording (M)
+- [x] T-1106 `hone sharpen --no-rewrites`: only the changes from files and the variants are judged (S)
 
 ## Progress log
 
@@ -217,3 +218,4 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 | 2026-10-13 | T-1010 follow-up | #111 | docs/benchmarks/agent-writes-changes.md: one real Claude Code session (sonnet, sandboxed, the skill only, no API key for hone) read the diagnosis page, wrote two change files, and hone confirmed the pair as PROVEN on 6 held-out cases in 31 s; the skill now says to delete a change file after applying it |
 | 2026-10-13 | T-1101 | #114 | python target: `params` reach the callable as `ctx.params` and, with `env`, are part of the version (two variants of one module no longer share cached outputs); `ctx.from_langchain` and `ctx.from_strands` record messages, tool calls, tool results and usage from what the frameworks return, duck-typed; usage with a model name is priced from the table; `workers` serves calls on threads |
 | 2026-10-13 | T-1102 | #116 | `examples/helpdesk-agent`: six tools over in-memory data, the same agent in LangChain 1.4 and Strands 1.60 behind `answer(input, ctx)`, 36 cases (six for each of six house rules) and three trace scorers whose reasons name the broken rule; with the one-line prompt and claude-haiku-5-5 both frameworks pass 33 of 72 trials (verify and lookup 12 of 12, cite and nopolicy 0); 144 agent runs take 90 s and $0.63. Running it showed four python-target faults fixed in #115 (a stale cache after editing the agent, prints taken for answers and framework noise in the output, PYTHONPATH ignored, a timer left behind) |
+| 2026-10-13 | T-1106 | #117 | `hone sharpen --no-rewrites` (MCP: `rewrites: false`): the model still names the failure modes but writes no rewrite, so exactly the changes from files and the variants are judged, and the account says so; needed when the agent under test holds the key a proposer other than hone's model should not use |

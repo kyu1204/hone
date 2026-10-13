@@ -73,6 +73,7 @@ hone sharpen                 # every change, pairings, then the held-out check
 hone sharpen --budget 10     # try at most 10 candidates (default 6)
 hone sharpen --until 0.9     # stop trying once 90% of the cases it learns from pass
 hone sharpen --max-cost 2    # stop trying when the system under test has cost 2 dollars
+hone sharpen --no-rewrites   # judge only the changes you wrote and the variants: the model writes none of its own
 ```
 
 Order of candidates: every change from a file alone, then inline variants from the config, then pairings on top of the best one so far, then (with an LLM key and `sharpen.text`) rewrites by a model. Raise `--budget` when there are more changes than the default covers.

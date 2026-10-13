@@ -253,6 +253,22 @@ describe("sharpen", () => {
     expect(flat(b.message)).toContain('It uses the variant "wide" from sharpen.variants.');
   });
 
+  test("with rewrites off the model names the failure modes and proposes nothing: only what a person or an agent wrote is judged", async () => {
+    const { chat, prompts } = stubChat();
+    const cwd = tmp();
+    const base = { hash: "h", cwd, chat, rewrites: false, useCache: false };
+    const r = await sharpen({ ...base, config: config((id, text) => text.includes("CAPITALS") && even(id), { text: true }), changes: [{ name: "capitals", why: "outputs were lowercase", text: "Answer in CAPITALS.", file: "sharpen/caps.ts" }] });
+    expect(r.candidates.map((c) => `${c.id} ${c.source}`)).toEqual(["capitals file"]); // half the cases still fail, and no rewrite follows
+    expect(r.diagnosis[0]!.code).toBe("answers-lowercase"); // the diagnosis is not a proposal
+    expect(prompts.every((p) => !p.includes("Current text"))).toBe(true);
+    expect(flat(r.message)).toContain("Rewrites by a model were off: only the changes from files and the variants were tried.");
+    expect(flat(r.message)).not.toMatch(/No LLM key/);
+    // nothing written by anyone: there is nothing to try
+    const none = await sharpen({ ...base, cwd: tmp(), config: config(() => false, { text: true }) });
+    expect(none.verdict).toBe("nothing to change");
+    expect(none.candidates).toEqual([]);
+  });
+
   test("a change that carries a text and a config is one candidate; a text change needs the config to say where a text goes", async () => {
     const cfg = config((_id, text, variant) => text.includes("UPPERCASE") && variant === "wide", { text: true, variants: ["wide"] });
     const wide = cfg.sharpen!.variants!.wide!;
