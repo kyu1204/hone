@@ -114,7 +114,11 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 - [x] T-1003 `hone sharpen`: split, measure, gates, diagnose, propose, verify, confirm on held-out cases, plain report (L)
 - [x] T-1007 sharpen: try each variant again on top of a rewrite that became the best (S)
 - [x] T-1004 The first five minutes: init scaffold, example, README, skill, docs (M)
-- [ ] T-1005 Proposals as patches from a coding agent; diagnosis by intervention; `--apply` (L)
+- [ ] T-1008 Change files: `change(name, { why, text, config })` under `sharpen/`, loaded and searched by the cycle (L)
+- [ ] T-1009 The diagnosis as a file a proposer can read; `--budget 0` diagnoses only (S)
+- [ ] T-1010 Coding agents: `hone init` installs the skill with topic references and registers the MCP server; `hone guide` (M)
+- [ ] T-1011 A held-out set wears out: count confirmations per split and raise the bar (S)
+- [ ] T-1005 Proposals as patches from an agent hone starts itself; diagnosis by intervention; `--apply` (L) DEFERRED: a change file can already point the config at new code, and a coding agent writes change files through the skill (T-1008, T-1010). Reopen when a change has to edit files in place.
 - [ ] T-1006 Replicate both studies with zero human decisions (M) BLOCKED: spends API credit and subscription quota; the maintainer sets the budget first.
 
 ## Progress log
