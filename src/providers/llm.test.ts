@@ -43,7 +43,7 @@ describe("pricing", () => {
 
 type Handler = (req: Request) => Response | Promise<Response>;
 function serve(handler: Handler): { base: string; stop: () => void } {
-  const server = Bun.serve({ port: 0, fetch: handler });
+  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: handler });
   return { base: `http://127.0.0.1:${server.port}`, stop: () => server.stop(true) };
 }
 

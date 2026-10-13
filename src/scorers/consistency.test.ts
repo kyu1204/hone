@@ -61,7 +61,7 @@ describe("consistency scorer", () => {
   test("compare=jev asks whether the answers convey the same information", async () => {
     const seen: unknown[] = [];
     const srv = Bun.serve({
-      port: 0,
+      port: 0, hostname: "127.0.0.1",
       fetch: async (req) => {
         const body = (await req.json()) as { state: { a: unknown; b: unknown }; questions: Record<string, unknown> };
         seen.push(body);

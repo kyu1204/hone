@@ -49,7 +49,7 @@ describe("hack scorer rules", () => {
 describe("hack scorer with Jev confirmation", () => {
   function server(p: number): { url: string; stop: () => void; calls: () => number } {
     let n = 0;
-    const s = Bun.serve({ port: 0, fetch: () => { n++; return Response.json({ answers: { hack: { type: "noul", noul: p } } }, { headers: { "content-type": "application/json" } }); } });
+    const s = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: () => { n++; return Response.json({ answers: { hack: { type: "noul", noul: p } } }, { headers: { "content-type": "application/json" } }); } });
     return { url: `http://127.0.0.1:${s.port}/v1/systemone`, stop: () => s.stop(true), calls: () => n };
   }
   test("above threshold keeps fail; below threshold becomes undecided; clean diffs never call Jev", async () => {

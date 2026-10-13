@@ -12,7 +12,7 @@ type Body = { state: unknown; questions: Record<string, JevQuestion> };
 function stub(answer: (q: JevQuestion, id: string) => unknown): { client: JevClient; bodies: Body[]; stop: () => void } {
   const bodies: Body[] = [];
   const s = Bun.serve({
-    port: 0,
+    port: 0, hostname: "127.0.0.1",
     fetch: async (req) => {
       const body = (await req.json()) as Body;
       bodies.push(body);

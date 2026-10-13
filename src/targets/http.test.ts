@@ -6,7 +6,7 @@ const ctx: RunContext = { runId: "r", caseId: "c1", trial: 0 };
 
 type Handler = (req: Request) => Response | Promise<Response>;
 function serve(handler: Handler): { url: string; stop: () => void } {
-  const server = Bun.serve({ port: 0, fetch: handler });
+  const server = Bun.serve({ port: 0, hostname: "127.0.0.1", fetch: handler });
   return { url: `http://127.0.0.1:${server.port}/ask`, stop: () => server.stop(true) };
 }
 
