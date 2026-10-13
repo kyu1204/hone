@@ -1,6 +1,6 @@
 """hone Python bridge.
 
-Spawned by hone as `python -I hone_bridge.py <module> <fn>`. Reads one JSON object per
+Spawned by hone as `python hone_bridge.py <module> <fn>`. Reads one JSON object per
 line on stdin ({"id", "input", "ctx"}), calls `<fn>(input, ctx)` and writes one JSON
 object per line on stdout ({"id", "result"} or {"id", "error"}).
 
@@ -191,6 +191,8 @@ class Context:
 
 def _load(module: str, fn: str):
     if module.endswith(".py") or os.sep in module:
+        # as `python file.py` does: the file's own directory comes first, so it finds the files next to it
+        sys.path.insert(0, os.path.dirname(os.path.abspath(module)))
         spec = importlib.util.spec_from_file_location("hone_user_module", module)
         if spec is None or spec.loader is None:
             raise ImportError(f"cannot load {module}")
@@ -198,7 +200,7 @@ def _load(module: str, fn: str):
         sys.modules["hone_user_module"] = mod
         spec.loader.exec_module(mod)
     else:
-        # the bridge runs with -I, which drops the working directory from sys.path; put it back so `module: "answer"` finds ./answer.py
+        # a script's path starts at its own directory, which here is hone's: put the working directory first so `module: "answer"` finds ./answer.py
         cwd = os.getcwd()
         if cwd not in sys.path:
             sys.path.insert(0, cwd)
