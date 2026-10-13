@@ -163,7 +163,7 @@ A target is an HTTP endpoint, a TypeScript or Python function, a command-line ag
 - [`docs/correction.md`](./docs/correction.md): `hone sharpen` and its single steps: fork, evolve, optimize, ablate, bisect, compare
 - [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
 - [`docs/formats.md`](./docs/formats.md) and [`docs/compat.md`](./docs/compat.md): import/export formats with sources
-- [`examples/`](./examples/): sharpen (the three commands on a toy that starts broken), qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation
+- [`examples/`](./examples/): sharpen (the three commands on a toy that starts broken), helpdesk-agent (an in-house agent with tools, in LangChain and in Strands), qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation
 - [`skills/hone/`](./skills/hone/SKILL.md): the skill `hone init` installs for coding agents, a short router with topic references (`hone guide <topic>`)
 
 ## How it compares
