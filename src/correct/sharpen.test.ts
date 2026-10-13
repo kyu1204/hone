@@ -22,9 +22,10 @@ const idOf = (input: unknown): string => `c${String(input).slice(1)}`;
 const even = (id: string): boolean => Number(id.slice(1)) % 2 === 0;
 
 /** A system that answers a case correctly when `passes(caseId, text, variant)` says so; the text and the variant are what sharpen may change. */
-function config(passes: (id: string, text: string, variant: string | undefined) => boolean, opts: { n?: number; text?: boolean; variants?: string[] } = {}): HoneConfig {
+function config(passes: (id: string, text: string, variant: string | undefined) => boolean, opts: { n?: number; text?: boolean; variants?: string[]; price?: number } = {}): HoneConfig {
+  const answer = (input: unknown, text: string, variant: string | undefined): string => (passes(idOf(input), text, variant) ? String(input).toUpperCase() : String(input));
   const make = (text: string, variant: string | undefined): HoneConfig["targets"] => ({
-    t: { kind: "fn", text, variant, version: `${variant ?? "base"}|${text}`, fn: (input: unknown) => (passes(idOf(input), text, variant) ? String(input).toUpperCase() : String(input)) },
+    t: { kind: "fn", text, variant, version: `${variant ?? "base"}|${text}`, fn: (input: unknown) => (opts.price ? { output: answer(input, text, variant), usage: { costUsd: opts.price } } : answer(input, text, variant)) },
   });
   const sharpenBlock: NonNullable<HoneConfig["sharpen"]> = {};
   if (opts.text) sharpenBlock.text = { seed: "Answer.", apply: (c, text) => ({ ...c, targets: make(text, c.targets.t!.variant as string | undefined) }) };
@@ -416,6 +417,21 @@ describe("sharpen", () => {
     expect(noKey.verdict).toBe("nothing to change");
     expect(noKey.diagnosis[0]!.code).toBe("cluster-1");
     expect(noKey.message).toMatch(/ANTHROPIC_API_KEY or OPENAI_API_KEY/);
+  });
+
+  test("spend is what was run: an answer taken from the cache cost nothing this time", async () => {
+    // every trial costs a dollar. A third of the cases fail; a rewrite fixes half of those, so a second rewrite follows.
+    let n = 0;
+    const { chat } = stubChat(() => `Answer in UPPERCASE. v${++n}`);
+    const third = (id: string): boolean => Number(id.slice(1)) % 3 === 0;
+    const cfg = config((id, text) => !third(id) || (text.includes("UPPERCASE") && even(id)), { text: true, price: 1 });
+    const r = await sharpen({ config: cfg, hash: "h", cwd: tmp(), chat, maxCost: 45 });
+    // a rewrite runs on a sample first and its full run takes those answers from the cache: 20 cases, 20 dollars, not sample + 20
+    expect(r.candidates[0]!.sample!.cases).toBeLessThan(20);
+    expect(r.candidates[0]!.costUsd).toBe(20);
+    // 20 for the baseline and 20 for the first rewrite is under the limit of 45, so a second one is tried; then it stops
+    expect(r.candidates.map((c) => c.id)).toEqual(["rewrite 1", "rewrite 2"]);
+    expect(r.stopped).toBe("maxCost");
   });
 
   test("budget, max cost and a target score each stop the loop", async () => {

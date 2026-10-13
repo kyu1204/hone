@@ -94,7 +94,7 @@ export async function evolve(opts: EvolveOptions): Promise<EvolveResult> {
     const baseline: Member = { id: "baseline", text: hook.seed, run: await runConfig(hook.apply(opts.config, hook.seed), "baseline", deps) };
     const front: Member[] = [baseline];
     const candidates: EvolveCandidate[] = [];
-    let spent = baseline.run.summary.totals.costUsd;
+    let spent = baseline.run.spentUsd; // what was run, not the price of answers taken from the cache
     let stopped: EvolveResult["stopped"] = "budget";
     for (let i = 0; i < budget; i++) {
       if (opts.maxCost !== undefined && spent >= opts.maxCost) {
@@ -117,7 +117,7 @@ export async function evolve(opts: EvolveOptions): Promise<EvolveResult> {
       const passingCases = [...parent.run.perCase].filter(([, rate]) => rate >= 1).map(([c]) => c);
       const mini = [...failedCases, ...passingCases.slice(0, minibatchN)];
       const miniRun = await runConfig(hook.apply(opts.config, proposal.text), `${cid} minibatch`, { ...deps, caseIds: mini });
-      spent += miniRun.summary.totals.costUsd;
+      spent += miniRun.spentUsd;
       const rate = (run: RunOutcome, cases: string[]): number => cases.reduce((s, c) => s + (run.perCase.get(c) ?? 0), 0) / Math.max(1, cases.length);
       const candRate = rate(miniRun, mini);
       const parentRate = rate(parent.run, mini);
@@ -127,7 +127,7 @@ export async function evolve(opts: EvolveOptions): Promise<EvolveResult> {
         continue;
       }
       const full = await runConfig(hook.apply(opts.config, proposal.text), cid, deps);
-      spent += full.summary.totals.costUsd;
+      spent += full.spentUsd;
       const member: Member = { id: cid, text: proposal.text, run: full, parent: parent.id };
       front.push(member);
       candidates.push({ id: cid, text: proposal.text, ...stats(full), pareto: false, parent: parent.id, rationale: proposal.rationale, minibatch, runId: full.runId });
