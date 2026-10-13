@@ -53,7 +53,7 @@ describe("examples", () => {
     }, 120_000);
   }
 
-  test("sharpen: nothing passes as written; hone sharpen finds the rewrite and the variant that only work together", async () => {
+  test("sharpen: nothing passes as written; hone sharpen finds that the change file and a rewrite only work together", async () => {
     const cwd = path.join(here, "sharpen");
     cleanups.push(() => fs.rmSync(path.join(cwd, ".hone"), { recursive: true, force: true }));
     const before = io(cwd);
@@ -64,11 +64,11 @@ describe("examples", () => {
     const o = io(cwd);
     expect(await sharpenCommand(["--quiet", "--no-cache"], o, { chat })).toBe(0);
     expect(o.out).toMatch(/^Now: 0% of 12 cases pass\. 6 more cases are held out for the final check\./);
-    expect(o.out).toMatch(/- variant loose matching\s+0% -> 0%/);
+    expect(o.out).toMatch(/- loose matching\s+0% -> 0%/);
     expect(o.out).toMatch(/\+ rewrite 1\s+0% -> 50%/);
-    expect(o.out).toMatch(/\+ variant loose matching on rewrite 1\s+0% -> 100%/);
-    expect(o.out).toMatch(/Result: PROVEN\. On 6 cases it never saw, variant loose matching on rewrite 1 takes the pass rate from 0% to 100%/);
-    expect(o.out).toContain('It uses the variant "loose matching" from sharpen.variants.');
+    expect(o.out).toMatch(/\+ loose matching on rewrite 1\s+0% -> 100%/);
+    expect(o.out).toMatch(/Result: PROVEN\. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to 100%/);
+    expect(o.out).toContain('It uses the change "loose matching" from sharpen/loose-matching.ts.');
 
     // without a key the cycle still runs, tries what needs no model, and says what it skipped
     const empty = fs.mkdtempSync(path.join(os.tmpdir(), "hone-examples-home-"));

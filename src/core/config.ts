@@ -39,6 +39,8 @@ export interface HoneConfig {
     text?: { seed: string; apply: (config: HoneConfig, text: string) => HoneConfig; label?: string };
     /** Named alternative configs it may try (a setting, a model, a retrieval depth); the unmodified config is the baseline. */
     variants?: Record<string, (config: HoneConfig) => HoneConfig>;
+    /** Where the change files are: globs of files that call `change()`. Default: every .ts, .js and .mjs file under sharpen/. */
+    changes?: string | string[];
   };
 }
 

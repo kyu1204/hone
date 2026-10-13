@@ -37,28 +37,32 @@ This is `hone sharpen` on [`examples/sharpen`](./examples/sharpen/), a toy help-
 ```
 Now: 0% of 12 cases pass. 6 more cases are held out for the final check.
 Why it fails:
-  1. blanket-refusal-unknown (6 of 12 failed trials, e.g. cancel): The assistant answers the task with a generic 'Sorry, I do not know.' instead of attempting the task or pro...
-  2. chatty-preamble-wrapper (5 of 12 failed trials, e.g. ship-abroad): The assistant wraps the answer in conversational filler (e.g. a thank-you opener and 'The answer is ...') i...
-  3. chatty-answer-wrapper (1 of 12 failed trials, e.g. shipping-time): The agent wraps the answer in conversational filler (e.g. a pleasantry opener or full-sentence framing) ins...
+  1. unwarranted-refusal-idk (6 of 12 failed trials, e.g. cancel): The assistant gives a generic 'Sorry, I do not know.' answer instead of attempting the task, so its output...
+  2. boilerplate-answer-wrapper (5 of 12 failed trials, e.g. ship-abroad): The assistant wraps its answer in conversational boilerplate (e.g. 'Thanks for asking! The answer is ...')...
+  3. conversational-filler-padding (1 of 12 failed trials, e.g. shipping-time): The assistant wraps the requested answer in pleasantries or full-sentence framing (e.g. "Thanks for asking!...
 Tried 3 changes:
-  - variant loose matching               0% -> 0%
-  + rewrite 1                            0% -> 50%   Replaces the polite full-sentence instruction, which caused chatty wrappers, with a bar...
-  + variant loose matching on rewrite 1  0% -> 100%
-Result: PROVEN. On 6 cases it never saw, variant loose matching on rewrite 1 takes the pass rate from 0% to 100%
+  - loose matching               0% -> 0%   questions with extra words around them find nothing, because they are matched word for...
+  + rewrite 1                    0% -> 50%   Replaces the polite full-sentence instruction with a bare-answer format that forbids wr...
+  + loose matching on rewrite 1  0% -> 100%
+Result: PROVEN. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to 100%
 (+100 points, 95% interval +100 to +100, p = 0.03).
-The new text is in .hone/sharpen/20261013122857-best.txt
-It uses the variant "loose matching" from sharpen.variants.
+The new text is in .hone/sharpen/20261013131032-best.txt (as a change file: .hone/sharpen/20261013131032-best.ts)
+It uses the change "loose matching" from sharpen/loose-matching.ts.
 ```
 
-Before proposing anything it held six cases out. It named the failure modes, tried the declared setting (no gain alone), asked a model to rewrite the declared text (half), tried the setting again on top of the rewrite (all), and checked the result on the six cases no proposal had seen. Six out of six is the fewest an exact test accepts at 5%, hence p = 0.03 and not more. When a change only fits the cases it learned from, the verdict is `NO GAIN`; when there are too few cases to tell, `PROMISING, not proven`, with the number that would settle it.
+Before trying anything it held six cases out. It named the failure modes, tried the change from the file (no gain alone), asked a model to rewrite the declared text (half), put the change on top of the rewrite (all), and checked the result on the six cases no proposal had seen. Six out of six is the fewest an exact test accepts at 5%, hence p = 0.03 and not more. When a change only fits the cases it learned from, the verdict is `NO GAIN`; when there are too few cases to tell, `PROMISING, not proven`, with the number that would settle it.
 
-You tell it what it may change, in `hone.config.ts`:
+What it tries are **changes**: files under `sharpen/`, one idea each, with the reason. A person writes them, or a coding agent that read the diagnosis; the cycle treats both the same, and a model's own rewrite is saved in the same form.
 
 ```ts
-sharpen: {
-  text: { seed: PROMPT, apply: (config, text) => withPrompt(config, text) },  // a prompt, a rule file, a rubric
-  variants: { "top_k 30": (config) => withTopK(config, 30) },                // a setting, a model, a retrieval depth
-},
+// sharpen/terse-answers.ts
+import { change } from "hone-eval";
+
+change("answer with the bare value", {
+  why: "the cases expect the answer alone; the bot wraps it in a sentence",
+  text: "Reply with only the answer.",              // a new version of the prompt, the rule file, the rubric
+  // config: (config) => withTopK(config, 30),      // or anything a config can express: a setting, a model, new code
+});
 ```
 
 ## Why
@@ -148,7 +152,7 @@ A target is an HTTP endpoint, a TypeScript or Python function, a command-line ag
 
 - [`docs/README.md`](./docs/README.md): index; [`docs/concepts.md`](./docs/concepts.md): the data model and the loop
 - [`docs/cli.md`](./docs/cli.md): every command, generated from `--help`; the three everyday ones first
-- [`docs/config.md`](./docs/config.md): `hone.config.ts`, targets, scorers, gates, ablations, and what `sharpen` may change
+- [`docs/config.md`](./docs/config.md): `hone.config.ts`, targets, scorers, gates, ablations, and the `sharpen` block
 - [`docs/analysis.md`](./docs/analysis.md): clustering, taxonomy, trajectory diff, judge calibration, branch points
 - [`docs/correction.md`](./docs/correction.md): `hone sharpen` and its single steps: fork, evolve, optimize, ablate, bisect, compare
 - [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
@@ -190,7 +194,7 @@ v0.1.0 ships everything above. Progress is tracked task by task in [`WORKPLAN.md
 | P7 | correction: fork, evolve, optimize, rollout export, reward server, MCP server |
 | P8 | import/export adapters, skills, shipped docs |
 | P9 | examples, docs, binaries, release |
-| P10 | three commands; `hone sharpen` runs the whole cycle with a held-out confirmation. Next: proposals as patches from a coding agent, and both studies re-run with no human decisions |
+| P10 | three commands; `hone sharpen` runs the whole cycle with a held-out confirmation; changes are files a person or a coding agent writes. Next: the skill and MCP wiring for coding agents, and both studies re-run with no human decisions |
 
 ## Contributing
 

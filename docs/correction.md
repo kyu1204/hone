@@ -4,20 +4,30 @@ The point of measuring is to change something and know whether it helped. Every 
 
 ## The whole cycle: `hone sharpen`
 
-One command for what the rest of this page does step by step. It needs to know what it may change:
+One command for what the rest of this page does step by step. What it tries are **changes**, each a file under `sharpen/` that calls `change()`:
 
 ```ts
-sharpen: {
-  text: { seed: PROMPT, apply: (config, text) => withPrompt(config, text) },   // one prompt, rule file or rubric
-  variants: { "top_k 30": (config) => withTopK(config, 30) },                   // named alternative configs
-},
+// sharpen/terse-answers.ts
+import { change } from "hone-eval";
+
+change("answer with the bare value", {
+  why: "the cases expect the answer alone; the bot wraps it in a sentence",
+  text: "Reply with only the answer.",
+});
 ```
+
+- `why` is required: the hypothesis. It goes into the ledger and the account.
+- `text` is a new version of the one text the config declares in `sharpen.text` (`seed` and `apply`, which says where a text goes).
+- `config` is a function from a config to a config: a setting, a model, another function or module for a target. New code lives in a new file, or in the change file, and the config points at it. Never edit a file the baseline runs: there would be nothing left to compare against.
+- A change has a `text`, a `config`, or both. `config.sharpen.changes` moves the directory (a glob; default every `.ts`, `.js` and `.mjs` file under `sharpen/`).
+
+Variants declared inline in `sharpen.variants` are config changes without a file, and with `sharpen.text` and an LLM key a model writes rewrites too. A model's winning rewrite is saved as `.hone/sharpen/<id>-best.ts`, a change file like any other.
 
 1. **Split.** A third of the cases is held out, chosen by a hash of `--seed` and the case id, so the split is the same on every run. Cases that declare the same `cluster` stay on the same side. Below 12 cases nothing can be held out.
 2. **Measure** the unchanged config on the other cases.
 3. **Gates.** It stops before proposing when more than 20% of the trials errored (`Cannot measure`: an error is not a wrong answer), when nothing fails (`Nothing to sharpen`), or when the config declares nothing to change (`Nothing to change`).
 4. **Diagnose.** Failed trials are clustered; with an LLM key the clusters get names and definitions.
-5. **Propose and verify,** at most `--budget` candidates. Every variant first. Then rewrites of the text, each from the best candidate so far, so a rewrite lands on a variant that helped. A variant that did nothing alone is tried again on top of a rewrite that became the best. A rewrite runs on a sample (the failing cases plus eight passing ones) before it gets a full run.
+5. **Try,** at most `--budget` candidates. Every change from a file on its own, then every inline variant. Then, from the best candidate so far, whatever kind it lacks: a config change on top of a text, a text from a file on top of a config change. That is how changes that only help together are found. When nothing is left to pair and there is a model, a rewrite from the best candidate. A text runs on a sample (the failing cases plus eight passing ones) before it gets a full run.
 6. **Confirm.** The baseline and the best candidate run on the held-out cases. `PROVEN` needs a positive difference that both a paired t test and an exact sign test call significant; six improvements out of six are the fewest that can. `PROMISING, not proven` comes with the number of held-out cases that would settle it. `NO GAIN` keeps the baseline.
 
 The account is printed in plain words with the statistics in parentheses. `.hone/sharpen/<id>.json` holds every candidate, including the dropped ones and why; a winning text is also written to `.hone/sharpen/<id>-best.txt`. See [`examples/sharpen`](../examples/sharpen/) for a run.
