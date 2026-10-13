@@ -3,7 +3,7 @@
 
   run_stage.py <target> [--tags dev,heldout] [--batch 3] [--max-five-hour 0.88] [--max-seven-day 0.70]
 
-Each batch is one `hone run` (its own run id) with TMPDIR pointed at the private work directory so workspaces are
+Each batch is one `hone test` (its own run id) with TMPDIR pointed at the private work directory so workspaces are
 created where only their own agent can read them. Progress is appended to runs.json; cases already done for the target
 are skipped, so the same command resumes after a limit resets. A batch in which any trial errored is not recorded.
 Targets with "-spec" in the name get the statement with written requirements (cases-spec.json), the others the title-only one."""
@@ -38,11 +38,11 @@ env.update({"TMPDIR": str(PRIVATE / "work"), "HONE_BENCH_STATEMENT": "spec" if "
 for i in range(0, len(todo), batch_size):
     batch = todo[i:i + batch_size]
     out = HERE / "logs" / f"run-{target}-{int(time.time())}.json"
-    cmd = [*HONE, "run", "--no-cache", "--quiet", "--target", target, "--json", str(out)] + [x for c in batch for x in ("--case", c)]
+    cmd = [*HONE, "test", "--no-cache", "--quiet", "--target", target, "--json", str(out)] + [x for c in batch for x in ("--case", c)]
     started = time.time()
     r = subprocess.run(cmd, cwd=HERE, env=env, capture_output=True, text=True)
     if not out.exists():
-        print(f"batch {batch}: hone run failed (exit {r.returncode}): {(r.stderr or r.stdout)[-400:]}", flush=True); sys.exit(1)
+        print(f"batch {batch}: hone test failed (exit {r.returncode}): {(r.stderr or r.stdout)[-400:]}", flush=True); sys.exit(1)
     doc = json.loads(out.read_text())
     trials = [json.loads(p.read_text()) for p in sorted((HERE / ".hone" / "runs" / doc["runId"] / "trials").glob("*.json"))]
     errors = [t["trace"].get("error") for t in trials if t["trace"].get("error")]

@@ -23,6 +23,6 @@ Each import creates one run so the TUI shows the trials immediately.
 | `otel` | OTLP JSON: one `invoke_agent` root span per trial with messages and one evaluation event per score, child spans by kind |
 | `docent` | `{ agent_runs: [...] }` |
 | `junit` | one testcase per (case, target) cell |
-| `html` | self-contained report (`hone report` is the same) |
+| `html` | self-contained report (`hone test --report` writes it right after a run) |
 
 The OpenTelemetry attribute names live in one file, `src/io/otelAttrs.ts`, with the semantic-conventions commit they were read from.

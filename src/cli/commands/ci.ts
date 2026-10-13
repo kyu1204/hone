@@ -36,7 +36,7 @@ const HELP: Record<string, string> = {
 };
 
 export function ciUsage(): string {
-  return `usage: hone ci [options]\n\nRun, check per-axis gates, exit non-zero on the failing axis, leave artifacts.\n\n${usageLine(CI_SPEC, HELP)}\n`;
+  return `usage: hone test --ci [options]\n\nRun, check per-axis gates, exit non-zero on the failing axis, leave artifacts.\n\n${usageLine(CI_SPEC, HELP)}\n`;
 }
 
 function perCasePass(trials: Trial[]): Map<string, number> {
@@ -59,7 +59,7 @@ export function regressionGate(current: Trial[], baseline: Trial[], maxRegressio
 export function commentMarkdown(outcome: RunOutcome, gates: GateResult[]): string {
   const t = outcome.summary.totals;
   const rows = gates.map((g) => `| ${g.name} | ${g.value.toFixed(3)} | ${g.name === "costUsd" || g.name === "regression" ? "<=" : ">="} ${g.threshold} | ${g.pass ? "✅" : "❌"} |`);
-  return `### hone ci: ${gates.every((g) => g.pass) ? "all gates passed ✅" : "gate failed ❌"}\n\nrun \`${outcome.runId}\`: pass@1 **${t.passAt1.toFixed(2)}**, ${t.trials} trials, $${t.costUsd.toFixed(4)}${t.flagged["reward-hack"] ? `, ${t.flagged["reward-hack"]} reward-hack flag(s)` : ""}\n\n| gate | value | threshold | result |\n|---|---|---|---|\n${rows.join("\n")}\n`;
+  return `### hone test --ci: ${gates.every((g) => g.pass) ? "all gates passed ✅" : "gate failed ❌"}\n\nrun \`${outcome.runId}\`: pass@1 **${t.passAt1.toFixed(2)}**, ${t.trials} trials, $${t.costUsd.toFixed(4)}${t.flagged["reward-hack"] ? `, ${t.flagged["reward-hack"]} reward-hack flag(s)` : ""}\n\n| gate | value | threshold | result |\n|---|---|---|---|\n${rows.join("\n")}\n`;
 }
 
 export async function ciCommand(argv: string[], io: CommandIo): Promise<number> {

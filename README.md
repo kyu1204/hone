@@ -88,11 +88,11 @@ Failure clustering pointed at the cause: the hidden tests asserted names and wor
 # requires Bun >= 1.3.14
 bunx hone-eval init          # detects your project, writes hone.config.ts + evals/cases.yaml, stores keys
 hone import claude-code      # existing Claude Code sessions show up in the matrix, no run needed
-hone run --adaptive          # runs cases until confidence intervals are tight enough
+hone test --adaptive         # runs cases until confidence intervals are tight enough
 hone                         # the dashboard
 hone cluster --induce        # name the failure modes
 hone compare rag@a rag@b     # paired comparison with significance
-hone ci                      # per-axis thresholds, exit code, JUnit, PR comment
+hone test --ci               # per-axis thresholds, exit code, JUnit, PR comment
 ```
 
 A config is a TypeScript file:
@@ -126,7 +126,7 @@ export default defineConfig({
 - [`docs/correction.md`](./docs/correction.md): fork, evolve, optimize, ablate, bisect, compare, ci
 - [`docs/serve.md`](./docs/serve.md): ssh dashboard, reward API, MCP server
 - [`docs/formats.md`](./docs/formats.md) and [`docs/compat.md`](./docs/compat.md): import/export formats with sources
-- [`examples/`](./examples/): qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation, each green under `hone ci`
+- [`examples/`](./examples/): qa-fn, rag-python, agent-claude-code, mcp-server, harness-ablation, each green under `hone test --ci`
 - [`skills/hone/SKILL.md`](./skills/hone/SKILL.md): the skill `hone init --skills` installs for Claude Code and Codex
 
 ## How it compares

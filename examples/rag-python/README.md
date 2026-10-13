@@ -5,7 +5,7 @@ A retrieval-augmented QA service (standard-library Python, no pip) and a hone co
 ```bash
 cd examples/rag-python
 python3 app.py &            # POST /ask {"q": "..."} -> {"answer", "chunks", "_hone": {spans}}
-hone run && hone matrix
+hone test && hone matrix
 hone calibrate --scorer rag.citations   # what the citation check actually catches
 ```
 

@@ -30,7 +30,7 @@ export function MatrixScreen({ store }: { store: TuiStore }): ReactNode {
   if (!s.runId) {
     return (
       <box border style={{ flexGrow: 1 }}>
-        <text fg={theme.muted}>No runs yet. Run `hone run` in this project, then come back.</text>
+        <text fg={theme.muted}>No runs yet. Run `hone test` in this project, then come back.</text>
       </box>
     );
   }

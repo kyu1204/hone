@@ -6,7 +6,7 @@ import valid from "../../../test/fixtures/trace.valid.json";
 import { Store } from "../../core/store";
 import type { Trace, Trial } from "../../core/types";
 import { explainCommand } from "./explain";
-import { reportCommand } from "./report";
+import { exportCommand } from "./export";
 import type { CommandIo } from "./run";
 
 const base = valid as Trace;
@@ -74,11 +74,11 @@ describe("hone explain", () => {
   });
 });
 
-describe("hone report", () => {
+describe("hone export html", () => {
   test("writes a self-contained HTML file mentioning every case, score and flag", async () => {
     const { dir, runId } = project();
     const o = io(dir);
-    expect(await reportCommand(["--out", "report.html"], o)).toBe(0);
+    expect(await exportCommand(["html", "--out", "report.html"], o)).toBe(0);
     const html = fs.readFileSync(path.join(dir, "report.html"), "utf8");
     expect(html).toContain(runId);
     expect(html).toContain("citations-basic");

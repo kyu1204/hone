@@ -22,7 +22,7 @@ So absolute numbers are not comparable with the project's README; the before/aft
 
 ## Results
 
-### 1. Measure: baseline (prompt v1, top_k 5), 43 cases x 2 trials, `hone run --no-cache`
+### 1. Measure: baseline (prompt v1, top_k 5), 43 cases x 2 trials, `hone test --no-cache`
 
 | group | n | useful (2) | safe (>0) | 2/1/0 |
 |---|---|---|---|---|

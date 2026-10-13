@@ -30,7 +30,7 @@ Pass rates carry Wilson intervals. Comparisons are paired on the same cases (pai
 
 ```
  measure ──> localize ──> propose ──> verify ──> compare ──> lock
- hone run    hone cluster  edit, or   hone fork  hone compare  hone ci
+ hone test   hone cluster  edit, or   hone fork  hone compare  hone test --ci
  hone matrix hone explain  hone evolve           hone optimize
  hone calibrate (is the judge trustworthy?)       hone ablate / bisect
 ```

@@ -1,4 +1,4 @@
-// The stages run in batches, one hone run each. This copies their trials into a single run so hone's own commands
+// The stages run in batches, one `hone test` each. This copies their trials into a single run so hone's own commands
 // (matrix, compare, cluster, explain) work on the whole study. Usage: bun merge_runs.ts [--runs runs.json] [--tag dev|heldout] [--targets a,b]
 import * as fs from "node:fs";
 import { Store } from "../../src/core/store";

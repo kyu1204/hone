@@ -32,4 +32,4 @@ Binary search over commits in git worktrees; each probe runs the case enough tim
 
 ## Compare and CI
 
-`hone compare <a> <b>` is the paired comparison (paired t with McNemar for binary outcomes, cluster-robust errors when cases declare `cluster`). `hone ci` runs and gates on `passAt1`, `passHatK`, `costUsd` and regression against `--baseline <runId>`, writes JUnit, and posts or prints a PR comment.
+`hone compare <a> <b>` is the paired comparison (paired t with McNemar for binary outcomes, cluster-robust errors when cases declare `cluster`). `hone test --ci` runs and gates on `passAt1`, `passHatK`, `costUsd` and regression against `--baseline <runId>`, writes JUnit, and posts or prints a PR comment.
