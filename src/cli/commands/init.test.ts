@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { loadCases, loadConfig } from "../../core/config";
+import { loadChanges } from "../../correct/change";
 import { initCommand } from "./init";
 import type { CommandIo } from "./run";
 import { runCommand } from "./run";
@@ -79,27 +80,59 @@ describe("hone init", () => {
     expect((fs.statSync(envFile).mode & 0o777).toString(8)).toBe("600");
   });
 
-  test("--skills installs the hone skill for Claude Code (and Codex when .codex exists), never overwriting without --force", async () => {
+  test("init wires coding agents: the skill with its references in both places, the MCP server, a sharpen/ directory", async () => {
     const d = tmp();
     const o = io(d);
-    expect(await initCommand(["--yes", "--no-keys", "--skills"], o)).toBe(0);
-    const file = path.join(d, ".claude", "skills", "hone", "SKILL.md");
-    const text = fs.readFileSync(file, "utf8");
-    expect(text).toMatch(/^---\nname: hone\n/);
-    expect(text).toContain("hone serve mcp");
-    expect(o.out).toMatch(/installed skill .*\.claude\/skills\/hone\/SKILL\.md/);
-    expect(fs.existsSync(path.join(d, ".codex"))).toBe(false);
-    fs.writeFileSync(file, "custom");
-    fs.mkdirSync(path.join(d, ".codex"));
-    const o2 = io(d);
-    expect(await initCommand(["--yes", "--no-keys", "--skills", "--force"], o2)).toBe(0);
-    expect(fs.readFileSync(file, "utf8")).not.toBe("custom");
-    expect(fs.existsSync(path.join(d, ".codex", "skills", "hone", "SKILL.md"))).toBe(true);
-    fs.writeFileSync(file, "custom");
-    const o3 = io(d);
-    expect(await initCommand(["--skills"], o3)).toBe(0);
-    expect(fs.readFileSync(file, "utf8")).toBe("custom");
-    expect(o3.out).toMatch(/kept existing/);
-    expect(fs.existsSync(path.join(d, "hone.config.ts"))).toBe(true);
+    expect(await initCommand(["--yes", "--no-keys"], o)).toBe(0);
+    for (const root of [".agents", ".claude"]) {
+      const skill = fs.readFileSync(path.join(d, root, "skills", "hone", "SKILL.md"), "utf8");
+      expect(skill).toMatch(/^---\nname: hone\n/);
+      expect(fs.readFileSync(path.join(d, root, "skills", "hone", "references", "sharpening.md"), "utf8")).toMatch(/^# sharpening/);
+      expect(fs.readdirSync(path.join(d, root, "skills", "hone", "references")).sort()).toEqual(["cases.md", "mcp.md", "results.md", "setup.md", "sharpening.md", "steps.md"]);
+    }
+    expect(JSON.parse(fs.readFileSync(path.join(d, ".mcp.json"), "utf8"))).toEqual({ mcpServers: { hone: { command: "bunx", args: ["hone-eval", "serve", "mcp"] } } });
+    expect(fs.existsSync(path.join(d, ".cursor"))).toBe(false); // only when the project uses Cursor
+    expect(fs.readFileSync(path.join(d, "sharpen", "README.md"), "utf8")).toContain('change("what it does"');
+    expect(await loadChanges(d)).toEqual([]); // the README is not a change
+    expect(o.out).toMatch(/installed the hone skill in \.agents\/skills\/hone and \.claude\/skills\/hone/);
+    expect(o.out).toMatch(/registered the hone MCP server in \.mcp\.json/);
+  });
+
+  test("the registration is merged into what is there and left alone when current; the skill is refreshed", async () => {
+    const d = tmp();
+    fs.writeFileSync(path.join(d, ".mcp.json"), JSON.stringify({ mcpServers: { other: { command: "other-server" } }, extra: true }, null, 2));
+    fs.mkdirSync(path.join(d, ".cursor"));
+    expect(await initCommand(["--yes", "--no-keys"], io(d))).toBe(0);
+    const first = fs.readFileSync(path.join(d, ".mcp.json"), "utf8");
+    expect(JSON.parse(first)).toEqual({ mcpServers: { other: { command: "other-server" }, hone: { command: "bunx", args: ["hone-eval", "serve", "mcp"] } }, extra: true });
+    expect(JSON.parse(fs.readFileSync(path.join(d, ".cursor", "mcp.json"), "utf8")).mcpServers.hone.command).toBe("bunx");
+    // a registration someone adjusted is theirs: env and timeouts stay
+    const mine = { mcpServers: { hone: { command: "bunx", args: ["hone-eval", "serve", "mcp"], env: { HONE_LLM_MODEL: "x" } } } };
+    fs.writeFileSync(path.join(d, ".mcp.json"), JSON.stringify(mine));
+    const skill = path.join(d, ".claude", "skills", "hone", "SKILL.md");
+    fs.writeFileSync(skill, "stale");
+    const again = io(d);
+    expect(await initCommand(["--yes", "--no-keys", "--force"], again)).toBe(0);
+    expect(fs.readFileSync(path.join(d, ".mcp.json"), "utf8")).toBe(JSON.stringify(mine));
+    expect(fs.readFileSync(skill, "utf8")).toMatch(/^---\nname: hone\n/);
+    // a file that is not JSON is not overwritten; init says how to register by hand
+    fs.writeFileSync(path.join(d, ".mcp.json"), "{ not json");
+    const broken = io(d);
+    expect(await initCommand(["--yes", "--no-keys", "--force"], broken)).toBe(0);
+    expect(fs.readFileSync(path.join(d, ".mcp.json"), "utf8")).toBe("{ not json");
+    expect(broken.out).toMatch(/could not read \.mcp\.json.*claude mcp add hone -- bunx hone-eval serve mcp/);
+  });
+
+  test("--no-agents skips the skill and the registration; --skills alone installs the skill into an initialised project", async () => {
+    const d = tmp();
+    expect(await initCommand(["--yes", "--no-keys", "--no-agents"], io(d))).toBe(0);
+    for (const f of [".agents", ".claude", ".mcp.json"]) expect(fs.existsSync(path.join(d, f))).toBe(false);
+    expect(fs.existsSync(path.join(d, "sharpen", "README.md"))).toBe(true);
+    const before = fs.readFileSync(path.join(d, "hone.config.ts"), "utf8");
+    const o = io(d);
+    expect(await initCommand(["--skills"], o)).toBe(0);
+    expect(fs.existsSync(path.join(d, ".claude", "skills", "hone", "references", "setup.md"))).toBe(true);
+    expect(fs.existsSync(path.join(d, ".mcp.json"))).toBe(false);
+    expect(fs.readFileSync(path.join(d, "hone.config.ts"), "utf8")).toBe(before);
   });
 });

@@ -2,13 +2,13 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { JevClient, noul } from "../../providers/jev";
-import skillSource from "../../../skills/hone/SKILL.md" with { type: "text" };
 import { ArgError, parseArgs, usageLine } from "../args";
 import { detectProject, renderCases, renderConfig } from "../detect";
+import { SKILL_FILES } from "../skill";
 import type { CommandIo } from "./run";
 
 export const INIT_SPEC = {
-  flags: ["yes", "keys", "force", "skills"],
+  flags: ["yes", "keys", "force", "agents", "skills"],
   strings: ["typesafe-key", "openrouter-key", "anthropic-key", "openai-key"],
   numbers: [],
   repeatable: [],
@@ -18,7 +18,8 @@ const HELP: Record<string, string> = {
   yes: "no prompts; accept detection and skip interactive key entry",
   keys: "ask for API keys (default on; --no-keys to skip)",
   force: "overwrite an existing hone.config.ts (and an installed skill)",
-  skills: "install the hone skill into .claude/skills (and .codex/skills when .codex exists); alone, installs only the skill",
+  agents: "install the skill and register the MCP server for coding agents (default on; --no-agents to skip)",
+  skills: "install only the skill, into a project that already has a config",
   "typesafe-key": "TYPESAFE_API_KEY to store",
   "openrouter-key": "OPENROUTER_API_KEY to store",
   "anthropic-key": "ANTHROPIC_API_KEY to store",
@@ -26,7 +27,7 @@ const HELP: Record<string, string> = {
 };
 
 export function initUsage(): string {
-  return `usage: hone init [options]\n\nDetect the project, write hone.config.ts and example cases, store API keys.\n\n${usageLine(INIT_SPEC, HELP)}\n`;
+  return `usage: hone init [options]\n\nDetect the project; write hone.config.ts, example cases and a sharpen/ directory; store API keys; install the skill and register the MCP server for coding agents.\n\n${usageLine(INIT_SPEC, HELP)}\n`;
 }
 
 function ask(question: string): string {
@@ -66,7 +67,7 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
   }
   const configPath = path.join(io.cwd, "hone.config.ts");
   if (args.flags.skills && fs.existsSync(configPath) && !args.flags.force) {
-    installSkills(io, false);
+    installSkills(io);
     return 0;
   }
   if (fs.existsSync(configPath) && !args.flags.force) {
@@ -85,10 +86,15 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
     fs.mkdirSync(path.dirname(f), { recursive: true });
     if (!fs.existsSync(f) || args.flags.force) fs.writeFileSync(f, content);
   }
+  const readme = path.join(io.cwd, "sharpen", "README.md");
+  if (!fs.existsSync(readme)) {
+    fs.mkdirSync(path.dirname(readme), { recursive: true });
+    fs.writeFileSync(readme, SHARPEN_README);
+  }
   const gitignore = path.join(io.cwd, ".gitignore");
   const current = fs.existsSync(gitignore) ? fs.readFileSync(gitignore, "utf8") : "";
   if (!/^\.hone\/?$/m.test(current)) fs.writeFileSync(gitignore, `${current}${current && !current.endsWith("\n") ? "\n" : ""}.hone/\n`);
-  io.stdout(`wrote hone.config.ts, evals/cases.yaml${Object.keys(detection.files).length ? `, ${Object.keys(detection.files).join(", ")}` : ""}\n`);
+  io.stdout(`wrote hone.config.ts, evals/cases.yaml, sharpen/README.md${Object.keys(detection.files).length ? `, ${Object.keys(detection.files).join(", ")}` : ""}\n`);
   for (const n of detection.notes) io.stdout(`note: ${n}\n`);
 
   if (args.flags.keys !== false) {
@@ -117,25 +123,70 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
       io.stdout(`stored ${Object.keys(vars).join(", ")} in ${file}\n`);
     }
   }
-  if (args.flags.skills) installSkills(io, args.flags.force === true);
+  if (args.flags.agents !== false) {
+    installSkills(io);
+    registerMcp(io);
+  }
   io.stdout("\nnext: hone test, then hone sharpen\n");
   return 0;
 }
 
-/** Copies the embedded skills/hone/SKILL.md into .claude/skills/hone (and .codex/skills/hone when .codex exists). */
-export function installSkills(io: CommandIo, force: boolean): string[] {
-  const roots = [".claude", ...(fs.existsSync(path.join(io.cwd, ".codex")) ? [".codex"] : [])];
-  const written: string[] = [];
-  for (const root of roots) {
-    const file = path.join(io.cwd, root, "skills", "hone", "SKILL.md");
-    if (fs.existsSync(file) && !force) {
-      io.stdout(`kept existing ${path.relative(io.cwd, file)} (pass --force to replace it)\n`);
+/** Writes the skill and its references into `.agents/skills/hone` and `.claude/skills/hone`, replacing what is there: the files are hone's. */
+export function installSkills(io: CommandIo): void {
+  const dirs = [".agents", ".claude"].map((root) => path.join(root, "skills", "hone"));
+  for (const dir of dirs) {
+    for (const [rel, content] of Object.entries(SKILL_FILES)) {
+      const file = path.join(io.cwd, dir, rel);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      fs.writeFileSync(file, content);
+    }
+  }
+  io.stdout(`installed the hone skill in ${dirs.join(" and ")}\n`);
+}
+
+// the bare name `hone` on npm is another package, so the server is started through the package name
+const MCP_ENTRY = { command: "bunx", args: ["hone-eval", "serve", "mcp"] };
+
+/** Registers the MCP server as `hone` for Claude Code (`.mcp.json`) and, in a project that uses it, Cursor. Other servers and an existing `hone` entry are left as they are. */
+export function registerMcp(io: CommandIo): void {
+  const files = [".mcp.json", ...(fs.existsSync(path.join(io.cwd, ".cursor")) ? [path.join(".cursor", "mcp.json")] : [])];
+  for (const rel of files) {
+    const file = path.join(io.cwd, rel);
+    let doc: { mcpServers?: Record<string, unknown> } = {};
+    if (fs.existsSync(file)) {
+      try {
+        const parsed = JSON.parse(fs.readFileSync(file, "utf8")) as unknown;
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) throw new Error("not an object");
+        doc = parsed as typeof doc;
+      } catch {
+        io.stdout(`could not read ${rel}; register the server by hand: claude mcp add hone -- ${MCP_ENTRY.command} ${MCP_ENTRY.args.join(" ")}\n`);
+        continue;
+      }
+    }
+    if (doc.mcpServers && typeof doc.mcpServers === "object" && "hone" in doc.mcpServers) {
+      io.stdout(`the hone MCP server is already registered in ${rel}\n`);
       continue;
     }
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, skillSource);
-    written.push(file);
-    io.stdout(`installed skill ${path.relative(io.cwd, file)}\n`);
+    fs.writeFileSync(file, `${JSON.stringify({ ...doc, mcpServers: { ...doc.mcpServers, hone: MCP_ENTRY } }, null, 2)}\n`);
+    io.stdout(`registered the hone MCP server in ${rel}\n`);
   }
-  return written;
 }
+
+const SHARPEN_README = `# sharpen/
+
+Changes for \`hone sharpen\` to try: one idea per file, with the reason. A person writes them, or a coding agent that
+read why cases fail (\`hone sharpen --budget 0\` names that page).
+
+\`\`\`ts
+// sharpen/first-idea.ts
+import { change } from "hone-eval";
+
+change("what it does", {
+  why: "which failure it fixes, and why",
+  text: "the new text",                    // a new version of the text declared in sharpen.text
+  // config: (config) => ({ ...config }),  // or a change to the config: a setting, a model, new code
+});
+\`\`\`
+
+Never edit a file the current system runs. Put new code in a new file and point \`config\` at it.
+`;

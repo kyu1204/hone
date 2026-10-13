@@ -1,57 +1,59 @@
 ---
 name: hone
-description: Evaluate and correct an AI system (RAG, agent, LLM QA, coding-agent harness) with hone. Use when asked to measure quality, find why cases fail, compare two versions, or prove an improvement with statistics.
+description: Evaluates an AI system (a RAG pipeline, an agent, an LLM endpoint, a coding-agent harness) and improves it with proof, using hone. Use when asked to measure quality, find why cases fail, make the system better, compare two versions, or check that a change really helped. Covers writing cases, reading the diagnosis, writing change files under sharpen/, running the cycle and reporting its verdict.
 ---
 
 # hone: evaluate, then sharpen
 
-Three commands cover the normal path: `hone init` (once), `hone test` (evaluate), `hone sharpen` (improve). `hone help all` lists the single steps and tools below.
+hone runs every case against the system several times, scores each run, and says how far to trust the score. `hone sharpen` then tries changes and keeps only what holds up on cases no change was allowed to see. Three commands cover the normal path:
 
-hone stores every result as a trace (messages + spans) in `.hone/` and reports pass rates with confidence intervals. Never report an improvement without a verdict from hone (`hone sharpen`, `hone compare`, `hone evolve` and `hone optimize` print one).
+```bash
+hone init       # once: writes hone.config.ts, example cases, this skill, the MCP registration
+hone test       # evaluate: pass rate per case, with trials and intervals
+hone sharpen    # improve: why cases fail, each change tried, a verdict on held-out cases
+```
 
-## Setup (once)
+## Start here: pick the reference for the job
 
-1. `hone init` writes `hone.config.ts` (targets, cases, scorers, gates) and `evals/cases.yaml`. Edit the target to point at the system under test.
-2. Keys live in `~/.config/hone/env` (`TYPESAFE_API_KEY` for the Jev judge, `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` for LLM judges and embeddings). Deterministic scorers need none.
-3. Existing Claude Code sessions: `hone import claude-code` puts them in the matrix without running anything.
+Read the one reference that matches the request before doing anything else. `hone guide <topic>` prints the same text.
 
-## Improve: `hone sharpen`
+| When you are | Topic | Read |
+| --- | --- | --- |
+| Adding hone to a project, pointing a target at the system, storing keys | `setup` | [references/setup.md](references/setup.md) |
+| Writing or fixing cases and scorers, deciding how many cases are enough | `cases` | [references/cases.md](references/cases.md) |
+| Asked to improve the system: reading the diagnosis, writing change files, running the cycle | `sharpening` | [references/sharpening.md](references/sharpening.md) |
+| Reading a result, deciding what you may claim, reporting to the user | `results` | [references/results.md](references/results.md) |
+| Needing one step on its own: compare two targets, look at one trial, cluster failures, check a judge | `steps` | [references/steps.md](references/steps.md) |
+| Working through the MCP server instead of a shell | `mcp` | [references/mcp.md](references/mcp.md) |
 
-`hone sharpen` runs the whole cycle and prints a plain account: the pass rate now, why cases fail, each change it tried, and a verdict. It holds a third of the cases out before proposing anything and confirms the best change on those.
+The full documentation ships in the `docs/` directory of the installed package (`node_modules/hone-eval/docs`).
 
-- It tries **changes**: files under `sharpen/` that call `change(name, { why, text, config })`. Write one file per hypothesis after reading why cases fail. `text` is a new version of the text declared in `sharpen.text`; `config` is a function from a config to a config. Put new code in a new file and point the config at it; never edit a file the baseline runs. Inline `sharpen.variants` and, with a key, a model's rewrites are tried too.
-- Verdicts: `PROVEN` (adopt it), `PROMISING, not proven` (the account says how many held-out cases would settle it; do not report it as an improvement), `NO GAIN` (keep what you have), `Nothing to sharpen`, `Nothing to change`, `Cannot measure` (the system errored; fix that first).
-- Before writing a change, run `hone sharpen --budget 0` and read the page it names, `.hone/sharpen/<id>-diagnosis.md`: the failure modes with failing cases in full. Do not open the case files themselves; some cases are held out for the final check.
-- The winning text is in `.hone/sharpen/<id>-best.txt`, the full ledger in `.hone/sharpen/<id>.json`. `--json` prints the ledger; `--budget`, `--max-cost` and `--until` bound the search.
-- Without an LLM key it tries the variants only and says that rewrites were skipped.
+## Workflow: improving a system
 
-## The single steps
+1. Look at what exists: `hone.config.ts`, the cases (`evals/`), the changes already tried (`sharpen/`). No config: follow `setup`.
+2. Measure: `hone test`. If the system errors, fix that first; an error is not a wrong answer.
+3. Read why cases fail: `hone sharpen --budget 0` measures, diagnoses and names a page, `.hone/sharpen/<id>-diagnosis.md`. Read that page. It shows each failure mode with failing cases in full.
+4. Write one change per hypothesis as a file under `sharpen/` (topic `sharpening`):
+   ```ts
+   // sharpen/terse-answers.ts
+   import { change } from "hone-eval";
 
-Use these when you need one step on its own, or to look into what `hone sharpen` reported.
-
-1. Measure: `hone test --adaptive` (runs cases until intervals are tight; `--json` for machines). `hone matrix` shows per-target pass@1, cost and significance bands.
-2. Localize: `hone cluster --induce` groups failures and names the failure modes (`.hone/analysis/clusters-<run>.json`). `hone explain <trialId>` prints one trial with fork candidates. `hone diff <a> <b>` aligns two trajectories and shows where they diverge.
-3. Check the judge before trusting it: `hone calibrate --scorer <name>` injects faults into passing trials and reports what the scorer catches, its false alarms, and kappa against labels.
-4. Propose: edit the prompt, rules, retrieval or tools. Or let hone propose: `hone evolve` (reflects on failures, verifies candidates on a minibatch then the full set, keeps the Pareto front).
-5. Verify a single hypothesis cheaply: `hone fork <trialId> --step N --content "..."` re-runs from an edited message and reports the verdict change.
-6. Compare: `hone compare <targetA> <targetB>` (paired, same cases) or `hone optimize` (Thompson sampling across named candidates, then a paired verdict). `hone ablate` measures what each component contributes; `hone bisect` finds the commit that broke a case.
-7. Lock: `hone test --ci` gates on pass@1, pass^k, cost and regression against a baseline; writes JUnit and a PR comment.
-8. Share: `hone test --report` (HTML), `hone export otel|docent|junit|rollouts`, `hone serve ssh` (dashboard over SSH).
-
-## Reading results
-
-- `pass@1` is the mean pass rate; the bracket after it is a 95% Wilson interval. Two targets whose intervals overlap are not shown as different.
-- `no measurable effect` means p >= alpha on the paired test. Say that, not "slightly better".
-- `reward-hack` flags mean the trace edited tests or assertions; treat the pass as suspect.
-- Costs are in USD from provider pricing tables; `cached` flags mean the target output came from the content-addressed cache.
-
-## MCP
-
-`hone serve mcp` speaks MCP over stdio. Tools: `hone_run`, `hone_list_runs`, `hone_matrix`, `hone_compare`, `hone_explain`, `hone_cluster`, `hone_fork`. Each returns the same JSON the CLI prints with `--json`. Register it as `{"command": "hone", "args": ["serve", "mcp"]}` in the client's MCP settings and call the tools instead of shelling out.
+   change("answer with the bare value", {
+     why: "the cases expect the answer alone; the bot wraps it in a sentence",
+     text: "Reply with only the answer.",
+   });
+   ```
+5. Run the cycle: `hone sharpen`. It tries every change, pairs changes that only help together, and checks the best one on the held-out cases.
+6. Report the `Result:` line as printed, with what was tried. Apply a change to the project only when the verdict is `PROVEN`, or when the user decides otherwise knowing the verdict.
 
 ## Rules
 
-- Run `hone test` before and after a change; compare paired, on the same cases, with the same trials.
-- Prefer `--adaptive` over a fixed trial count; prefer more cases over more trials when variance is between cases.
-- Do not edit `.hone/` by hand; runs are content-addressed and the TUI reads them live.
-- When a scorer and a human disagree, calibrate the scorer before changing the system.
+- Run the CLI as `hone ...` (`bunx hone-eval ...` when it is not installed in the project).
+- One hypothesis per change, and say it in `why`. A change that does three things cannot tell you which one helped.
+- Never edit a file the current system runs. Put new code in a new file and point the change's `config` function at it. If the baseline changes too, there is nothing left to compare against.
+- Do not open the case files to tune against them, and never copy a case's expected answer into a prompt or into code. A third of the cases is held out for the final check; the diagnosis page shows you the ones you may learn from.
+- Do not edit cases or scorers to make a change look better. If a case or a scorer is wrong, say so and fix it as its own step, then measure again from the start.
+- `PROMISING, not proven` is not an improvement. Say what the account says: how many more held-out cases would settle it.
+- `NO GAIN` after a change looked better on the cases it learned from means it fitted those cases. Do not ship it.
+- Report numbers from hone's output. Never estimate a pass rate from reading a few transcripts.
+- `.hone/` is output. Read it, never edit it.

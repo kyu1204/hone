@@ -74,6 +74,6 @@ describe("hone serve mcp", () => {
     await proc.exited;
     const res = JSON.parse(out.trim()) as { id: number; result: { tools: { name: string }[] } };
     expect(res.id).toBe(7);
-    expect(res.result.tools.map((t) => t.name)).toContain("hone_run");
+    expect(res.result.tools.map((t) => t.name)).toContain("hone_test");
   }, 20_000);
 });
