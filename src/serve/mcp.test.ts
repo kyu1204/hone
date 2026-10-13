@@ -100,6 +100,10 @@ export default defineConfig({ targets: make("Answer."), cases: Array.from({ leng
     expect(result.message).toMatch(/Result: PROVEN\./);
     const own = JSON.parse(text(await call(server, 6, "tools/call", { name: "hone_sharpen", arguments: { rewrites: false } }))) as { message: string };
     expect(own.message).toMatch(/Rewrites by a model were off/);
+    // a server started for a client that does the proposing: the client cannot turn rewrites back on
+    const judgeOnly = createMcpServer({ cwd: dir, env: { HOME: home }, rewrites: false });
+    const judged = JSON.parse(text(await call(judgeOnly, 7, "tools/call", { name: "hone_sharpen", arguments: { rewrites: true } }))) as { message: string };
+    expect(judged.message).toMatch(/Rewrites by a model were off/);
   });
 
   test("fork re-runs through the config; bad arguments and unknown trials are tool errors, not protocol errors", async () => {

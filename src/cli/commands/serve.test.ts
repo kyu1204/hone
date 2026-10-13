@@ -63,6 +63,8 @@ describe("hone serve mcp", () => {
     expect(res.id).toBe(1);
     expect(res.result.serverInfo.name).toBe("hone");
     expect(await serveCommand(["mcp", "--bogus"], io(project()))).toBe(2);
+    const closed = () => new ReadableStream<Uint8Array>({ start: (c) => c.close() });
+    expect(await serveCommand(["mcp", "--no-rewrites"], io(project()), { stdin: closed() })).toBe(0);
   });
 
   test("as a child process over real stdio", async () => {

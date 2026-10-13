@@ -36,6 +36,8 @@ export interface McpServerOptions {
   cwd: string;
   env?: Record<string, string | undefined>;
   log?: (line: string) => void;
+  /** `false`: hone_sharpen never lets the model write rewrites, whatever the client asks: the client is the one proposing. */
+  rewrites?: boolean;
 }
 
 export interface McpServer {
@@ -76,7 +78,7 @@ export function createMcpServer(opts: McpServerOptions): McpServer {
       name: "hone_sharpen",
       description: "Run the improvement cycle: measure, find why cases fail, try every change under sharpen/ (and variants, and rewrites by a model), confirm the best one on held-out cases. Returns the result document; `message` is the account to report. budget 0 only diagnoses and writes the page named in `diagnosisPath`. rewrites false has only the changes under sharpen/ and the variants judged.",
       inputSchema: { type: "object", properties: { budget: { type: "number", description: "changes to try (default 6); 0 only diagnoses" }, until: { type: "number", description: "stop once this pass rate is reached, e.g. 0.9" }, maxCost: { type: "number", description: "stop when the system under test has cost this much (USD)" }, trials: { type: "number" }, rewrites: { type: "boolean", description: "false: the model writes no rewrite of its own (default true)" } } },
-      call: async (a) => json(await exec(sharpenCommand, ["--quiet", "--json", ...(num(a.budget) !== undefined ? ["--budget", String(a.budget)] : []), ...(num(a.until) !== undefined ? ["--until", String(a.until)] : []), ...(num(a.maxCost) !== undefined ? ["--max-cost", String(a.maxCost)] : []), ...(num(a.trials) !== undefined ? ["--trials", String(a.trials)] : []), ...(a.rewrites === false ? ["--no-rewrites"] : [])])),
+      call: async (a) => json(await exec(sharpenCommand, ["--quiet", "--json", ...(num(a.budget) !== undefined ? ["--budget", String(a.budget)] : []), ...(num(a.until) !== undefined ? ["--until", String(a.until)] : []), ...(num(a.maxCost) !== undefined ? ["--max-cost", String(a.maxCost)] : []), ...(num(a.trials) !== undefined ? ["--trials", String(a.trials)] : []), ...(a.rewrites === false || opts.rewrites === false ? ["--no-rewrites"] : [])])),
     },
     {
       name: "hone_guide",

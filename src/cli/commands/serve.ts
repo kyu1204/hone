@@ -10,7 +10,7 @@ export const REWARD_SPEC = { flags: [], strings: ["host", "scorer"], numbers: ["
 const REWARD_HELP: Record<string, string> = { host: "bind address (default 127.0.0.1)", port: "port (default 8787)", scorer: "scorer name to serve (repeatable; default all configured)" };
 
 export function serveUsage(): string {
-  return `usage: hone serve ssh [--port 2222] [--host 127.0.0.1] [--run id] [--read-only]\n       hone serve reward [--port 8787] [--host 127.0.0.1] [--scorer name]...\n       hone serve mcp\n\nssh serves the dashboard (connect: ssh -p <port> <host>); reward serves the configured scorers over HTTP (GET /health, POST /score, POST /batch); mcp speaks MCP over stdio for agents (tools: hone_test, hone_sharpen, hone_guide, hone_list_runs, hone_matrix, hone_compare, hone_explain, hone_cluster, hone_fork).\n\nssh options:\n${usageLine(SERVE_SPEC, HELP)}\nreward options:\n${usageLine(REWARD_SPEC, REWARD_HELP)}\n`;
+  return `usage: hone serve ssh [--port 2222] [--host 127.0.0.1] [--run id] [--read-only]\n       hone serve reward [--port 8787] [--host 127.0.0.1] [--scorer name]...\n       hone serve mcp [--no-rewrites]\n\nssh serves the dashboard (connect: ssh -p <port> <host>); reward serves the configured scorers over HTTP (GET /health, POST /score, POST /batch); mcp speaks MCP over stdio for agents (tools: hone_test, hone_sharpen, hone_guide, hone_list_runs, hone_matrix, hone_compare, hone_explain, hone_cluster, hone_fork); with --no-rewrites its hone_sharpen judges only the changes under sharpen/ and the variants, for a client that does the proposing.\n\nssh options:\n${usageLine(SERVE_SPEC, HELP)}\nreward options:\n${usageLine(REWARD_SPEC, REWARD_HELP)}\n`;
 }
 
 export interface ServeDeps {
@@ -105,12 +105,13 @@ async function serveMcp(rest: string[], io: CommandIo, deps: ServeDeps): Promise
     io.stdout(serveUsage());
     return 0;
   }
-  if (rest.length) {
-    io.stderr(`hone serve mcp takes no options\n${serveUsage()}`);
+  const noRewrites = rest.includes("--no-rewrites");
+  if (rest.some((a) => a !== "--no-rewrites")) {
+    io.stderr(`hone serve mcp takes one option, --no-rewrites\n${serveUsage()}`);
     return 2;
   }
   const { createMcpServer, serveStdio } = await import("../../serve/mcp");
-  const server = createMcpServer({ cwd: io.cwd, env: io.env, log: (l) => io.stderr(`mcp: ${l}\n`) });
+  const server = createMcpServer({ cwd: io.cwd, env: io.env, log: (l) => io.stderr(`mcp: ${l}\n`), ...(noRewrites ? { rewrites: false } : {}) });
   const input = deps.stdin ?? (Bun.stdin.stream() as ReadableStream<Uint8Array>);
   // protocol frames go to stdout only; io.stdout may be a test capture
   await serveStdio(server, input, (line) => io.stdout(line));
