@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import type { HoneConfig } from "../core/config";
+import { loadChanges } from "./change";
 import { sharpen, splitCases } from "./sharpen";
 
 const dirs: string[] = [];
@@ -136,6 +137,99 @@ describe("sharpen", () => {
     expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt`);
     expect(r.message).toContain('It uses the variant "wide" from sharpen.variants.');
     expect(fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`), "utf8")).toBe("Answer in UPPERCASE.");
+    // the saved change file is the rewrite itself, under its own name and with the model's reason, not the pairing
+    const saved = fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`), "utf8");
+    expect(saved).toContain('change("rewrite 1", {');
+    expect(saved).toContain('why: "outputs were lowercase"');
+    expect(saved).toContain('the variant "wide" (sharpen.variants)');
+    // a pairing row does not repeat the reason of the change it reuses
+    expect(r.message).toMatch(/\+ variant wide on rewrite 1\s+0% -> 100%\n/);
+  });
+
+  test("a text from a change file is proven without any model", async () => {
+    const cwd = tmp();
+    const r = await sharpen({
+      config: config((_id, text) => text.includes("UPPERCASE"), { text: true }),
+      changes: [{ name: "uppercase", why: "outputs were lowercase", text: "Answer in UPPERCASE.", file: "sharpen/up.ts" }],
+      hash: "h",
+      cwd,
+      useCache: false,
+    });
+    expect(r.candidates).toHaveLength(1);
+    expect(r.candidates[0]).toMatchObject({ id: "uppercase", kind: "text", source: "file", file: "sharpen/up.ts", why: "outputs were lowercase", parent: "baseline", text: "Answer in UPPERCASE.", dev: 1 });
+    expect(r.candidates[0]!.sample).toEqual({ cases: 20, candidate: 1, parent: 0 });
+    expect(r.best).toMatchObject({ id: "uppercase", label: "uppercase", baseline: 0, candidate: 1 });
+    expect(r.verdict).toBe("proven");
+    expect(r.message).toMatch(/\+ uppercase\s+0% -> 100%\s+outputs were lowercase/);
+    expect(r.message).toContain("The text comes from sharpen/up.ts.");
+    expect(r.message).not.toMatch(/No LLM key/); // a person's change needs no key, so nothing is missing
+    expect(fs.existsSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`))).toBe(false); // the file is already the change
+  });
+
+  test("changes from files pair up: a config change that only helps on a text, and a text on the best variant", async () => {
+    // (1) nothing passes until the text is right; then the config change fixes the other half
+    const both = config((id, text, variant) => text.includes("UPPERCASE") && (even(id) || variant === "wide"), { text: true, variants: ["wide"] });
+    const wide = both.sharpen!.variants!.wide!;
+    delete both.sharpen!.variants;
+    const a = await sharpen({
+      config: both,
+      changes: [
+        { name: "wide matching", why: "odd cases are matched too strictly", config: wide, file: "sharpen/wide.ts" },
+        { name: "uppercase", why: "outputs were lowercase", text: "Answer in UPPERCASE.", file: "sharpen/up.ts" },
+      ],
+      hash: "h",
+      cwd: tmp(),
+      useCache: false,
+    });
+    expect(a.candidates.map((c) => c.id)).toEqual(["wide matching", "uppercase", "wide matching on uppercase"]);
+    expect(a.candidates[0]).toMatchObject({ kind: "variant", source: "file", file: "sharpen/wide.ts", why: "odd cases are matched too strictly", dev: 0 });
+    expect(a.candidates[2]).toMatchObject({ kind: "variant", source: "file", parent: "uppercase", variant: "wide matching", text: "Answer in UPPERCASE.", dev: 1 });
+    expect(a.verdict).toBe("proven");
+    expect(a.message).toContain("The text comes from sharpen/up.ts.");
+    expect(a.message).toContain('It uses the change "wide matching" from sharpen/wide.ts.');
+
+    // (2) the variant alone is the best single change; the text from the file is then tried on top of it
+    const third = (id: string): boolean => Number(id.slice(1)) % 3 === 0;
+    const b = await sharpen({
+      config: config((id, text, variant) => (third(id) ? text.includes("UPPERCASE") : variant === "wide"), { text: true, variants: ["wide"] }),
+      changes: [{ name: "uppercase", why: "outputs were lowercase", text: "Answer in UPPERCASE.", file: "sharpen/up.ts" }],
+      hash: "h",
+      cwd: tmp(),
+      useCache: false,
+    });
+    expect(b.candidates.map((c) => c.id)).toEqual(["uppercase", "variant wide", "uppercase on variant wide"]);
+    expect(b.candidates[2]).toMatchObject({ kind: "text", source: "file", parent: "variant wide", variant: "wide", text: "Answer in UPPERCASE.", dev: 1 });
+    expect(b.verdict).toBe("proven");
+    expect(b.message).toContain('It uses the variant "wide" from sharpen.variants.');
+  });
+
+  test("a change that carries a text and a config is one candidate; a text change needs the config to say where a text goes", async () => {
+    const cfg = config((_id, text, variant) => text.includes("UPPERCASE") && variant === "wide", { text: true, variants: ["wide"] });
+    const wide = cfg.sharpen!.variants!.wide!;
+    delete cfg.sharpen!.variants;
+    const r = await sharpen({ config: cfg, changes: [{ name: "both at once", why: "they belong together", text: "Answer in UPPERCASE.", config: wide, file: "sharpen/both.ts" }], hash: "h", cwd: tmp(), useCache: false });
+    expect(r.candidates).toHaveLength(1);
+    expect(r.candidates[0]).toMatchObject({ id: "both at once", kind: "both", source: "file", variant: "both at once", text: "Answer in UPPERCASE.", dev: 1 });
+    expect(r.verdict).toBe("proven");
+
+    const noSlot = sharpen({ config: config(() => false), changes: [{ name: "uppercase", why: "w", text: "T", file: "sharpen/up.ts" }], hash: "h", cwd: tmp(), useCache: false });
+    await expect(noSlot).rejects.toThrow('sharpen/up.ts: change "uppercase" sets a text, but hone.config.ts declares no `sharpen: { text: { seed, apply } }` to put it into');
+  });
+
+  test("a model's winning rewrite is also written as a change file that loads like a person's", async () => {
+    const cwd = tmp();
+    const { chat } = stubChat();
+    const r = await sharpen({ config: config((_id, text) => text.includes("UPPERCASE"), { text: true }), hash: "h", cwd, chat, budget: 1, useCache: false });
+    const file = path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`);
+    expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt (as a change file: .hone/sharpen/${r.id}-best.ts)`);
+    const source = fs.readFileSync(file, "utf8");
+    expect(source).toContain('import { change } from "hone-eval";');
+    const kept = tmp();
+    fs.mkdirSync(path.join(kept, "sharpen"));
+    fs.writeFileSync(path.join(kept, "sharpen", "kept.ts"), source.replace('"hone-eval"', JSON.stringify(new URL("./change.ts", import.meta.url).pathname)));
+    const loaded = await loadChanges(kept);
+    expect(loaded).toHaveLength(1);
+    expect(loaded[0]).toMatchObject({ name: "rewrite 1", why: "outputs were lowercase", text: "Answer in UPPERCASE.", file: "sharpen/kept.ts" });
   });
 
   test("a rewrite that only fits the cases it learned from is not adopted", async () => {
@@ -194,6 +288,8 @@ describe("sharpen", () => {
     expect(bare.diagnosis[0]).toMatchObject({ code: "answers-lowercase" });
     expect(bare.message).toMatch(/Why it fails:/);
     expect(bare.message).toMatch(/sharpen: \{ text: \{ seed, apply \} \}/);
+    expect(bare.message).toMatch(/Nothing to change: there is no change to try\. Write one, for example sharpen\/first\.ts:/);
+    expect(bare.message).toContain('change("what it does", { why: "which failure it fixes", text: "the new text" });');
     expect(prompts.length).toBeGreaterThan(0); // the model named the failure modes
     expect(prompts.some((p) => p.includes("Current text"))).toBe(false); // and was not asked for rewrites
 

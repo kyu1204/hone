@@ -23,6 +23,7 @@ First release. Everything below landed as reviewed pull requests #1 to #80 on ht
 
 ### Commands
 - Three everyday commands: `init`, `test` (with `--ci` for gates, JUnit and a PR comment, `--report` for HTML) and `sharpen`. `hone help all` lists the rest in three groups.
+- Changes are files: `change(name, { why, text, config })` under `sharpen/`, written by a person or a coding agent. A model's winning rewrite is saved in the same form.
 - `sharpen` runs the whole cycle: a seeded held-out split that keeps declared clusters together, gates, failure diagnosis, variants and rewrites (each from the best candidate so far, variants retried on a winning rewrite), a sample check before a full run, a ledger of every attempt, and a confirmation on held-out cases that needs both a paired t test and an exact sign test.
 - Single steps and tools: `matrix`, `compare`, `power`, `explain`, `diff`, `cluster` (with `--induce` taxonomy), `calibrate` (fault injection), `fork`, `evolve` (GEPA-style with minibatch verification and a Pareto front), `optimize` (Thompson sampling with a paired verdict), `ablate`, `bisect`, `import` (Claude Code sessions, Inspect, Docent, plugin-eval, Harbor, OTel), `export` (rollouts, OTel GenAI, Docent, JUnit, HTML), `serve ssh|reward|mcp`, `tui`.
 

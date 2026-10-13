@@ -19,7 +19,7 @@ hone stores every result as a trace (messages + spans) in `.hone/` and reports p
 
 `hone sharpen` runs the whole cycle and prints a plain account: the pass rate now, why cases fail, each change it tried, and a verdict. It holds a third of the cases out before proposing anything and confirms the best change on those.
 
-- It changes only what `hone.config.ts` declares under `sharpen`: `text` (one prompt, rule file or rubric, with `apply`) and `variants` (named alternative configs). Declare them before running it.
+- It tries **changes**: files under `sharpen/` that call `change(name, { why, text, config })`. Write one file per hypothesis after reading why cases fail. `text` is a new version of the text declared in `sharpen.text`; `config` is a function from a config to a config. Put new code in a new file and point the config at it; never edit a file the baseline runs. Inline `sharpen.variants` and, with a key, a model's rewrites are tried too.
 - Verdicts: `PROVEN` (adopt it), `PROMISING, not proven` (the account says how many held-out cases would settle it; do not report it as an improvement), `NO GAIN` (keep what you have), `Nothing to sharpen`, `Nothing to change`, `Cannot measure` (the system errored; fix that first).
 - The winning text is in `.hone/sharpen/<id>-best.txt`, the full ledger in `.hone/sharpen/<id>.json`. `--json` prints the ledger; `--budget`, `--max-cost` and `--until` bound the search.
 - Without an LLM key it tries the variants only and says that rewrites were skipped.

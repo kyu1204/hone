@@ -28,6 +28,7 @@ export default defineConfig({
 | `cacheDir` | store root; default `.hone` |
 | `ablations` | `{ name: (config) => config }` transforms measured by `hone ablate` |
 | `sharpen.text` | `{ seed, apply }`: one text hone may rewrite (a prompt, a rule file, a rubric) and how it enters the config |
+| `sharpen.changes` | where the change files are: a glob or a list of globs (default every `.ts`, `.js` and `.mjs` file under `sharpen/`); see [correction](./correction.md) |
 | `sharpen.variants` | `{ name: (config) => config }`: named alternative configs hone may try (a setting, a model, a retrieval depth) |
 
 ## Target kinds

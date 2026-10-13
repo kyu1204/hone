@@ -77,7 +77,7 @@ Run, check per-axis gates, exit non-zero on the failing axis, leave artifacts.
 ```
 usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-cache] [--quiet] [--json]
 
-The whole cycle: evaluate, find why cases fail, try changes (rewrites of config.sharpen.text, the variants in config.sharpen.variants, and both together), re-test them, and confirm the best one on cases no proposal has seen. Writes .hone/sharpen/<id>.json.
+The whole cycle: evaluate, find why cases fail, try changes, re-test them, and confirm the best one on cases no proposal has seen. A change is a file under sharpen/ that calls change(name, { why, text, config }), a variant in config.sharpen.variants, or a rewrite of config.sharpen.text by a model; changes that only help together are paired. Writes .hone/sharpen/<id>.json.
 
   --json      print the whole result as JSON
   --no-cache  re-run the system instead of using cached outputs

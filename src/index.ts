@@ -5,6 +5,9 @@ export const VERSION: string = pkg.version;
 
 // Public library surface: what hone.config.ts imports.
 export { defineConfig } from "./core/config";
+// What a file under sharpen/ calls to declare an improvement to try
+export { change } from "./correct/change";
+export type { Change, ChangeSpec } from "./correct/change";
 export type { GateSpec, HoneConfig, ScorerSpec, TargetSpec } from "./core/config";
 export type { Case, ChatMessage, Score, Span, Trace, Trial, Verdict } from "./core/types";
 export type { FnContext } from "./targets/fn";

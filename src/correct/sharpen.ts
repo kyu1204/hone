@@ -14,6 +14,7 @@ import { offlineEmbed } from "../providers/embed";
 import { compareTargets, mcnemarExact } from "../stats/paired";
 import { pairedPowerN } from "../stats/power";
 import { type RunOutcome, runConfig } from "./ablation";
+import type { Change } from "./change";
 import { type ChatFn, parseProposal, REFLECT_SYSTEM } from "./evolve";
 
 export type SharpenVerdict = "proven" | "promising" | "no gain" | "nothing to sharpen" | "nothing to change" | "cannot measure";
@@ -21,10 +22,24 @@ export type SharpenVerdict = "proven" | "promising" | "no gain" | "nothing to sh
 /** One entry of the ledger: a change that was tried, why, and what came of it. */
 export interface SharpenCandidate {
   id: string;
-  kind: "variant" | "text";
+  /** What it adds to its parent: a config change, a text, or both at once. */
+  kind: "variant" | "text" | "both";
+  /** Who proposed it: a change file, `sharpen.variants` in the config, or the model. */
+  source: "file" | "config" | "model";
   parent: string;
+  /** The change file it came from. */
+  file?: string;
+  /** The author's hypothesis, from the change file. */
+  why?: string;
+  /** The name of the config change it carries (a variant or a change with `config`), and the file when it came from one. */
   variant?: string;
+  variantFile?: string;
+  /** The text it carries, and the file when a person or an agent wrote it; a text without a file came from the model. */
   text?: string;
+  textFile?: string;
+  /** The id of the candidate that introduced this text (itself, for a rewrite or a text change; the parent's, for a pairing). */
+  textFrom?: string;
+  /** The model's one-line reason for its rewrite. */
   rationale?: string;
   /** The quick check on the parent's failing cases plus a few passing ones. */
   sample?: { cases: number; candidate: number; parent: number };
@@ -53,7 +68,9 @@ export interface SharpenOptions {
   config: HoneConfig;
   hash: string;
   cwd: string;
-  /** Names the failure modes and writes rewrites. Without it only declared variants are tried. */
+  /** The changes declared in files under sharpen/ (`loadChanges`). */
+  changes?: Change[];
+  /** Names the failure modes and writes rewrites. Without it only the changes from files and the declared variants are tried. */
   chat?: ChatFn;
   /** Candidates to try (default 6). */
   budget?: number;
@@ -90,10 +107,21 @@ export function splitCases(cases: (string | { id: string; cluster?: string })[],
   return { dev: items.filter((c) => !held.has(c.group)).map((c) => c.id), holdout: items.filter((c) => held.has(c.group)).map((c) => c.id), inSample: false };
 }
 
+/** A config change that can be put on top of a text: an inline variant or a change file with `config`. */
+interface ConfigChange {
+  key: string;
+  name: string;
+  apply: (config: HoneConfig) => HoneConfig;
+  file?: string;
+  why?: string;
+}
+
 interface Member {
   id: string;
-  variant?: string;
+  cfg?: ConfigChange;
   text?: string;
+  textFile?: string;
+  textFrom?: string;
   run: RunOutcome;
 }
 
@@ -137,7 +165,7 @@ const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? "" 
 const clip = (text: string, n: number): string => (text.length > n ? `${text.slice(0, n - 3).trimEnd()}...` : text);
 
 /** The plain account: what is, why it fails, what was tried, and what is proven. Statistics come second, in parentheses. */
-function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; noKey: boolean }): string {
+function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; alpha: number; error?: string; textFile?: string; changeFile?: string; noKey: boolean }): string {
   const n = r.split.dev.length;
   if (r.verdict === "cannot measure") return `Cannot measure: the system failed to run in ${r.baseline.errors} of ${r.baseline.trials} trials (first error: ${x.error ?? "unknown"}). Fix that first; an error is not a wrong answer.\n`;
   if (r.verdict === "nothing to sharpen") return `Nothing to sharpen: ${n === 1 ? "the one case passes" : `all ${n} cases pass`}. Add cases that are harder.\n`;
@@ -148,16 +176,19 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
   }
   if (r.verdict === "nothing to change") {
     lines.push(
-      x.noKey
-        ? "Nothing to change: sharpen.text is declared, but there is no LLM key to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)."
-        : "Nothing to change: hone.config.ts declares nothing hone may change. Add `sharpen: { text: { seed, apply } }` for a prompt or a rule text, or `sharpen: { variants: { name: (config) => config } }` for settings.",
+      "Nothing to change: there is no change to try. Write one, for example sharpen/first.ts:",
+      '  import { change } from "hone-eval";',
+      '  change("what it does", { why: "which failure it fixes", text: "the new text" });',
+      "A `text` needs `sharpen: { text: { seed, apply } }` in hone.config.ts, which says where a text goes; a `config` function needs nothing.",
+      x.noKey ? "sharpen.text is declared, but there is no LLM key for the model to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)." : "With `sharpen.text` declared and an LLM key set, a model writes rewrites too.",
     );
     return `${lines.join("\n")}\n`;
   }
   lines.push(`Tried ${plural(r.candidates.length, "change")}:`);
   const width = Math.max(0, ...r.candidates.map((c) => c.id.length)) + 2;
   for (const c of r.candidates) {
-    const what = c.dropped === "unparseable" ? "dropped: the model's reply was not usable" : c.dropped === "sample" ? `dropped early: ${pct(c.sample!.candidate)} against ${pct(c.sample!.parent)} on a sample` : `${pct(r.baseline.dev)} -> ${pct(c.dev ?? 0)}${c.rationale ? `   ${clip(c.rationale, 90)}` : ""}`;
+    const note = c.parent === "baseline" || c.source === "model" ? (c.why ?? c.rationale) : undefined; // a pairing reuses a change already listed with its reason
+    const what = c.dropped === "unparseable" ? "dropped: the model's reply was not usable" : c.dropped === "sample" ? `dropped early: ${pct(c.sample!.candidate)} against ${pct(c.sample!.parent)} on a sample` : `${pct(r.baseline.dev)} -> ${pct(c.dev ?? 0)}${note ? `   ${clip(note, 90)}` : ""}`;
     lines.push(`  ${c.dev !== undefined && c.dev > r.baseline.dev ? "+" : "-"} ${c.id.padEnd(width)}${what}`);
   }
   const b = r.best;
@@ -171,12 +202,19 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     const cost = b.costRatio !== undefined ? ` Cost per case: ${b.costRatio.toFixed(1)}x.` : "";
     const more = r.verdict === "proven" ? "" : `${b.needed ? ` About ${b.needed} held-out cases would settle it.` : ""}${r.split.inSample ? " Add cases (18 or more) so that at least six can be held out." : ""}`;
     lines.push(`Result: ${r.verdict === "proven" ? "PROVEN" : "PROMISING, not proven"}. ${where}, ${b.label} takes the pass rate from ${pct(b.baseline)} to ${pct(b.candidate)}`, `${stats}${cost}${more}`);
-    if (x.textFile) lines.push(`The new text is in ${path.relative(x.cwd, x.textFile)}`);
-    const variant = r.candidates.find((c) => c.id === b.id)?.variant;
-    if (variant) lines.push(`It uses the variant "${variant}" from sharpen.variants.`);
+    // what to adopt, and where it is
+    const w = r.candidates.find((c) => c.id === b.id);
+    if (w?.text !== undefined) lines.push(w.textFile ? `The text comes from ${w.textFile}.` : `The new text is in ${path.relative(x.cwd, x.textFile ?? "")} (as a change file: ${path.relative(x.cwd, x.changeFile ?? "")})`);
+    if (w?.variant) lines.push(w.variantFile ? `It uses the change "${w.variant}" from ${w.variantFile}.` : `It uses the variant "${w.variant}" from sharpen.variants.`);
   }
-  if (x.noKey) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
+  if (x.noKey && !r.candidates.some((c) => c.textFile)) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
   return `${lines.join("\n")}\n`;
+}
+
+/** A model's winning rewrite in the form a person writes: a change file that can be moved into sharpen/. */
+function asChangeFile(winner: SharpenCandidate, origin: SharpenCandidate, verdict: SharpenVerdict): string {
+  const together = winner.variant ? `// It was confirmed together with ${winner.variantFile ? `the change "${winner.variant}" (${winner.variantFile})` : `the variant "${winner.variant}" (sharpen.variants)`}.\n` : "";
+  return `// Proposed by the model as ${origin.id}; the held-out check said: ${verdict}. Move this file into sharpen/ to keep it as a candidate.\n${together}import { change } from "hone-eval";\n\nchange(${JSON.stringify(origin.id)}, {\n  why: ${JSON.stringify(origin.rationale || "rewritten by the model from the failure modes")},\n  text: ${JSON.stringify(winner.text)},\n});\n`;
 }
 
 export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
@@ -185,7 +223,12 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
   const alpha = opts.alpha ?? 0.05;
   const seed = opts.seed ?? 1;
   const textHook = config.sharpen?.text;
-  const variants = config.sharpen?.variants ?? {};
+  const changes = opts.changes ?? [];
+  for (const c of changes) if (c.text !== undefined && !textHook) throw new Error(`${c.file ?? "a change"}: change "${c.name}" sets a text, but hone.config.ts declares no \`sharpen: { text: { seed, apply } }\` to put it into`);
+  // config changes that can be put on top of a text: the ones from files first, then the inline variants
+  const fromFiles: ConfigChange[] = changes.filter((c) => c.config && c.text === undefined).map((c) => ({ key: c.name, name: c.name, apply: c.config!, file: c.file, why: c.why }));
+  const inline: ConfigChange[] = Object.entries(config.sharpen?.variants ?? {}).map(([name, apply]) => ({ key: `variant ${name}`, name, apply }));
+  const fileTexts = changes.filter((c) => c.text !== undefined && !c.config);
   const canRewrite = Boolean(textHook && opts.chat);
   const root = path.resolve(opts.cwd, config.cacheDir ?? ".hone");
   const store = new Store(root);
@@ -196,11 +239,11 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     const allCases = await loadCases(config.cases, opts.cwd);
     const split = splitCases(allCases, opts.holdout, seed);
     const groupOf = new Map(allCases.map((c) => [c.id, c.cluster ?? c.id]));
-    const build = (m: { variant?: string; text?: string }): HoneConfig => {
-      const c = m.variant ? variants[m.variant]!(config) : config;
+    const build = (m: { cfg?: ConfigChange; text?: string }): HoneConfig => {
+      const c = m.cfg ? m.cfg.apply(config) : config;
       return textHook && m.text !== undefined ? textHook.apply(c, m.text) : c;
     };
-    const run = (m: { variant?: string; text?: string }, label: string, caseIds: string[]): Promise<RunOutcome> => runConfig(build(m), label, { ...deps, caseIds });
+    const run = (m: { cfg?: ConfigChange; text?: string }, label: string, caseIds: string[]): Promise<RunOutcome> => runConfig(build(m), label, { ...deps, caseIds });
     const cost = (r: RunOutcome): number => r.summary.totals.costUsd;
 
     const base: Member = { id: "baseline", run: await run({}, "baseline", split.dev) };
@@ -210,10 +253,16 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       r.verdict = verdict;
       const dir = path.join(root, "sharpen");
       fs.mkdirSync(dir, { recursive: true });
+      // a text the model wrote is saved, as plain text and as a change file; a text from a file already is one
       const winner = r.best && r.candidates.find((c) => c.id === r.best!.id);
-      const textFile = winner?.text !== undefined && (verdict === "proven" || verdict === "promising") ? path.join(dir, `${id}-best.txt`) : undefined;
-      if (textFile) fs.writeFileSync(textFile, winner!.text!);
-      const out: SharpenResult = { ...r, message: describe(r, { cwd: opts.cwd, alpha, error: errored[0]?.trace.error, textFile, noKey: Boolean(textHook) && !opts.chat }), path: path.join(dir, `${id}.json`) };
+      const save = winner?.text !== undefined && !winner.textFile && (verdict === "proven" || verdict === "promising");
+      const textFile = save ? path.join(dir, `${id}-best.txt`) : undefined;
+      const changeFile = save ? path.join(dir, `${id}-best.ts`) : undefined;
+      if (textFile && changeFile) {
+        fs.writeFileSync(textFile, winner!.text!);
+        fs.writeFileSync(changeFile, asChangeFile(winner!, r.candidates.find((c) => c.id === winner!.textFrom) ?? winner!, verdict));
+      }
+      const out: SharpenResult = { ...r, message: describe(r, { cwd: opts.cwd, alpha, error: errored[0]?.trace.error, textFile, changeFile, noKey: Boolean(textHook) && !opts.chat }), path: path.join(dir, `${id}.json`) };
       fs.writeFileSync(out.path, `${JSON.stringify(out, null, 2)}\n`);
       return out;
     };
@@ -223,7 +272,7 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     if (failing(base.run, split.dev).length === 0) return finish("nothing to sharpen");
     opts.log?.(`finding why ${base.run.trials.filter((t) => t.pass === false).length} trials fail\n`);
     r.diagnosis = await diagnose(base.run.trials, opts.chat, seed);
-    if (!canRewrite && Object.keys(variants).length === 0) return finish("nothing to change");
+    if (!canRewrite && changes.length === 0 && inline.length === 0) return finish("nothing to change");
 
     const members: Member[] = [base];
     const dev = (m: Member): number => rate(m.run, split.dev);
@@ -232,64 +281,85 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     let tried = 0;
     const over = (): SharpenResult["stopped"] | undefined => (opts.maxCost !== undefined && spent >= opts.maxCost ? "maxCost" : opts.until !== undefined && dev(best()) >= opts.until ? "until" : tried >= budget ? "budget" : undefined);
     let stopped: SharpenResult["stopped"] | undefined;
+    const carried = (m: { cfg?: ConfigChange; text?: string; textFile?: string; textFrom?: string }): Partial<SharpenCandidate> => ({
+      ...(m.cfg ? { variant: m.cfg.name, ...(m.cfg.file ? { variantFile: m.cfg.file } : {}) } : {}),
+      ...(m.text !== undefined ? { text: m.text, ...(m.textFile ? { textFile: m.textFile } : {}), ...(m.textFrom ? { textFrom: m.textFrom } : {}) } : {}),
+    });
 
-    for (const name of Object.keys(variants)) {
-      if ((stopped = over())) break;
+    /** A config change on top of `parent`: described in a line, so it gets its full run at once. */
+    const tryConfig = async (parent: Member, cfg: ConfigChange, cid: string): Promise<void> => {
       tried++;
-      const cid = `variant ${name}`;
-      const full = await run({ variant: name }, cid, split.dev);
+      const child = { cfg, text: parent.text, textFile: parent.textFile, textFrom: parent.textFrom };
+      const full = await run(child, cid, split.dev);
       spent += cost(full);
-      members.push({ id: cid, variant: name, run: full });
-      r.candidates.push({ id: cid, kind: "variant", parent: "baseline", variant: name, dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
-    }
-
-    // rewrites start from the best member so far, so a rewrite lands on top of a variant that helped without anyone combining them;
-    // the other way round, a variant is tried again on top of a rewrite that became the best
-    const onTop = new Set<string>();
-    for (let n = 1; !stopped && canRewrite && !(stopped = over()); ) {
-      const parent = best();
-      const failed = failing(parent.run, split.dev);
-      if (failed.length === 0) break;
+      members.push({ id: cid, ...child, run: full });
+      r.candidates.push({ id: cid, kind: "variant", source: cfg.file ? "file" : "config", parent: parent.id, ...(cfg.file ? { file: cfg.file } : {}), ...(cfg.why ? { why: cfg.why } : {}), ...carried(child), dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
+    };
+    /** A text on top of `parent`: first on the parent's failing cases plus eight passing ones, and only then in full. */
+    const tryText = async (parent: Member, cid: string, text: { cfg?: ConfigChange; text: string; textFile?: string }, meta: Pick<SharpenCandidate, "kind" | "source" | "file" | "why" | "rationale">): Promise<void> => {
       tried++;
-      // a variant that did nothing alone may help once the text is right: try each one on a rewrite that became the best
-      const again = parent.text !== undefined && !parent.variant ? Object.keys(variants).find((v) => !onTop.has(`${parent.id}|${v}`)) : undefined;
-      if (again) {
-        onTop.add(`${parent.id}|${again}`);
-        const vid = `variant ${again} on ${parent.id}`;
-        const full = await run({ variant: again, text: parent.text }, vid, split.dev);
-        spent += cost(full);
-        members.push({ id: vid, variant: again, text: parent.text, run: full });
-        r.candidates.push({ id: vid, kind: "variant", parent: parent.id, variant: again, text: parent.text, dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
-        continue;
-      }
-      const cid = `rewrite ${n++}`;
-      const text = parent.text ?? textHook!.seed;
-      const samples = await spread(parent.run.trials, 6, seed);
-      const modes = r.diagnosis.length ? `Failure modes seen:\n${r.diagnosis.map((d) => `- ${d.code}: ${d.definition} (${d.size} trials)`).join("\n")}\n\n` : "";
-      const user = `Current text:\n"""\n${text}\n"""\n\nScorers: ${config.scorers.map((s) => String(s.id ?? s.name)).join(", ")}\n\n${modes}${samples.map((t, k) => `--- failure ${k + 1} (case ${t.trace.caseId}) ---\n${summarise(t)}`).join("\n\n")}`;
-      opts.log?.(`asking for ${cid} from ${parent.id}\n`);
-      // a rewritten prompt can be long; never let the default max_tokens truncate the JSON
-      const proposal = parseProposal((await opts.chat!({ system: REFLECT_SYSTEM, json: true, temperature: 0.7, maxTokens: Math.max(4096, text.length * 2), messages: [{ role: "user", content: user }] })).text);
-      const common = { id: cid, kind: "text" as const, parent: parent.id, ...(parent.variant ? { variant: parent.variant } : {}) };
-      if (!proposal) {
-        r.candidates.push({ ...common, costUsd: 0, dropped: "unparseable" });
-        continue;
-      }
-      const child = { variant: parent.variant, text: proposal.text };
+      const child = { ...text, textFrom: cid };
+      const failed = failing(parent.run, split.dev);
       const sampleCases = [...failed, ...split.dev.filter((c) => !failed.includes(c)).slice(0, 8)];
       const quick = await run(child, `${cid} sample`, sampleCases);
       spent += cost(quick);
       const sample = { cases: sampleCases.length, candidate: rate(quick, sampleCases), parent: rate(parent.run, sampleCases) };
-      const entry = { ...common, text: proposal.text, rationale: proposal.rationale, sample };
+      const entry = { id: cid, ...meta, parent: parent.id, ...carried(child), sample };
       if (sample.candidate < sample.parent) {
         r.candidates.push({ ...entry, costUsd: cost(quick), dropped: "sample" });
-        continue;
+        return;
       }
       const whole = sampleCases.length === split.dev.length; // the sample already was every dev case
       const full = whole ? quick : await run(child, cid, split.dev);
       if (!whole) spent += cost(full);
       members.push({ id: cid, ...child, run: full });
       r.candidates.push({ ...entry, dev: rate(full, split.dev), costUsd: cost(quick) + (whole ? 0 : cost(full)), runId: full.runId });
+    };
+
+    // 1. every change from a file on its own, then every inline variant on its own
+    for (const c of changes) {
+      if ((stopped = over())) break;
+      const meta = { source: "file" as const, ...(c.file ? { file: c.file } : {}), why: c.why };
+      if (c.text === undefined) await tryConfig(base, fromFiles.find((f) => f.key === c.name)!, c.name);
+      else await tryText(base, c.name, { ...(c.config ? { cfg: { key: c.name, name: c.name, apply: c.config, file: c.file, why: c.why } } : {}), text: c.text, textFile: c.file }, { kind: c.config ? "both" : "text", ...meta });
+    }
+    for (const v of inline) {
+      if (stopped || (stopped = over())) break;
+      await tryConfig(base, v, v.key);
+    }
+
+    // 2. from the best member so far: the primitive of the kind it lacks (a config change on a text, a text from a file on
+    //    a config change), so changes that only help together are found without anyone combining them; then a rewrite
+    const paired = new Set<string>();
+    for (let n = 1; !stopped && !(stopped = over()); ) {
+      const parent = best();
+      if (failing(parent.run, split.dev).length === 0) break;
+      const fresh = (key: string): boolean => !paired.has(`${parent.id}|${key}`) && paired.add(`${parent.id}|${key}`).size > 0;
+      const cfg = parent.text !== undefined && !parent.cfg ? [...fromFiles, ...inline].find((c) => fresh(c.key)) : undefined;
+      if (cfg) {
+        await tryConfig(parent, cfg, `${cfg.key} on ${parent.id}`);
+        continue;
+      }
+      const text = parent.cfg && parent.text === undefined ? fileTexts.find((t) => fresh(t.name)) : undefined;
+      if (text) {
+        await tryText(parent, `${text.name} on ${parent.id}`, { cfg: parent.cfg, text: text.text!, textFile: text.file }, { kind: "text", source: "file", ...(text.file ? { file: text.file } : {}), why: text.why });
+        continue;
+      }
+      if (!canRewrite) break;
+      const cid = `rewrite ${n++}`;
+      const current = parent.text ?? textHook!.seed;
+      const samples = await spread(parent.run.trials, 6, seed);
+      const modes = r.diagnosis.length ? `Failure modes seen:\n${r.diagnosis.map((d) => `- ${d.code}: ${d.definition} (${d.size} trials)`).join("\n")}\n\n` : "";
+      const user = `Current text:\n"""\n${current}\n"""\n\nScorers: ${config.scorers.map((s) => String(s.id ?? s.name)).join(", ")}\n\n${modes}${samples.map((t, k) => `--- failure ${k + 1} (case ${t.trace.caseId}) ---\n${summarise(t)}`).join("\n\n")}`;
+      opts.log?.(`asking for ${cid} from ${parent.id}\n`);
+      // a rewritten prompt can be long; never let the default max_tokens truncate the JSON
+      const proposal = parseProposal((await opts.chat!({ system: REFLECT_SYSTEM, json: true, temperature: 0.7, maxTokens: Math.max(4096, current.length * 2), messages: [{ role: "user", content: user }] })).text);
+      if (!proposal) {
+        tried++;
+        r.candidates.push({ id: cid, kind: "text", source: "model", parent: parent.id, ...carried({ cfg: parent.cfg }), costUsd: 0, dropped: "unparseable" });
+        continue;
+      }
+      await tryText(parent, cid, { cfg: parent.cfg, text: proposal.text }, { kind: "text", source: "model", rationale: proposal.rationale });
     }
     r.stopped = stopped ?? "exhausted";
 
@@ -308,7 +378,7 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     const sign = mcnemarExact(units.filter((u) => u.a > u.b).length, units.filter((u) => u.a < u.b).length).p;
     const diff = rate(w, cases) - rate(b, cases);
     const perTrial = (x: RunOutcome): number => cost(x) / Math.max(1, x.trials.length);
-    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.variant ? `${winner.id} (on variant ${winner.variant})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: Math.max(cmp?.p ?? 1, sign), ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
+    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.cfg ? `${winner.id} (on ${winner.cfg.key})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: Math.max(cmp?.p ?? 1, sign), ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
     if (diff <= 0) return finish("no gain");
     if (r.best.p < alpha && !split.inSample) return finish("proven");
     // six units that all improve are the fewest an exact test can call at 0.05

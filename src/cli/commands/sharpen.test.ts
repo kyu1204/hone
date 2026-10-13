@@ -80,7 +80,24 @@ describe("hone sharpen", () => {
   test("without an LLM key it says what is missing instead of failing", async () => {
     const o = io(project());
     expect(await sharpenCommand(["--no-cache", "--quiet"], o)).toBe(0);
-    expect(o.out).toMatch(/Nothing to change: sharpen\.text is declared, but there is no LLM key/);
+    expect(o.out).toMatch(/Nothing to change: there is no change to try\. Write one, for example sharpen\/first\.ts:/);
+    expect(o.out).toMatch(/sharpen\.text is declared, but there is no LLM key/);
+  });
+
+  test("change files under sharpen/ are picked up, with no model involved; a mistake in one is a usage error", async () => {
+    const change = new URL("../../correct/change.ts", import.meta.url).pathname;
+    const dir = project();
+    fs.mkdirSync(path.join(dir, "sharpen"));
+    fs.writeFileSync(path.join(dir, "sharpen", "uppercase.ts"), `import { change } from ${JSON.stringify(change)};\nchange("uppercase", { why: "outputs were lowercase", text: "Answer in UPPERCASE." });\n`);
+    const o = io(dir);
+    expect(await sharpenCommand(["--no-cache", "--quiet"], o)).toBe(0);
+    expect(o.out).toMatch(/\+ uppercase\s+0% -> 100%\s+outputs were lowercase/);
+    expect(o.out).toMatch(/Result: PROVEN\. On 10 cases it never saw, uppercase takes the pass rate from 0% to 100%/);
+    expect(o.out).toContain("The text comes from sharpen/uppercase.ts.");
+    fs.writeFileSync(path.join(dir, "sharpen", "broken.ts"), `import { change } from ${JSON.stringify(change)};\nchange("no reason", { text: "T" });\n`);
+    const bad = io(dir);
+    expect(await sharpenCommand(["--no-cache", "--quiet"], bad)).toBe(2);
+    expect(bad.err).toMatch(/^sharpen\/broken\.ts: change "no reason": `why`/);
   });
 
   test("exit codes: 1 when the system cannot be measured, 2 for usage and config errors", async () => {

@@ -1,4 +1,5 @@
 import { ConfigNotFound, loadConfig } from "../../core/config";
+import { type Change, loadChanges } from "../../correct/change";
 import type { ChatFn } from "../../correct/evolve";
 import { sharpen } from "../../correct/sharpen";
 import { chat, LlmConfigError, resolveLlmProvider } from "../../providers/llm";
@@ -20,7 +21,7 @@ const HELP: Record<string, string> = {
 };
 
 export function sharpenUsage(): string {
-  return `usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-cache] [--quiet] [--json]\n\nThe whole cycle: evaluate, find why cases fail, try changes (rewrites of config.sharpen.text, the variants in config.sharpen.variants, and both together), re-test them, and confirm the best one on cases no proposal has seen. Writes .hone/sharpen/<id>.json.\n\n${usageLine(SHARPEN_SPEC, HELP)}\n`;
+  return `usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-cache] [--quiet] [--json]\n\nThe whole cycle: evaluate, find why cases fail, try changes, re-test them, and confirm the best one on cases no proposal has seen. A change is a file under sharpen/ that calls change(name, { why, text, config }), a variant in config.sharpen.variants, or a rewrite of config.sharpen.text by a model; changes that only help together are paired. Writes .hone/sharpen/<id>.json.\n\n${usageLine(SHARPEN_SPEC, HELP)}\n`;
 }
 
 export async function sharpenCommand(argv: string[], io: CommandIo, deps: { chat?: ChatFn } = {}): Promise<number> {
@@ -42,7 +43,14 @@ export async function sharpenCommand(argv: string[], io: CommandIo, deps: { chat
     io.stderr(`${e instanceof ConfigNotFound ? e.message : `config error: ${e instanceof Error ? e.message : String(e)}`}\n`);
     return 2;
   }
-  // without a key the cycle still tries the declared variants; it only cannot name failure modes or write rewrites
+  let changes: Change[];
+  try {
+    changes = await loadChanges(io.cwd, loaded.config.sharpen?.changes);
+  } catch (e) {
+    io.stderr(`${e instanceof Error ? e.message : String(e)}\n`);
+    return 2;
+  }
+  // without a key the cycle still tries the change files and the declared variants; it only cannot name failure modes or write rewrites
   let chatFn = deps.chat;
   if (!chatFn) {
     try {
@@ -53,7 +61,7 @@ export async function sharpenCommand(argv: string[], io: CommandIo, deps: { chat
     }
   }
   try {
-    const r = await sharpen({ config: loaded.config, hash: loaded.hash, cwd: io.cwd, chat: chatFn, budget: args.numbers.budget, maxCost: args.numbers["max-cost"], until: args.numbers.until, trials: args.numbers.trials, holdout: args.numbers.holdout, seed: args.numbers.seed, alpha: args.numbers.alpha, useCache: args.flags["no-cache"] !== true, log: args.flags.quiet ? undefined : io.stderr });
+    const r = await sharpen({ config: loaded.config, hash: loaded.hash, cwd: io.cwd, changes, chat: chatFn, budget: args.numbers.budget, maxCost: args.numbers["max-cost"], until: args.numbers.until, trials: args.numbers.trials, holdout: args.numbers.holdout, seed: args.numbers.seed, alpha: args.numbers.alpha, useCache: args.flags["no-cache"] !== true, log: args.flags.quiet ? undefined : io.stderr });
     io.stdout(args.flags.json ? `${JSON.stringify(r, null, 2)}\n` : r.message);
     return r.verdict === "cannot measure" ? 1 : 0;
   } catch (e) {
