@@ -23,21 +23,26 @@ change("loose matching", {
 });
 ```
 
-It fixes nothing while the style is wrong. This is what `hone sharpen` printed with `ANTHROPIC_API_KEY` set (16 seconds, four model calls):
+It fixes nothing while the style is wrong. This is what `hone sharpen` printed with `ANTHROPIC_API_KEY` set (15 seconds, four model calls):
 
 ```
 Now: 0% of 12 cases pass. 6 more cases are held out for the final check.
 Why it fails:
-  1. unwarranted-refusal-idk (6 of 12 failed trials, e.g. cancel): The assistant gives a generic 'Sorry, I do not know.' answer instead of attempting the task, so its output...
-  2. boilerplate-answer-wrapper (5 of 12 failed trials, e.g. ship-abroad): The assistant wraps its answer in conversational boilerplate (e.g. 'Thanks for asking! The answer is ...')...
-  3. conversational-filler-padding (1 of 12 failed trials, e.g. shipping-time): The assistant wraps the requested answer in pleasantries or full-sentence framing (e.g. "Thanks for asking!...
+  1. unwarranted-refusal-idk (6 of 12 failed trials, e.g. cancel)
+     The assistant gives a generic 'Sorry, I do not know' reply instead of attempting the task, s...
+  2. boilerplate-answer-wrapper (5 of 12 failed trials, e.g. ship-abroad)
+     The assistant wraps its answer in a fixed conversational template (e.g. "Thanks for asking!...
+  3. conversational-filler-wrapping (1 of 12 failed trials, e.g. shipping-time)
+     The assistant surrounds the answer with pleasantries or framing such as 'Thanks for asking!...
+  Examples of each, and how to write a change: .hone/sharpen/20261013151659-diagnosis.md
 Tried 3 changes:
-  - loose matching               0% -> 0%   questions with extra words around them find nothing, because they are matched word for...
-  + rewrite 1                    0% -> 50%   Replaces the polite full-sentence instruction with a bare-answer format that forbids wr...
+  - loose matching               0% -> 0%   questions with extra words around them find nothing,...
+  + rewrite 1                    0% -> 50%   Forbids refusals and boilerplate wrappers, and tells...
   + loose matching on rewrite 1  0% -> 100%
-Result: PROVEN. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to 100%
-(+100 points, 95% interval +100 to +100, p = 0.03).
-The new text is in .hone/sharpen/20261013131032-best.txt (as a change file: .hone/sharpen/20261013131032-best.ts)
+Result: PROVEN. On 6 cases it never saw, loose matching on rewrite 1 takes the pass rate from 0% to
+100% (+100 points, 95% interval +100 to +100, p = 0.03).
+The new text is in .hone/sharpen/20261013151659-best.txt
+As a change file: .hone/sharpen/20261013151659-best.ts
 It uses the change "loose matching" from sharpen/loose-matching.ts.
 ```
 

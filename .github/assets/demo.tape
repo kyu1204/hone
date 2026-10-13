@@ -1,49 +1,27 @@
-# VHS script for the README demo. Render with: scripts/demo.sh (needs vhs, ttyd, ffmpeg).
+# VHS script for the README demo. Render with: scripts/demo.sh (needs vhs, ttyd, ffmpeg, and an LLM key in
+# ~/.config/hone/env: hone sharpen asks a model to name the failure modes and to write one rewrite).
 Output .github/assets/demo.gif
 Set Shell "bash"
 Set FontSize 15
-Set Width 1100
-Set Height 640
+Set Width 1180
+Set Height 720
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 35ms
 Set Padding 16
 
 Hide
-Type "cd examples/harness-ablation && rm -rf .hone && alias hone='bun ../../src/cli.ts' && clear"
+Type "cd examples/sharpen && rm -rf .hone && set -a && . ~/.config/hone/env && set +a && alias hone='bun ../../src/cli.ts' && clear"
 Enter
 Show
 
-Type "hone ablate      # remove one rule at a time, paired delta per rule"
+Type "hone test --quiet      # 18 cases against the bot as it is"
 Sleep 400ms
 Enter
-Sleep 4s
+Sleep 5s
 
 Type "clear"
 Enter
-Type "hone optimize --budget 12 --batch 4 --seed 1   # Thompson sampling, then a paired verdict"
+Type "hone sharpen           # why they fail, each change tried, a verdict on cases no change saw"
 Sleep 400ms
 Enter
-Sleep 4500ms
-
-Type "clear"
-Enter
-Type "hone    # the dashboard over the latest run"
-Sleep 300ms
-Enter
-Sleep 2500ms
-Type "j"
-Sleep 700ms
-Enter
-Sleep 3s
-Type "j"
-Sleep 600ms
-Type "j"
-Sleep 600ms
-Type "j"
-Sleep 1500ms
-Escape
-Sleep 700ms
-Type "8"
-Sleep 2500ms
-Type "q"
-Sleep 400ms
+Sleep 26s
