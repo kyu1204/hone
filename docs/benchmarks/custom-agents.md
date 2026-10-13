@@ -104,7 +104,9 @@ The benchmark was run to find this out. Each item was fixed and then checked on 
 4. **A proposer other than hone's model could not have its own changes judged alone** when the agent under test needs the API key: with a key reachable, the model always wrote rewrites too. `hone sharpen --no-rewrites` and `hone serve mcp --no-rewrites` (#117, #118).
 5. **The python target, in a real project** (#115): editing the agent left cached answers in place; a `print` in the agent could be taken for its answer; a framework's warnings went into hone's output; `PYTHONPATH` was ignored; a script that used a target stayed alive for two minutes.
 
-Not fixed: the search still measures a costlier variant alone and on top of each best text, and writes rewrites on top of it when it leads (see Spend). hone does not record what its own model calls cost. `hone init` registers the MCP server for Claude Code and Cursor, not for Codex, which needed `-c mcp_servers.hone...` and a pre-approved tool mode to call it without a person. The skill's main path is the CLI, which a sandboxed agent cannot use to run an agent that calls a model; both sessions went to the `mcp` reference by themselves, after being told the shell had no network.
+6. **The search paid for the larger model** (see Spend). It led after the first round, so the rewrites were written on top of it. A config change whose own run costs clearly more than the baseline's is no longer built on; it goes on top of the final text once (#124). This one was not run again on the agent: what it saves is an estimate until a fresh run shows it.
+
+Not fixed: hone does not record what its own model calls cost. `hone init` registers the MCP server for Claude Code and Cursor, not for Codex, which needed `-c mcp_servers.hone...` and a pre-approved tool mode to call it without a person. The skill's main path is the CLI, which a sandboxed agent cannot use to run an agent that calls a model; both sessions went to the `mcp` reference by themselves, after being told the shell had no network.
 
 ## What this shows and what it does not
 
@@ -130,7 +132,7 @@ API credit, measured from the trials that ran (an answer from the cache costs no
 
 $17.38 for the agent under test, 1,752 agent runs with no errors. hone's own model calls (naming failure modes in 13 runs, four rewrites) are not recorded; about $0.60 by token count. The Codex sessions ran on a ChatGPT subscription.
 
-$12.04 of the $17.38 (69%) went to trials on the larger model, which the example offers as a variant: measured alone in every arm, put on top of the best text in every cycle, and under every rewrite of the first two runs. The fixes above change which candidate wins, not what the search pays to look at it.
+$12.04 of the $17.38 (69%) went to trials on the larger model, which the example offers as a variant: measured alone in every arm, put on top of the best text in every cycle, and under every rewrite of the first two runs. Items 1 and 2 above change which candidate wins; item 6 is about what the search pays to look.
 
 ## Reproduce
 
