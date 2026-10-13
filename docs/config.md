@@ -37,7 +37,7 @@ export default defineConfig({
 |---|---|---|
 | `http` | POST to `url` with `body(case)`; `output` picked by `select` | timeouts, headers, retries |
 | `fn` | a function `(input, ctx) => output` in the config | `ctx.span`, `ctx.message`, `ctx.usage` record the trace; `ctx.prefix` carries forks |
-| `python` | a Python callable via the embedded bridge | `module:function`, own interpreter |
+| `python` | a Python callable `fn(input, ctx)` via the embedded bridge | `module`, `fn`, `python` (the interpreter, e.g. `.venv/bin/python`), `params` (handed to the callable as `ctx.params`: what a change alters), `workers` (calls served at once), `env`. `ctx.from_langchain(messages)` and `ctx.from_strands(messages, usage)` record an agent's whole conversation, tool calls included |
 | `process` | a CLI agent in an isolated workspace | `agent: claude-code | codex | opencode | aider | generic`; parses the agent's JSON stream |
 | `mcp` | `tools/call` against a stdio MCP server | own JSON-RPC client |
 | `replay` | stored traces | re-score without re-running |

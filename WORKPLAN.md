@@ -125,7 +125,7 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 
 Why: the agents teams build in-house (LangChain, Strands) are where an evaluation cycle is hardest to set up and most needed.
 
-- [ ] T-1101 Python targets for custom agents: `params`, traces recorded from LangChain and Strands, concurrency (M)
+- [x] T-1101 Python targets for custom agents: `params`, traces recorded from LangChain and Strands, concurrency (M)
 - [ ] T-1102 Example: an in-house helpdesk agent in LangChain and in Strands, 36 cases over six house rules (M)
 - [ ] T-1103 Benchmark: the cycle on both, by hone's own rewrites and by a coding agent (Codex) writing changes (M)
 - [ ] T-1104 `hone init` recognises LangChain and Strands projects (S)
@@ -215,3 +215,4 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 | 2026-10-13 | T-1010 | #109 | the skill is a router (`skills/hone/SKILL.md`) with six topic references (setup, cases, sharpening, results, steps, mcp), embedded in the CLI; `hone guide [topic]` prints them; `hone init` installs the skill into `.agents/skills/hone` and `.claude/skills/hone`, registers `bunx hone-eval serve mcp` as `hone` in `.mcp.json` (and `.cursor/mcp.json` when `.cursor/` exists) without touching other servers or an existing entry, and writes `sharpen/README.md`; `--no-agents`; MCP tools `hone_test` (was `hone_run`), `hone_sharpen`, `hone_guide`; a test checks that the skill names only real commands and references |
 | 2026-10-13 | T-1011 | #110 | `.hone/sharpen/holdout.json` lists, per split, the different winners its held-out cases have judged; the n-th has to reach alpha / n and the account says so; the same winner again keeps its place (a replication is not another attempt); the fewest units that can prove follow the level (six at 0.05, seven at 0.025) |
 | 2026-10-13 | T-1010 follow-up | #111 | docs/benchmarks/agent-writes-changes.md: one real Claude Code session (sonnet, sandboxed, the skill only, no API key for hone) read the diagnosis page, wrote two change files, and hone confirmed the pair as PROVEN on 6 held-out cases in 31 s; the skill now says to delete a change file after applying it |
+| 2026-10-13 | T-1101 | #114 | python target: `params` reach the callable as `ctx.params` and, with `env`, are part of the version (two variants of one module no longer share cached outputs); `ctx.from_langchain` and `ctx.from_strands` record messages, tool calls, tool results and usage from what the frameworks return, duck-typed; usage with a model name is priced from the table; `workers` serves calls on threads |

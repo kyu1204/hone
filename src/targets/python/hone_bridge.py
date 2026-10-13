@@ -5,8 +5,15 @@ line on stdin ({"id", "input", "ctx"}), calls `<fn>(input, ctx)` and writes one 
 object per line on stdout ({"id", "result"} or {"id", "error"}).
 
 `ctx` is a Context with `span(kind, name)`, `message(role, content, **kw)` and
-`usage(input_tokens=, output_tokens=, cost_usd=)`; whatever the handler records is
-attached to the result as messages / spans / usage.
+`usage(input_tokens=, output_tokens=, cost_usd=, model=)`; whatever the handler records is
+attached to the result as messages / spans / usage. `ctx.params` is the `params` of the
+target in hone.config.ts: what a change alters (a prompt, a model, a setting).
+
+For an agent built with a framework, `ctx.from_langchain(messages)` and
+`ctx.from_strands(messages, usage)` record the whole conversation, tool calls included,
+from what the framework returns. Neither library is imported here.
+
+A third argument sets how many calls are served at once (threads; default 1).
 """
 from __future__ import annotations
 
@@ -19,9 +26,37 @@ import inspect
 import json
 import os
 import sys
+import threading
 import traceback
+from concurrent.futures import ThreadPoolExecutor
 
 _PROTOCOL_KEYS = ("messages", "spans", "usage", "artifacts", "error", "meta")
+
+
+_ROLES = {"human": "user", "user": "user", "ai": "assistant", "assistant": "assistant", "system": "system", "tool": "tool"}
+
+
+def _text(content) -> str:
+    """Text of a message content: a string, or a list of blocks of which the text ones count."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    parts = []
+    for block in content:
+        if isinstance(block, str):
+            parts.append(block)
+        elif isinstance(block, dict) and "text" in block and block.get("type", "text") == "text":
+            parts.append(str(block["text"]))
+    return "".join(parts)
+
+
+def _json(value) -> str:
+    return value if isinstance(value, str) else json.dumps(value, default=str)
+
+
+def _call_entry(call_id, name, args) -> dict:
+    return {"id": call_id, "type": "function", "function": {"name": name, "arguments": _json(args if args is not None else {})}}
 
 
 def _now() -> str:
@@ -47,6 +82,8 @@ class Context:
         self.case_id = raw.get("caseId")
         self.trial = raw.get("trial")
         self.prefix = raw.get("prefix")
+        self.params: dict = raw.get("params") or {}
+        self.model = None
         self.messages: list = list(self.prefix) if self.prefix else []
         self.spans: list = []
         self._usage: dict = {}
@@ -75,13 +112,71 @@ class Context:
         m.update(extra)
         self.messages.append(m)
 
-    def usage(self, input_tokens: float = 0, output_tokens: float = 0, cost_usd: float = 0.0) -> None:
+    def usage(self, input_tokens: float = 0, output_tokens: float = 0, cost_usd: float = 0.0, model=None) -> None:
+        """Add to the trial's usage. With a model name and no cost, hone prices the tokens from its own table."""
         for key, value in (("inputTokens", input_tokens), ("outputTokens", output_tokens), ("costUsd", cost_usd)):
             if value:
                 self._usage[key] = self._usage.get(key, 0) + value
+        if model:
+            self.model = str(model)
+
+    def from_langchain(self, messages):
+        """Record what `agent.invoke(...)["messages"]` returns: LangChain or LangGraph message objects (or dicts) with
+        their tool calls and tool results, and the token usage. Returns the text of the last assistant message."""
+        last = None
+        for m in messages:
+            get = m.get if isinstance(m, dict) else (lambda key, default=None, _m=m: getattr(_m, key, default))
+            role = _ROLES.get(str(get("type") or get("role") or ""), "user")
+            text = _text(get("content"))
+            if role == "tool":
+                extra = {k: v for k, v in (("tool_call_id", get("tool_call_id")), ("name", get("name"))) if v}
+                self.message("tool", text, **extra)
+                continue
+            calls = [_call_entry(c.get("id"), c.get("name"), c.get("args")) for c in (get("tool_calls") or [])]
+            self.message(role, text, **({"tool_calls": calls} if calls else {}))
+            used = get("usage_metadata") or {}
+            meta = get("response_metadata") or {}
+            if used:
+                self.usage(input_tokens=used.get("input_tokens", 0), output_tokens=used.get("output_tokens", 0), model=meta.get("model_name") or meta.get("model"))
+            if role == "assistant" and text:
+                last = text
+        return last
+
+    def from_strands(self, messages, usage=None, model=None):
+        """Record a Strands agent's `agent.messages` (content blocks `text`, `toolUse`, `toolResult`) and
+        `result.metrics.accumulated_usage`. Returns the text of the last assistant message."""
+        names: dict = {}
+        last = None
+        for m in messages:
+            blocks = m.get("content") or []
+            if isinstance(blocks, str):
+                blocks = [{"text": blocks}]
+            blocks = [b for b in blocks if isinstance(b, dict)]
+            text = "".join(str(b["text"]) for b in blocks if "text" in b)
+            for r in (b["toolResult"] for b in blocks if "toolResult" in b):
+                body = "".join(str(c["text"]) if "text" in c else _json(c.get("json")) for c in (r.get("content") or []) if isinstance(c, dict))
+                extra = {k: v for k, v in (("tool_call_id", r.get("toolUseId")), ("name", names.get(r.get("toolUseId")))) if v}
+                self.message("tool", body, **extra)
+            uses = [b["toolUse"] for b in blocks if "toolUse" in b]
+            for u in uses:
+                names[u.get("toolUseId")] = u.get("name")
+            role = "assistant" if m.get("role") == "assistant" else "user"
+            if uses:
+                self.message("assistant", text, tool_calls=[_call_entry(u.get("toolUseId"), u.get("name"), u.get("input")) for u in uses])
+            elif text:
+                self.message(role, text)
+            if role == "assistant" and text:
+                last = text
+        if usage:
+            self.usage(input_tokens=usage.get("inputTokens", 0), output_tokens=usage.get("outputTokens", 0), model=model)
+        elif model:
+            self.model = str(model)
+        return last
 
     def finish(self, result) -> dict:
         base = {"output": result, "messages": self.messages, "spans": self.spans, "usage": self._usage}
+        if self.model:
+            base["meta"] = {"model": self.model}
         if isinstance(result, dict) and "output" in result and any(k in result for k in _PROTOCOL_KEYS):
             merged = dict(base)
             merged["output"] = result["output"]
@@ -117,21 +212,36 @@ def _call(fn, payload: dict):
     return ctx.finish(result)
 
 
+_out = threading.Lock()
+
+
 def _emit(obj: dict) -> None:
-    sys.stdout.write(json.dumps(obj, default=str) + "\n")
-    sys.stdout.flush()
+    with _out:
+        sys.stdout.write(json.dumps(obj, default=str) + "\n")
+        sys.stdout.flush()
+
+
+def _serve(fn, payload: dict) -> None:
+    rid = payload.get("id")
+    try:
+        _emit({"id": rid, "result": _call(fn, payload)})
+    except BaseException as e:  # noqa: BLE001
+        _emit({"id": rid, "error": {"type": type(e).__name__, "message": str(e), "traceback": traceback.format_exc()}})
 
 
 def main() -> int:
-    if len(sys.argv) != 3:
-        sys.stderr.write("usage: hone_bridge.py <module> <fn>\n")
+    if len(sys.argv) not in (3, 4):
+        sys.stderr.write("usage: hone_bridge.py <module> <fn> [workers]\n")
         return 2
     try:
         fn = _load(sys.argv[1], sys.argv[2])
     except BaseException as e:  # noqa: BLE001
         _emit({"id": None, "error": {"type": type(e).__name__, "message": str(e), "traceback": traceback.format_exc()}})
         return 1
+    workers = max(1, int(sys.argv[3])) if len(sys.argv) == 4 else 1
     _emit({"id": None, "ready": True})
+    # agent calls wait on a model, so threads are enough to serve several at once
+    pool = ThreadPoolExecutor(max_workers=workers) if workers > 1 else None
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -141,11 +251,12 @@ def main() -> int:
         except json.JSONDecodeError as e:
             _emit({"id": None, "error": {"type": "JSONDecodeError", "message": str(e), "traceback": ""}})
             continue
-        rid = payload.get("id")
-        try:
-            _emit({"id": rid, "result": _call(fn, payload)})
-        except BaseException as e:  # noqa: BLE001
-            _emit({"id": rid, "error": {"type": type(e).__name__, "message": str(e), "traceback": traceback.format_exc()}})
+        if pool:
+            pool.submit(_serve, fn, payload)
+        else:
+            _serve(fn, payload)
+    if pool:
+        pool.shutdown(wait=True)
     return 0
 
 

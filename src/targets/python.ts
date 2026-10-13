@@ -5,6 +5,7 @@ import * as path from "node:path";
 import type { TargetSpec } from "../core/config";
 import { cacheKey } from "../core/cache";
 import type { ChatMessage } from "../core/types";
+import { costOf, priceOf } from "../providers/pricing";
 import bridgeSource from "./python/hone_bridge.py" with { type: "text" };
 import { registerTargetKind, type RunContext, type Target, type TargetOutput } from "./target";
 
@@ -16,6 +17,10 @@ export interface PythonTargetSpec extends TargetSpec {
   cwd?: string;
   env?: Record<string, string>;
   timeoutMs?: number;
+  /** Handed to the callable as `ctx.params`: what a change alters (a prompt, a model, a setting). */
+  params?: Record<string, unknown>;
+  /** Calls the bridge serves at once, on threads (default 1). Agent calls wait on a model, so a suite finishes sooner; a handler that is not thread-safe keeps 1. */
+  workers?: number;
 }
 
 interface BridgeError {
@@ -49,7 +54,7 @@ class PythonProcess {
   constructor(private readonly spec: PythonTargetSpec) {}
 
   private start(): Promise<BridgeError | undefined> {
-    const proc = Bun.spawn([this.spec.python ?? "python3", "-I", materialiseBridge(), this.spec.module, this.spec.fn ?? "handler"], {
+    const proc = Bun.spawn([this.spec.python ?? "python3", "-I", materialiseBridge(), this.spec.module, this.spec.fn ?? "handler", String(Math.max(1, Math.floor(this.spec.workers ?? 1)))], {
       cwd: this.spec.cwd,
       env: { ...process.env, ...this.spec.env },
       stdin: "pipe",
@@ -148,7 +153,7 @@ export function pythonTarget(id: string, spec: PythonTargetSpec): Target {
   const process_ = new PythonProcess(spec);
 
   const run = async (input: unknown, ctx: RunContext, prefix?: ChatMessage[]): Promise<TargetOutput> => {
-    const line = await process_.call({ input, ctx: { caseId: ctx.caseId, trial: ctx.trial, prefix: prefix ?? null } }, timeoutMs);
+    const line = await process_.call({ input, ctx: { caseId: ctx.caseId, trial: ctx.trial, prefix: prefix ?? null, params: spec.params ?? null } }, timeoutMs);
     if (line.error) {
       const out: TargetOutput = { output: null, error: `${line.error.type}: ${line.error.message}` };
       if (line.error.traceback) out.meta = { traceback: line.error.traceback };
@@ -159,6 +164,9 @@ export function pythonTarget(id: string, spec: PythonTargetSpec): Target {
     if (r.messages) out.messages = r.messages;
     if (r.spans) out.spans = r.spans;
     if (r.usage) out.usage = r.usage;
+    // tokens with a model name and no cost: price them from the table, so cost per case is there without the handler doing arithmetic
+    const model = typeof r.meta?.model === "string" ? r.meta.model : undefined;
+    if (out.usage && !out.usage.costUsd && model && priceOf(model)) out.usage = { ...out.usage, costUsd: costOf(model, out.usage.inputTokens ?? 0, out.usage.outputTokens ?? 0) };
     if (r.artifacts) out.artifacts = r.artifacts;
     if (r.error !== undefined) out.error = String(r.error);
     if (r.meta) out.meta = r.meta;
@@ -169,10 +177,12 @@ export function pythonTarget(id: string, spec: PythonTargetSpec): Target {
     id,
     kind: "python",
     async version() {
+      // params and env are part of what runs: two variants of one module must not share cached outputs
+      const variant = spec.params || spec.env ? cacheKey({ params: spec.params ?? null, env: spec.env ?? null }) : "";
       const file = path.resolve(spec.cwd ?? process.cwd(), spec.module);
-      if (spec.module.endsWith(".py") && fs.existsSync(file)) return createHash("sha256").update(fs.readFileSync(file)).digest("hex");
+      if (spec.module.endsWith(".py") && fs.existsSync(file)) return createHash("sha256").update(fs.readFileSync(file)).update(variant).digest("hex");
       const py = Bun.spawnSync([spec.python ?? "python3", "--version"]).stdout.toString().trim();
-      return cacheKey({ kind: "python", module: spec.module, fn: spec.fn ?? "handler", py });
+      return cacheKey({ kind: "python", module: spec.module, fn: spec.fn ?? "handler", py, variant });
     },
     run: (input, ctx) => run(input, ctx, ctx.prefix),
     resume: (prefix, input, ctx) => run(input, ctx, prefix),

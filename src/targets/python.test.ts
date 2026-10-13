@@ -134,4 +134,91 @@ def handler(input, ctx):
     const out = await target(file).run("q", ctx);
     expect(out.error).toMatch(/nonexistent_module_xyz/);
   });
+
+  test("params reach the handler as ctx.params and are part of the version", async () => {
+    const file = handler("def handler(input, ctx):\n    return f\"{ctx.params.get('prompt')}|{ctx.params.get('top_k')}\"\n");
+    const a = createTarget("py", { kind: "python", module: file, params: { prompt: "be brief", top_k: 5 } });
+    const b = createTarget("py", { kind: "python", module: file, params: { prompt: "be brief", top_k: 30 } });
+    const c = createTarget("py", { kind: "python", module: file, params: { prompt: "be brief", top_k: 5 }, env: { MODE: "x" } });
+    const none = createTarget("py", { kind: "python", module: file });
+    targets.push(a, b, c, none);
+    expect((await a.run("q", ctx)).output).toBe("be brief|5");
+    expect((await b.run("q", ctx)).output).toBe("be brief|30");
+    expect((await none.run("q", ctx)).output).toBe("None|None");
+    // two variants of one module must not share cached outputs
+    const versions = await Promise.all([a, b, c, none].map((t) => t.version()));
+    expect(new Set(versions).size).toBe(4);
+    expect(await createTarget("py", { kind: "python", module: file, params: { top_k: 5, prompt: "be brief" } }).version()).toBe(versions[0]!); // key order does not matter
+  });
+
+  test("ctx.from_langchain records messages, tool calls, tool results and usage from LangChain message objects", async () => {
+    const file = handler(`
+class Msg:
+    def __init__(self, type, content, **kw):
+        self.type = type
+        self.content = content
+        for k, v in kw.items():
+            setattr(self, k, v)
+
+def handler(input, ctx):
+    messages = [
+        Msg("system", "You are the helpdesk."),
+        Msg("human", input),
+        Msg("ai", [{"type": "text", "text": "Let me check."}, {"type": "tool_use", "id": "t1", "name": "search_policy", "input": {"query": "vacation"}}],
+            tool_calls=[{"name": "search_policy", "args": {"query": "vacation"}, "id": "t1"}],
+            usage_metadata={"input_tokens": 100, "output_tokens": 20}, response_metadata={"model_name": "claude-haiku-5-5"}),
+        Msg("tool", "P-03: 15 days", tool_call_id="t1", name="search_policy"),
+        Msg("ai", "You get 15 days [P-03].", tool_calls=[], usage_metadata={"input_tokens": 150, "output_tokens": 12}),
+    ]
+    return ctx.from_langchain(messages)
+`);
+    const out = await target(file).run("How many vacation days?", ctx);
+    expect(out.error).toBeUndefined();
+    expect(out.output).toBe("You get 15 days [P-03].");
+    expect(out.messages).toEqual([
+      { role: "system", content: "You are the helpdesk." },
+      { role: "user", content: "How many vacation days?" },
+      { role: "assistant", content: "Let me check.", tool_calls: [{ id: "t1", type: "function", function: { name: "search_policy", arguments: '{"query": "vacation"}' } }] },
+      { role: "tool", content: "P-03: 15 days", tool_call_id: "t1", name: "search_policy" },
+      { role: "assistant", content: "You get 15 days [P-03]." },
+    ]);
+    expect(out.usage).toMatchObject({ inputTokens: 250, outputTokens: 32 });
+    expect(out.usage!.costUsd).toBeCloseTo((250 * 1 + 32 * 5) / 1e6, 9); // priced from the table: the handler gave a model, not a cost
+    expect(out.meta).toMatchObject({ model: "claude-haiku-5-5" });
+  });
+
+  test("ctx.from_strands records Bedrock-style content blocks and accumulated usage", async () => {
+    const file = handler(`
+def handler(input, ctx):
+    messages = [
+        {"role": "user", "content": [{"text": input}]},
+        {"role": "assistant", "content": [{"text": "Checking."}, {"toolUse": {"toolUseId": "u1", "name": "verify_identity", "input": {"email": "a@x.io", "employee_id": "E1"}}}]},
+        {"role": "user", "content": [{"toolResult": {"toolUseId": "u1", "status": "success", "content": [{"text": "verified"}]}}]},
+        {"role": "assistant", "content": [{"toolUse": {"toolUseId": "u2", "name": "reset_password", "input": {"email": "a@x.io"}}}]},
+        {"role": "user", "content": [{"toolResult": {"toolUseId": "u2", "status": "success", "content": [{"json": {"ok": True}}]}}]},
+        {"role": "assistant", "content": [{"text": "Your password is reset."}]},
+    ]
+    return ctx.from_strands(messages, {"inputTokens": 300, "outputTokens": 40}, model="claude-haiku-5-5")
+`);
+    const out = await target(file).run("reset my password", ctx);
+    expect(out.error).toBeUndefined();
+    expect(out.output).toBe("Your password is reset.");
+    expect(out.messages!.map((m) => m.role)).toEqual(["user", "assistant", "tool", "assistant", "tool", "assistant"]);
+    expect(out.messages![1]).toEqual({ role: "assistant", content: "Checking.", tool_calls: [{ id: "u1", type: "function", function: { name: "verify_identity", arguments: '{"email": "a@x.io", "employee_id": "E1"}' } }] });
+    expect(out.messages![2]).toEqual({ role: "tool", content: "verified", tool_call_id: "u1", name: "verify_identity" });
+    expect(out.messages![4]).toEqual({ role: "tool", content: '{"ok": true}', tool_call_id: "u2", name: "reset_password" });
+    expect(out.usage).toMatchObject({ inputTokens: 300, outputTokens: 40 });
+    expect(out.usage!.costUsd).toBeGreaterThan(0);
+  });
+
+  test("workers: several calls are served at once and each answer goes to its own request", async () => {
+    const file = handler("import time\n\ndef handler(input, ctx):\n    time.sleep(0.4)\n    return f'{input}:{ctx.case_id}'\n");
+    const t = createTarget("py", { kind: "python", module: file, workers: 4 });
+    targets.push(t);
+    await t.run("warm", ctx); // the interpreter is up
+    const started = Date.now();
+    const outs = await Promise.all(["a", "b", "c", "d"].map((x) => t.run(x, { runId: "r", caseId: `case-${x}`, trial: 0 })));
+    expect(outs.map((o) => o.output)).toEqual(["a:case-a", "b:case-b", "c:case-c", "d:case-d"]);
+    expect(Date.now() - started).toBeLessThan(1200); // four 0.4 s calls one after the other would take 1.6 s
+  });
 });
