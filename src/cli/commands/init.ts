@@ -118,7 +118,7 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
     }
   }
   if (args.flags.skills) installSkills(io, args.flags.force === true);
-  io.stdout("\nnext: hone run\n");
+  io.stdout("\nnext: hone test\n");
   return 0;
 }
 

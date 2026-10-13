@@ -33,7 +33,7 @@ export default defineConfig({
   return d;
 }
 
-describe("hone ci", () => {
+describe("hone test --ci", () => {
   test("passing gates exit 0 and write .hone/ci/last.json and JUnit", async () => {
     const dir = project(10, "gates: { passAt1: { min: 0.9 }, costUsd: { max: 1 } },");
     const o = io(dir);

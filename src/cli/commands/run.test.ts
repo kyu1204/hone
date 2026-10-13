@@ -39,7 +39,7 @@ const CONFIG = `{
   scorers: [{ name: "exact" }],
 }`;
 
-describe("hone run", () => {
+describe("hone test", () => {
   test("prints a matrix, writes the run, exits 0 without gates", async () => {
     const dir = project(CONFIG, CASES);
     const o = io(dir);
@@ -54,6 +54,19 @@ describe("hone run", () => {
     expect(out).toMatch(/pass\^/i);
     expect(fs.existsSync(path.join(dir, ".hone", "index.sqlite"))).toBe(true);
     expect(fs.readdirSync(path.join(dir, ".hone", "runs"))).toHaveLength(1);
+  });
+
+  test("--report writes the HTML report of the run it just made", async () => {
+    const dir = project(CONFIG, CASES);
+    const o = io(dir);
+    expect(await runCommand(["--quiet", "--report"], o)).toBe(0);
+    const runId = fs.readdirSync(path.join(dir, ".hone", "runs"))[0]!;
+    const html = fs.readFileSync(path.join(dir, "report.html"), "utf8");
+    expect(html).toContain(runId);
+    expect(html).toContain("greet");
+    expect(o.out).toMatch(/wrote .*report\.html/);
+    expect(await runCommand(["--quiet", "--report=second.html"], io(dir))).toBe(0);
+    expect(fs.readFileSync(path.join(dir, "second.html"), "utf8")).toMatch(/<!doctype html>/);
   });
 
   test("--json prints a machine document and filters narrow the plan", async () => {

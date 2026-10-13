@@ -109,7 +109,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 
 Why: the two 2026-10 studies showed that a person was still chaining the steps and making the calls, and that twenty commands are too many to choose from.
 
-- [ ] T-1001 Three-command surface: `init`, `test`, `sharpen`; the rest behind `hone help all` (M)
+- [x] T-1001 Three-command surface: `init`, `test`, `sharpen`; the rest behind `hone help all` (M)
 - [ ] T-1002 Config: one `sharpen` block (`text`, `variants`) replaces `evolve` and `optimize` (S)
 - [ ] T-1003 `hone sharpen`: split, measure, gates, diagnose, propose, verify, confirm on held-out cases, plain report (L)
 - [ ] T-1004 The first five minutes: init scaffold, example, README, skill, docs (M)
@@ -190,3 +190,4 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 | 2026-10-12 | T-903 | #78 | scripts/build-binaries.ts (six bun --compile targets, SHA256SUMS, --only/--out; darwin-arm64 verified locally: binary runs the CLI), scripts/release-check.ts (semver, tag match, CHANGELOG section, clean tree), .github/workflows/release.yml (check -> binaries matrix -> publish with npm provenance via OIDC -> GitHub Release with assets), CHANGELOG.md, docs/release.md, package scripts build:binaries/release:check/docs:cli/docs:links |
 | 2026-10-12 | T-904 | #79 | ruleset verified and recorded (test/fixtures/ruleset.protect-main.json), wiki/projects off, vulnerability alerts + Dependabot security updates on; ci.yml least privilege + concurrency, actions pinned to SHAs in both workflows; dependabot.yml, SECURITY.md, CODEOWNERS, PR and issue templates; scripts/check-hardening.ts with a fixture test; docs/hardening.md with the live check output |
 | 2026-10-12 | T-905 | #80 | CHANGELOG 0.1.0, package version 0.1.0, README status line and badge, docs index entries (release, hardening, launch), docs/launch/{hn,x,awesome}.md. BLOCKED on npm credentials: tag not pushed; release.yml will publish once the maintainer configures trusted publishing (docs/release.md) |
+| 2026-10-13 | T-1001 | #100 | `hone test` replaces `run` (no alias: nothing was released); `ci` and `report` become `test --ci` and `test --report`; `hone --help` shows the everyday commands only, `hone help all` the rest in three groups with plain summaries; docs/cli.md regrouped; every mention in README, docs, examples, skill and benchmark scripts renamed |

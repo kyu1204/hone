@@ -79,7 +79,7 @@ export async function compareCommand(argv: string[], io: CommandIo): Promise<num
       }
       const runId = runs[0] ?? store.listRuns(1)[0]?.id;
       if (!runId) {
-        io.stderr("no runs found; run `hone run` first\n");
+        io.stderr("no runs found; run `hone test` first\n");
         return 2;
       }
       sideA = { label: a, trials: store.queryTrials({ runId, targetId: a }) };

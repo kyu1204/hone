@@ -28,7 +28,7 @@ First release. Everything below landed as reviewed pull requests #1 to #80 on ht
 - OpenTUI dashboard: matrix, trace viewer with score context and search, side-by-side trajectory diff, failure clusters, judge calibration, candidates (Pareto), fork with inline edit and re-run, charts. Served over SSH.
 
 ### Ecosystem
-- `hone init --skills` installs a skill for Claude Code and Codex; shipped docs; five examples green under `hone ci`; compiled binaries for six platforms; release workflow with npm provenance.
+- `hone init --skills` installs a skill for Claude Code and Codex; shipped docs; five examples green under `hone test --ci`; compiled binaries for six platforms; release workflow with npm provenance.
 
 ### Deferred
 - Kitty pixel charts inside the OpenTUI layout (the escape builder and PNG encoder exist; the charts screen uses character cells).

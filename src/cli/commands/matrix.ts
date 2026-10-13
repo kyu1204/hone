@@ -123,7 +123,7 @@ export async function matrixCommand(argv: string[], io: CommandIo): Promise<numb
   try {
     const runId = args.values.run?.[0] ?? store.listRuns(1)[0]?.id;
     if (!runId) {
-      io.stderr("no runs found; run `hone run` first\n");
+      io.stderr("no runs found; run `hone test` first\n");
       return 2;
     }
     const trials = store.queryTrials({ runId });

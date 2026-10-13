@@ -25,7 +25,7 @@ export async function tuiCommand(argv: string[], io: CommandIo): Promise<number>
     return 0;
   }
   if (!process.stdout.isTTY) {
-    io.stderr("hone tui needs a terminal; use `hone run --json` or `hone matrix` in scripts\n");
+    io.stderr("hone tui needs a terminal; use `hone test --json` or `hone matrix` in scripts\n");
     return 2;
   }
   const { createTuiStore } = await import("../../tui/state");

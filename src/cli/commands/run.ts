@@ -8,6 +8,7 @@ import { buildPlan, type Plan, type PlanFilter } from "../../core/plan";
 import { type RunSummary, runPlan } from "../../core/scheduler";
 import { Store } from "../../core/store";
 import type { Trial, Verdict } from "../../core/types";
+import { renderReport } from "../../io/export/html";
 import { createScorers } from "../../scorers/index";
 import { createTargets } from "../../targets/index";
 import { ArgError, parseArgs, usageLine } from "../args";
@@ -21,10 +22,10 @@ export interface CommandIo {
 
 export const RUN_SPEC = {
   flags: ["adaptive", "cache", "quiet"],
-  strings: ["target", "case", "tag", "json"],
+  strings: ["target", "case", "tag", "json", "report"],
   numbers: ["trials", "ci-width", "max-trials", "concurrency", "max-cost"],
   repeatable: ["target", "case", "tag"],
-  optionalValue: ["json"],
+  optionalValue: ["json", "report"],
 } as const;
 
 const RUN_HELP: Record<string, string> = {
@@ -35,6 +36,7 @@ const RUN_HELP: Record<string, string> = {
   case: "only this case id (repeatable, globs ok)",
   tag: "only cases with this tag (repeatable)",
   json: "print the result document instead of the table (or write it to a path)",
+  report: "also write a self-contained HTML report of this run (default report.html)",
   trials: "trials per case x target (default from config, else 3)",
   "ci-width": "adaptive: stop a cell when its Wilson interval is narrower than this",
   "max-trials": "adaptive: cap per cell",
@@ -43,7 +45,7 @@ const RUN_HELP: Record<string, string> = {
 };
 
 export function runUsage(): string {
-  return `usage: hone run [options]\n\nRun every case against every target, score, and summarise.\n\n${usageLine(RUN_SPEC, RUN_HELP)}\n`;
+  return `usage: hone test [options]\n       hone test --ci [gate options]\n\nRun every case against every target, score, and summarise. With --ci: gate per axis for a pipeline (hone test --ci --help).\n\n${usageLine(RUN_SPEC, RUN_HELP)}\n`;
 }
 
 export interface GateResult {
@@ -238,6 +240,11 @@ export async function runCommand(argv: string[], io: CommandIo): Promise<number>
     if (target) fs.writeFileSync(path.resolve(io.cwd, target), doc);
     else io.stdout(`${doc}\n`);
   } else io.stdout(renderMatrix(plan, summary, trials, targetIds));
+  if (args.values.report) {
+    const out = path.resolve(io.cwd, args.values.report[0] || "report.html");
+    fs.writeFileSync(out, renderReport(runId, trials, summary as unknown as Record<string, unknown>));
+    io.stdout(`wrote ${out} (${trials.length} trials)\n`);
+  }
 
   if (summary.aborted) {
     io.stderr(`aborted: cost $${cost.toFixed(4)} exceeded --max-cost\n`);

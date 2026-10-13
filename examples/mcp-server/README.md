@@ -4,7 +4,7 @@ Evaluate an MCP server's tools without a model in the loop. `server.ts` is a std
 
 ```bash
 cd examples/mcp-server
-hone run
+hone test
 hone explain <trialId>   # shows the tools/call span with arguments and result
 ```
 

@@ -23,7 +23,7 @@ export default defineConfig({
 | `trials` | trials per (case, target) cell; default 3 |
 | `adaptive` | `{ ciWidth, maxTrials }`: keep sampling a cell until its Wilson interval is narrower than `ciWidth` |
 | `scorers` | ordered list of scorer specs (`{ name, ...options }`); every scorer runs on every trial |
-| `gates` | thresholds `hone run` and `hone ci` enforce: `passAt1 {min}`, `passHatK {k, min}`, `costUsd {max}`, `rewardHack: "fail" | "flag"` |
+| `gates` | thresholds `hone test` and `hone test --ci` enforce: `passAt1 {min}`, `passHatK {k, min}`, `costUsd {max}`, `rewardHack: "fail" | "flag"` |
 | `concurrency` | parallel trials; default 4 |
 | `cacheDir` | store root; default `.hone` |
 | `ablations` | `{ name: (config) => config }` transforms measured by `hone ablate` |

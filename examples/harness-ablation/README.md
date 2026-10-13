@@ -4,7 +4,7 @@ A toy "harness" (a rules text steering a solver) with every correction command w
 
 ```bash
 cd examples/harness-ablation
-hone run                 # baseline: all rules on
+hone test                 # baseline: all rules on
 hone ablate              # remove one rule at a time; paired delta per rule
 hone optimize --budget 12 --batch 4   # Thompson sampling between two candidate rule sets, paired verdict
 hone evolve --budget 2   # needs an LLM key: proposes rule rewrites from the failures

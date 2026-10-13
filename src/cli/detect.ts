@@ -85,7 +85,7 @@ export function detectProject(dir: string): Detection {
     d.targets.push({ id: "echo", kind: "fn", spec: `{ kind: "fn", fn: (input) => input }` });
     d.cases.push({ id: "echo-smoke", input: "hello", expected: "hello", tags: ["smoke"] });
     addScorer({ name: "exact" });
-    d.notes.push("nothing detected: an echo target and one exact case so `hone run` passes; replace them with your own.");
+    d.notes.push("nothing detected: an echo target and one exact case so `hone test` passes; replace them with your own.");
   }
   return d;
 }

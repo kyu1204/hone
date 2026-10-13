@@ -83,7 +83,7 @@ describe("App shell", () => {
     const setup = await testRender(<App store={store} onQuit={() => {}} />, { width: 60, height: 10 });
     try {
       await setup.renderOnce();
-      expect(setup.captureCharFrame()).toMatch(/hone run/);
+      expect(setup.captureCharFrame()).toMatch(/hone test/);
     } finally {
       setup.renderer.destroy();
     }

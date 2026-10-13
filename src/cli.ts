@@ -15,50 +15,73 @@ import { initCommand } from "./cli/commands/init";
 import { matrixCommand } from "./cli/commands/matrix";
 import { optimizeCommand } from "./cli/commands/optimize";
 import { powerCommand } from "./cli/commands/power";
-import { reportCommand } from "./cli/commands/report";
 import { type CommandIo, runCommand } from "./cli/commands/run";
 import { serveCommand } from "./cli/commands/serve";
 import { tuiCommand } from "./cli/commands/tui";
 import { VERSION } from "./index";
 
 type Command = (argv: string[], io: CommandIo) => Promise<number>;
+type Group = Record<string, { run: Command; summary: string }>;
 
-const COMMANDS: Record<string, { run: Command; summary: string }> = {
-  optimize: { run: optimizeCommand, summary: "spend a trial budget across candidates by Thompson sampling, decide paired" },
-  power: { run: powerCommand, summary: "cases needed for an effect, or the smallest detectable effect" },
-  report: { run: reportCommand, summary: "write a self-contained HTML report for a run" },
-  run: { run: runCommand, summary: "run every case against every target and summarise" },
-  serve: { run: serveCommand, summary: "serve the dashboard (ssh), the scorers as a reward API (reward), or MCP tools over stdio (mcp)" },
-  tui: { run: tuiCommand, summary: "open the dashboard over the latest run (plain `hone` in a terminal)" },
-  ci: { run: ciCommand, summary: "run and gate per axis for CI; writes JUnit and a PR comment" },
-  compare: { run: compareCommand, summary: "paired comparison of two targets (or runs) with significance" },
-  ablate: { run: ablateCommand, summary: "measure what each config component contributes" },
-  bisect: { run: bisectCommand, summary: "find the commit that broke a case, with confidence intervals" },
-  calibrate: { run: calibrateCommand, summary: "measure what a judge catches by injecting faults into passing trials" },
-  cluster: { run: clusterCommand, summary: "group the failed trials of a run into failure modes" },
-  diff: { run: diffCommand, summary: "align two trajectories step by step and show where they diverge" },
-  evolve: { run: evolveCommand, summary: "propose text changes from failures, verify them, keep the Pareto front" },
-  explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages, spans" },
-  export: { run: exportCommand, summary: "write trials as RL-ready rollouts JSONL (hone export rollouts)" },
-  fork: { run: forkCommand, summary: "re-run a trial from an edited message and compare the verdict" },
-  import: { run: importCommand, summary: "bring Claude Code sessions (and later other tools' results) into the store" },
-  init: { run: initCommand, summary: "detect the project and write hone.config.ts, example cases and keys" },
-  matrix: { run: matrixCommand, summary: "per-target solve rate, cost, tokens, time and significance bands" },
+// What a newcomer needs. Everything else is one step of these, a way to look at results, or a tool: `hone help all`.
+const EVERYDAY: Group = {
+  init: { run: initCommand, summary: "set up: detect the project, write hone.config.ts and example cases" },
+  // `hone test --ci` is the gate for pipelines: thresholds per axis, JUnit, a pull request comment
+  test: { run: (argv, io) => (argv.includes("--ci") ? ciCommand(argv.filter((a) => a !== "--ci"), io) : runCommand(argv, io)), summary: "evaluate: run every case, score it, say how far to trust the score" },
 };
 
+const MORE: [string, Group][] = [
+  [
+    "single steps of the improvement cycle",
+    {
+      cluster: { run: clusterCommand, summary: "group the failed trials into failure modes and name them" },
+      calibrate: { run: calibrateCommand, summary: "check a judge: plant known faults in passing trials and count what it catches" },
+      evolve: { run: evolveCommand, summary: "rewrite one text from the failures and keep the versions that test better" },
+      optimize: { run: optimizeCommand, summary: "spend a fixed number of trials across the declared candidates and pick the best" },
+      ablate: { run: ablateCommand, summary: "remove one part of the config at a time and measure what it was worth" },
+      compare: { run: compareCommand, summary: "say whether two targets (or two runs) really differ, case by case" },
+      power: { run: powerCommand, summary: "how many cases a difference of a given size needs" },
+    },
+  ],
+  [
+    "looking at results",
+    {
+      tui: { run: tuiCommand, summary: "browse the results in the terminal (plain `hone` does the same)" },
+      matrix: { run: matrixCommand, summary: "one row per target: pass rate, cost, time, and which targets really differ" },
+      explain: { run: explainCommand, summary: "print one trial: verdict, scores, messages" },
+      diff: { run: diffCommand, summary: "show where two trials went different ways" },
+      fork: { run: forkCommand, summary: "re-run a trial from an edited step and compare the verdict" },
+    },
+  ],
+  [
+    "other tools",
+    {
+      bisect: { run: bisectCommand, summary: "find the commit that broke a case" },
+      export: { run: exportCommand, summary: "write trials as JSONL for training, OpenTelemetry, Docent, JUnit or HTML" },
+      import: { run: importCommand, summary: "bring Claude Code sessions and other tools' results in" },
+      serve: { run: serveCommand, summary: "serve the dashboard over SSH, the scorers as a reward API, or MCP tools for agents" },
+    },
+  ],
+];
+
+const COMMANDS: Group = Object.assign({}, EVERYDAY, ...MORE.map(([, g]) => g));
+const WIDTH = Math.max(...Object.keys(COMMANDS).map((c) => c.length)) + 2;
+const table = (g: Group): string => Object.entries(g).map(([name, c]) => `  ${name.padEnd(WIDTH)}${c.summary}`).join("\n");
+
 export function usage(): string {
-  const width = Math.max(...Object.keys(COMMANDS).map((c) => c.length)) + 2;
-  return `hone ${VERSION}\n\nusage: hone <command> [options]\n\ncommands:\n${Object.entries(COMMANDS)
-    .map(([name, c]) => `  ${name.padEnd(width)}${c.summary}`)
-    .join("\n")}\n\nhone <command> --help for options.\n`;
+  return `hone ${VERSION}\n\nusage: hone <command> [options]\n\n${table(EVERYDAY)}\n\nhone                    browse the results (in a terminal)\nhone help all           the single steps behind these, and other tools\nhone <command> --help   the options of one command\n`;
+}
+
+export function usageAll(): string {
+  return `hone ${VERSION}\n\nusage: hone <command> [options]\n\n${table(EVERYDAY)}\n\n${MORE.map(([title, g]) => `${title}\n${table(g)}`).join("\n\n")}\n\nhone <command> --help   the options of one command\n`;
 }
 
 export async function main(argv: string[]): Promise<number> {
   const io: CommandIo = { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s), cwd: process.cwd(), env: process.env };
   const [name, ...rest] = argv;
   if (!name && process.stdout.isTTY && process.stdin.isTTY) return tuiCommand([], io);
-  if (!name || name === "--help" || name === "-h") {
-    io.stdout(usage());
+  if (!name || name === "--help" || name === "-h" || name === "help") {
+    io.stdout(rest[0] === "all" ? usageAll() : usage());
     return 0;
   }
   if (name === "--version" || name === "-v") {

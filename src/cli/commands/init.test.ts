@@ -33,7 +33,7 @@ describe("hone init", () => {
     const cases = await loadCases(config.cases, d);
     expect(cases.length).toBeGreaterThan(0);
     expect(fs.readFileSync(path.join(d, ".gitignore"), "utf8")).toContain(".hone/");
-    expect(o.out).toMatch(/hone run/);
+    expect(o.out).toMatch(/hone test/);
     const run = io(d);
     expect(await runCommand(["--quiet"], run)).toBe(0);
   });

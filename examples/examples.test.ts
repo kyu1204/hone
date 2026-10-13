@@ -1,4 +1,4 @@
-// Every example directory must be green under `hone ci`; this runs them the way CI does.
+// Every example directory must be green under `hone test --ci`; this runs them the way CI does.
 import { afterEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -27,7 +27,7 @@ describe("examples", () => {
   });
 
   for (const e of examples) {
-    test(`${e}: hone ci is green`, async () => {
+    test(`${e}: hone test --ci is green`, async () => {
       const cwd = path.join(here, e);
       const env: Record<string, string> = { CI: "1" };
       const prevCi = process.env.CI;
