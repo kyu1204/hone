@@ -34,7 +34,7 @@ afterAll(() => {
 });
 
 describe.skipIf(!hasPython)("python target", () => {
-  test("a module name resolves from cwd even though the bridge runs with -I", async () => {
+  test("a module name resolves from cwd", async () => {
     const d = fs.mkdtempSync(path.join(os.tmpdir(), "hone-pymod-"));
     dirs.push(d);
     fs.writeFileSync(path.join(d, "answer.py"), "def answer(input, ctx=None):\n    return 'Paris' if 'france' in str(input) else 'unknown'\n");
@@ -281,6 +281,20 @@ console.log(out.output);`;
     expect(await createTarget("py", { kind: "python", module: "agent.py", fn: "other", cwd: d }).version()).not.toBe(await byPath());
     // what the files cannot show (a remote index, a prompt registry) is the caller's to name
     expect(await createTarget("py", { kind: "python", module: "agent", cwd: d, version: "index-2026-10" }).version()).toBe("index-2026-10");
+  });
+
+  test("the module is run the way python runs a file: it finds the files next to it, and PYTHONPATH counts", async () => {
+    const d = tmp();
+    fs.mkdirSync(path.join(d, "agents"));
+    fs.mkdirSync(path.join(d, "lib"));
+    fs.writeFileSync(path.join(d, "agents/bot.py"), "import tools, shared\n\ndef handler(input, ctx):\n    return tools.NAME + shared.NAME\n");
+    fs.writeFileSync(path.join(d, "agents/tools.py"), "NAME = 'next to it, '\n");
+    fs.writeFileSync(path.join(d, "lib/shared.py"), "NAME = 'on PYTHONPATH'\n");
+    const t = createTarget("py", { kind: "python", module: "agents/bot.py", cwd: d, env: { PYTHONPATH: path.join(d, "lib") } });
+    targets.push(t);
+    const out = await t.run("q", ctx);
+    expect(out.error).toBeUndefined();
+    expect(out.output).toBe("next to it, on PYTHONPATH");
   });
 
   test("workers: several calls are served at once and each answer goes to its own request", async () => {

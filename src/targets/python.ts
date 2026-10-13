@@ -84,7 +84,8 @@ class PythonProcess {
   constructor(private readonly spec: PythonTargetSpec) {}
 
   private start(): Promise<BridgeError | undefined> {
-    const proc = Bun.spawn([this.spec.python ?? "python3", "-I", materialiseBridge(), this.spec.module, this.spec.fn ?? "handler", String(Math.max(1, Math.floor(this.spec.workers ?? 1)))], {
+    // no -I: PYTHONPATH and the user's site-packages are where an agent's own code and dependencies often live
+    const proc = Bun.spawn([this.spec.python ?? "python3", materialiseBridge(), this.spec.module, this.spec.fn ?? "handler", String(Math.max(1, Math.floor(this.spec.workers ?? 1)))], {
       cwd: this.spec.cwd,
       env: { ...process.env, ...this.spec.env },
       stdin: "pipe",
