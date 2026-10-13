@@ -1,0 +1,4 @@
+# Bun loads ./.env into every process it starts, tests included. A contributor's .env holds real API keys, and a test
+# that reaches a model with one spends real money: nothing in this repository gets them that way. hone reads ./.env
+# itself where a command needs a key (src/providers/jev.ts), in the project it is run in.
+env = false
