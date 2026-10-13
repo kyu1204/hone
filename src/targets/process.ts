@@ -68,8 +68,9 @@ function binVersion(bin: string): string {
 export function processTarget(id: string, spec: ProcessTargetSpec): Target {
   const isolate = spec.isolate ?? "copy";
   const timeoutMs = spec.timeoutMs ?? 600_000;
-  const workspace = path.resolve(spec.workspace);
-  const temps: string[] = [];
+  /** `{caseId}` in the workspace path gives every case its own directory (benchmarks with one repo per task). */
+  const workspaceFor = (caseId: string): string => path.resolve(spec.workspace.replaceAll("{caseId}", caseId));
+  const temps: { dir: string; source: string }[] = [];
   if (spec.agent === "generic" && !spec.command?.length) throw new Error(`process target "${id}": generic agent needs a command`);
 
   const argvTemplate = (): string[] => {
@@ -78,19 +79,23 @@ export function processTarget(id: string, spec: ProcessTargetSpec): Target {
     return spec.command ?? [...p.argv, ...(spec.model ? p.modelFlag : [])];
   };
 
-  const prepare = (): string => {
+  const prepare = (workspace: string): string => {
+    if (!fs.existsSync(workspace)) throw new Error(`workspace ${workspace} does not exist`);
     if (isolate === "none") {
       if (!fs.existsSync(path.join(workspace, ".git"))) throw new Error("isolate: none needs a git repository in the workspace");
       return workspace;
     }
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), "hone-ws-"));
-    temps.push(dir);
+    temps.push({ dir, source: workspace });
     if (isolate === "worktree") {
       const r = git(workspace, ["worktree", "add", "--detach", dir, "HEAD"]);
       if (r.code !== 0) throw new Error(`git worktree add failed in ${workspace}`);
       return dir;
     }
     fs.cpSync(workspace, dir, { recursive: true, filter: (src) => !SKIP_COPY.has(path.basename(src)) });
+    // node_modules is not copied (large) but linked, so tests and tools in the copy still resolve dependencies
+    const nm = path.join(workspace, "node_modules");
+    if (fs.existsSync(nm)) fs.symlinkSync(fs.realpathSync(nm), path.join(dir, "node_modules"));
     if (!fs.existsSync(path.join(dir, ".git"))) {
       git(dir, ["init", "-q"]);
       git(dir, ["add", "-A"]);
@@ -136,7 +141,7 @@ export function processTarget(id: string, spec: ProcessTargetSpec): Target {
     const prompt = prefix?.length ? `${renderPrefix(prefix)}\n\n### user\n${instruction}` : instruction;
     let dir: string;
     try {
-      dir = prepare();
+      dir = prepare(workspaceFor(ctx.caseId));
     } catch (e) {
       return { output: null, error: e instanceof Error ? e.message : String(e) };
     }
@@ -185,8 +190,8 @@ export function processTarget(id: string, spec: ProcessTargetSpec): Target {
     run: (input, ctx) => run(input, ctx, ctx.prefix),
     resume: (prefix, input, ctx) => run(input, ctx, prefix),
     async close() {
-      for (const dir of temps.splice(0)) {
-        if (isolate === "worktree") git(workspace, ["worktree", "remove", "--force", dir]);
+      for (const { dir, source } of temps.splice(0)) {
+        if (isolate === "worktree") git(source, ["worktree", "remove", "--force", dir]);
         fs.rmSync(dir, { recursive: true, force: true });
       }
     },
