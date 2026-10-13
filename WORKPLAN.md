@@ -105,6 +105,17 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-904 Repository hardening (S)
 - [ ] T-905 v0.1.0 tag, npm publish, launch posts (S) BLOCKED: npm publish needs the maintainer (no npm login on this machine; trusted publishing not configured). Prepared: CHANGELOG 0.1.0, version 0.1.0, launch drafts, README badge. Remaining for a human: configure npm trusted publishing or `npm login`, then `git tag v0.1.0 && git push origin v0.1.0`, verify the release, submit the awesome-list PRs.
 
+## P10 One cycle, three commands (after P7)
+
+Why: the two 2026-10 studies showed that a person was still chaining the steps and making the calls, and that twenty commands are too many to choose from.
+
+- [ ] T-1001 Three-command surface: `init`, `test`, `sharpen`; the rest behind `hone help all` (M)
+- [ ] T-1002 Config: one `sharpen` block (`text`, `variants`) replaces `evolve` and `optimize` (S)
+- [ ] T-1003 `hone sharpen`: split, measure, gates, diagnose, propose, verify, confirm on held-out cases, plain report (L)
+- [ ] T-1004 The first five minutes: init scaffold, example, README, skill, docs (M)
+- [ ] T-1005 Proposals as patches from a coding agent; diagnosis by intervention; `--apply` (L)
+- [ ] T-1006 Replicate both studies with zero human decisions (M) BLOCKED: spends API credit and subscription quota; the maintainer sets the budget first.
+
 ## Progress log
 
 | Date | Task | PR | Note |
