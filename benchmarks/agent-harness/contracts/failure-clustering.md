@@ -1,0 +1,21 @@
+- Background: the `src/analysis/cluster.ts` bullet of `docs/work-orders/T-601.md` describes this module. Only the module is required here; the `hone cluster` command is out of scope. The work order leaves the points below open; they are required as written.
+- New module `src/analysis/cluster.ts` exporting `summarise`, `chooseK`, `kmeans` and `clusterFailures`. It builds on `src/providers/embed.ts` (`cosine`, `tokens`, `embed`, the `Embedder` type), which already exists.
+- `summarise(trial: Trial): string` returns these lines joined by `\n`, in this order, each only when it applies:
+  - `error: <trace.error>`;
+  - one line `<scorer>: <reason>` per score with `pass === false` (`value <value>` when there is no reason);
+  - `assistant: <text>`, the last assistant message whose content is a non-empty string, with whitespace runs collapsed to one space and cut to 300 characters;
+  - `tools: <names>`, the distinct `tool_calls[].function.name` of the messages in order of first use, joined by spaces, original casing;
+  - `flags: <flags joined by spaces>`;
+  - only when none of the above applies: `output: <trace.output>` (JSON when it is not a string), cut to 300 characters.
+  - Nothing else goes in, in particular no trial, case or target id, so trials that fail in the same way get the same summary.
+- `chooseK(n) = min(8, max(1, ceil(sqrt(n / 2))))`.
+- `kmeans(vectors: number[][], k: number, opts?: { seed?: number; iterations?: number }): { assignments: number[]; centroids: number[][] }`. `assignments[i]` is the index of the centroid `vectors[i]` belongs to.
+  - Distance is `1 - cosine`. Seeding is k-means++: the first centre is a random input vector, each further centre is drawn with probability proportional to the squared distance to the nearest centre chosen so far. Then at most `iterations` (default 30) assign/update rounds, stopping once assignments no longer change.
+  - `k` is capped at the number of vectors; no vectors gives `{ assignments: [], centroids: [] }`.
+  - All randomness comes from a generator seeded with `opts.seed` (default 1), for example the existing `mulberry32` in `src/stats/dist.ts`; never `Math.random()`. The same input and seed give the same result.
+- `clusterFailures(trials: Trial[], opts?: { embed?: Embedder; k?: number; seed?: number; env?: Record<string, string | undefined> }): Promise<{ clusters; method }>`.
+  - Only trials with `pass === false` are used. With none, the result is `{ clusters: [], method: "hash" }`.
+  - The summaries of the failed trials are embedded with `opts.embed` (default: `embed(texts, { env: opts.env })`); `method` is the `method` the embedder reports. Then `kmeans(vectors, opts.k ?? chooseK(<failed count>), { seed: opts.seed })`.
+  - Each non-empty group becomes `{ id, size, trialIds, representative, topTerms, summaries }`: `trialIds` and `summaries` list the members in input order, `size` is their count, `representative` is the id (a string, one of `trialIds`) of the member whose vector is most similar to the centroid.
+  - Clusters are ordered by `size` descending and then named `cluster-1`, `cluster-2`, ... in that order.
+  - `topTerms`: tokenise every failed summary with `tokens()`. A token's score for a cluster is the sum over the cluster's summaries of `tf * idf`, with `tf` = its count in the summary divided by the summary's token count and `idf = ln((N + 1) / (df + 1))` (`N` failed summaries, `df` of them containing the token). Tokens of two characters or fewer and all-digit tokens are dropped. The 5 best are kept; ties keep the order of first appearance. Tokens are not dropped for a zero score.

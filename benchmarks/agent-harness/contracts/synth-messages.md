@@ -1,0 +1,11 @@
+- Background: `docs/work-orders/T-402.md` (executor) and `docs/work-orders/T-101.md` (`toTrace`) say a target that records no messages yields a trace with `messages: []`. The required behaviour is the synthesized pair below.
+- The change concerns the trace the executor (`createExecutor` in `src/core/executor.ts`) builds for a trial.
+- When the target's output carries no messages and no error, the trace gets exactly two messages, in this order:
+  - `{ role: "user", content: <text of the case input> }`
+  - `{ role: "assistant", content: <text of trace.output> }`
+  - The text of a value is the value itself when it is a string, `""` when it is `null` or `undefined`, and compact `JSON.stringify(value)` otherwise (no indentation, no added spaces). The messages have no other keys.
+- In that case `trace.meta.synthesizedMessages` is set to `true`; other `meta` keys are kept.
+- A trace that already has at least one message is left exactly as the target recorded it, and `meta.synthesizedMessages` stays absent.
+- A trace with an `error` gets no synthesized messages.
+- The synthesized messages are part of the trace that is scored, stored and returned by `execute`, also when the output came from the cache.
+- Unchanged: cache keys, flags, scores, the pass rule, trial ids.

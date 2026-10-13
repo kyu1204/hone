@@ -1,0 +1,13 @@
+- Background: `docs/work-orders/T-405.md` describes `hone matrix`; it does not mention errored trials.
+- The change is in `src/cli/commands/matrix.ts` (`MatrixRow`, `buildMatrix`, `renderMatrixRows`). A trial is errored when its `trace.error` is set.
+- Each row (also each entry of `rows` in `hone matrix --json`) gains `errors: number`, the number of errored trials in the group.
+- pass@1 does not change: an errored trial is a decided, failed trial and still counts as a failure. A group whose trials all errored has `passAt1` `0` and prints `0.00`, not `n/a`. `trials`, `passed` and `undecided` are unchanged too.
+- Text table:
+  - the existing columns keep their names and order; one new column with the header `errors` is added after `undecided`, as the last column;
+  - the `errors` cell prints the count and is left blank when the count is 0; the `undecided` cell stays blank when its count is 0, as today; trailing spaces of a row are trimmed, so a row with errors ends with its error count.
+- Warning: for every row with at least one errored trial the text output contains one line of this form, in row order (the backticks around `hone explain` are part of the line):
+  ``warning: <id>: <errors> of <trials> trials errored (the target failed, not the answer); check `hone explain` before reading pass@1``
+  - These lines are part of the table text written to stdout (not stderr), after the table rows and before the `band:` legend line.
+  - With no errored trial no warning line is printed; the `errors` header is then the only difference from today's text output.
+- `--json` prints only the document with the rows; the warning is not added to it.
+- Unchanged: row order, bands, `--by`, `--run`, messages and exit codes.

@@ -1,0 +1,7 @@
+sonnet-plain {'resolved': 14, 'failed only tests the statement does not determine': 28, 'failed a test the statement determines': 3}
+     failure-clustering ['clusterFailures > groups the three failure modes with the offline embedder and n']
+     fork-first-user ['forkTrial > editing the first user message re-runs a plain target with that text']
+     rollouts-export ['toRollout > openai format merges prompt and completion into messages']
+sonnet-spec {'resolved': 45}
+sonnet-plain-rules {'resolved': 16, 'failed only tests the statement does not determine': 29}
+opus-plain {'resolved': 18, 'failed only tests the statement does not determine': 27}

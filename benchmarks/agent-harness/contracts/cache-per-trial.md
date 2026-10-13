@@ -1,0 +1,6 @@
+- Background: `docs/work-orders/T-402.md` and `docs/concepts.md` describe the cache key as `(input, target version, target id)` and expect a cache hit on "the second identical trial". The required behaviour is the per-trial rule below.
+- The change is in the executor (`createExecutor` in `src/core/executor.ts`): the cache entry for a target output is specific to the trial index.
+- `execute(cell, k)` may reuse a cached target output only when that output was produced for the same case input, the same target (id and version) and the same trial index `k`.
+- A different trial index of the same cell is a fresh sample: the target is called again and the returned trial does not carry the `cached` flag. Executing trial `0` and then trial `1` of one cell therefore calls the target twice.
+- Executing a trial index that has already run (same input, same target version) does not call the target: the trial carries the `cached` flag and the earlier output, and it is stored under the same trial id, so it replaces the earlier record instead of adding one.
+- Unchanged: `useCache: false` calls the target every time; an output with an error is not cached; trial ids stay `Store.trialId(runId, caseId, targetId, trial)`; flags, scores and pass logic stay as they are.

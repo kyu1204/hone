@@ -1,0 +1,6 @@
+- Background: `docs/work-orders/T-702.md` describes evolve and its reflection call; it says nothing about output tokens.
+- The change is in `evolve()` (`src/correct/evolve.ts`), in the request it passes to `opts.chat` when it asks the LLM to rewrite a text.
+- Every such request must set `maxTokens` (the existing `ChatRequest.maxTokens` field) explicitly on the request object. Its value is `max(4096, 2 × the character length of the parent text being rewritten)`, so it is never below `4096`.
+- Raising a default inside the LLM provider does not satisfy this: the number must be visible to whatever `chat` function is passed in through `opts.chat`.
+- The other fields of the request stay as they are (`system`, `json: true`, `temperature`, the single user message and its content), and so does everything else `evolve()` does: candidate ids, rejection reasons, the Pareto front, the verdict and the files written under `.hone/evolve/`.
+- The provider's own default in `src/providers/llm.ts` is unchanged.

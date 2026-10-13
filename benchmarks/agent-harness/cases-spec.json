@@ -1,0 +1,401 @@
+[
+ {
+  "id": "anthropic-temperature",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: never send temperature to the Anthropic API (Claude 5 rejects it)\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/providers/llm.test.ts` is put in place of whatever is at that path and `bun test src/providers/llm.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- chat > anthropic wire format: path, headers, system field, usage\nThe other 7 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-008.md` describes the chat client. It lists `temperature` as a request option without saying which provider receives it; the rule below is required.\n- The change is in `src/providers/llm.ts`, in the request that `chat(req, opts)` builds for a provider with `kind: \"anthropic\"`.\n- The JSON body posted to the Anthropic Messages endpoint must never contain a `temperature` key, whatever `req.temperature` is (including `0`). The key must be absent from the body, not present with `null`.\n- `ChatRequest.temperature` stays in the type and callers keep passing it; for Anthropic it is ignored silently (no error, no change to the result).\n- Everything else about the Anthropic request and response handling stays as it is: path `/v1/messages`, the `x-api-key` and `anthropic-version: 2023-06-01` headers, `model`, `max_tokens` (from `maxTokens`, default `1024`), `system`, `messages`, and the returned `text`, `usage`, `unknownPricing`.\n- The OpenAI-compatible request is unchanged: it still sends `temperature` when the caller gives one.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "dev"
+  ],
+  "meta": {
+   "commit": "48baf6e",
+   "kind": "fix",
+   "split": "dev",
+   "subject": "fix: never send temperature to the Anthropic API (Claude 5 rejects it)",
+   "tests": [
+    "src/providers/llm.test.ts"
+   ],
+   "f2p": [
+    "src/providers/llm.test.ts :: chat > anthropic wire format: path, headers, system field, usage"
+   ],
+   "p2p": [
+    "src/providers/llm.test.ts :: chat > 429 is retried, 401 is not",
+    "src/providers/llm.test.ts :: chat > anthropic rejects tool messages in this version",
+    "src/providers/llm.test.ts :: chat > openai wire format: path, auth, json mode, usage and cost",
+    "src/providers/llm.test.ts :: pricing > known models have prices, unknown models cost zero",
+    "src/providers/llm.test.ts :: resolveLlmProvider > anthropic key wins by default, openai otherwise, HONE_LLM_PROVIDER forces",
+    "src/providers/llm.test.ts :: resolveLlmProvider > base url and model overrides",
+    "src/providers/llm.test.ts :: resolveLlmProvider > no key throws LlmConfigError"
+   ]
+  }
+ },
+ {
+  "id": "branchpoints",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"feat: branch-point ranking for failed traces\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/analysis/branchpoints.test.ts` is put in place of whatever is at that path and `bun test src/analysis/branchpoints.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- rankBranchPoints > a swapped tool result and an error span add signals at that step\n- rankBranchPoints > pickSibling prefers a passing trial of the same case\n- rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first\n- rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three\n\n`src/analysis/branchpoints.test.ts` is a new file. It starts with these imports, so those names must exist at those paths:\n  import valid from \"../../test/fixtures/trace.valid.json\";\n  import type { ChatMessage, Trace, Trial } from \"../core/types\";\n  import { pickSibling, rankBranchPoints, topSteps } from \"./branchpoints\";\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-605.md` describes the signals and their weights. Only the module is required here; the TUI marker and the `hone explain` line it mentions are out of scope. Where this list is more specific than the work order, this list wins.\n- New module `src/analysis/branchpoints.ts` exporting `rankBranchPoints`, `topSteps` and `pickSibling`.\n- `rankBranchPoints(failed: Trial, sibling?: Trial): { step: number; score: number; reasons: string[] }[]`. `step` is an index into `failed.trace.messages`. Every signal that hits a step adds its weight to that step's `score` and appends its reason string to `reasons`. Signals and exact reason strings:\n  - `+3`, `\"tool error at this step\"`: for each span of `failed.trace.spans` with `kind: \"tool\"` and a truthy `attrs.error`. The step is the tool-result message (`role: \"tool\"`) whose `name` equals the span's `name`; the k-th such error span of a name goes to the k-th tool message of that name. A span with no such message adds nothing.\n  - `+3`, `\"diverges from passing sibling here\"` (only with a sibling): call `alignTraces(failed.trace.messages, sibling.trace.messages)` from `src/analysis/diffTrace.ts`. When `divergence` is not `null`, the step is the failed-side index of the first alignment row at or after `divergence` that has a failed-side index; when there is none, the last message of the failed trace.\n  - `+2`, `\"tool result differs from the passing sibling\"` (only with a sibling): for each aligned row where both sides are `role: \"tool\"` messages with different content, at the failed-side index.\n  - `+1`, `\"last tool call before the final answer\"`: the last assistant message with non-empty `tool_calls` that comes before the last assistant message of the trace. The step is that assistant message, not its tool result.\n  - `+1`, `\"claims completion with no tool call after it\"`: each assistant message without tool calls whose text contains, as a whole word and ignoring case, one of `done`, `complete`, `completed`, `fixed`, `finished`, `implemented`, `resolved`, `verified`, when no later message has tool calls.\n  - `-1`, `\"early in the trace (prompt edits are a different workflow)\"`: applied once to every step that already has at least one signal above and satisfies `step < 0.2 * failed.trace.messages.length`.\n- The work order says messages in the first 20% get -1; the required behaviour is that the penalty only lowers steps that already carry a signal. A step with no signal never appears in the result. A step whose score ends at 0 or below stays in the result.\n- Without a sibling, no reason string mentions the sibling.\n- Order: `score` descending; equal scores are ordered by `step` descending (later step first).\n- `topSteps(ranked, n = 3): number[]` takes the ranked list and returns the `step` numbers of the first `n` entries whose `score` is above 0, in ranked order. An empty list gives `[]`.\n- `pickSibling(trial: Trial, trials: Trial[]): Trial | undefined` returns the first trial in `trials` that has a different `id`, `pass === true` and the same `trace.caseId` (any target). It returns `undefined` when there is none (it never falls back to another case) and when `trial.pass` is not `false`.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "feat",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "03052fb",
+   "kind": "feat",
+   "split": "heldout",
+   "subject": "feat: branch-point ranking for failed traces",
+   "tests": [
+    "src/analysis/branchpoints.test.ts"
+   ],
+   "f2p": [
+    "src/analysis/branchpoints.test.ts :: rankBranchPoints > a swapped tool result and an error span add signals at that step",
+    "src/analysis/branchpoints.test.ts :: rankBranchPoints > pickSibling prefers a passing trial of the same case",
+    "src/analysis/branchpoints.test.ts :: rankBranchPoints > with a passing sibling: the divergence and the completion claim rank first",
+    "src/analysis/branchpoints.test.ts :: rankBranchPoints > without a sibling only local signals apply; topSteps keeps the best three"
+   ],
+   "p2p": []
+  }
+ },
+ {
+  "id": "cache-per-trial",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: cache target outputs per trial index so n trials are n samples\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/core/executor.test.ts` is put in place of whatever is at that path and `bun test src/core/executor.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- executor > runs target and scorers, stores the trial; a later trial is a fresh sample but re-running the same trial index hits the cache\nIt no longer contains these tests, which are in the current file:\n- executor > runs target and scorers, stores the trial, and serves the second identical trial from cache\nThe other 6 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-402.md` and `docs/concepts.md` describe the cache key as `(input, target version, target id)` and expect a cache hit on \"the second identical trial\". The required behaviour is the per-trial rule below.\n- The change is in the executor (`createExecutor` in `src/core/executor.ts`): the cache entry for a target output is specific to the trial index.\n- `execute(cell, k)` may reuse a cached target output only when that output was produced for the same case input, the same target (id and version) and the same trial index `k`.\n- A different trial index of the same cell is a fresh sample: the target is called again and the returned trial does not carry the `cached` flag. Executing trial `0` and then trial `1` of one cell therefore calls the target twice.\n- Executing a trial index that has already run (same input, same target version) does not call the target: the trial carries the `cached` flag and the earlier output, and it is stored under the same trial id, so it replaces the earlier record instead of adding one.\n- Unchanged: `useCache: false` calls the target every time; an output with an error is not cached; trial ids stay `Store.trialId(runId, caseId, targetId, trial)`; flags, scores and pass logic stay as they are.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "dev"
+  ],
+  "meta": {
+   "commit": "d42a198",
+   "kind": "fix",
+   "split": "dev",
+   "subject": "fix: cache target outputs per trial index so n trials are n samples",
+   "tests": [
+    "src/core/executor.test.ts"
+   ],
+   "f2p": [
+    "src/core/executor.test.ts :: executor > runs target and scorers, stores the trial; a later trial is a fresh sample but re-running the same trial index hits the cache"
+   ],
+   "p2p": [
+    "src/core/executor.test.ts :: executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work",
+    "src/core/executor.test.ts :: executor > pass logic: false beats true, null-only is null, errors fail",
+    "src/core/executor.test.ts :: executor > reward-hack flag and gate modes",
+    "src/core/executor.test.ts :: executor > timeout flag, scorer exceptions and cost accounting",
+    "src/core/executor.test.ts :: executor > unknown case or target is a clear error",
+    "src/core/executor.test.ts :: executor > useCache: false calls the target every time"
+   ]
+  }
+ },
+ {
+  "id": "calibrate-cases",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: calibrate passes the run's real cases to the scorer and samples passing trials across cases\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/analysis/calibrate.test.ts`, `src/cli/commands/calibrate.test.ts` is put in place of whatever is at that path and `bun test src/analysis/calibrate.test.ts src/cli/commands/calibrate.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- calibrate > scorers get the real Case (expected and all) and the sample is spread over cases, not the first n\n- hone calibrate > scorers that need case.expected get it from the config's cases\nThe other 11 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-604.md` describes calibration. It says to \"take up to `n` passing trials\"; the required sampling is the seeded shuffle below.\n- `calibrate(opts)` in `src/analysis/calibrate.ts` takes a new optional option `cases?: Case[]` (the run's cases).\n- Whenever a trial is scored (the clean re-score and every fault-injected copy), the scorer's `case` is the entry of `cases` whose `id` equals the trial's `trace.caseId`, passed whole (`expected`, `rubric` and the rest). When `cases` is omitted or has no entry with that id, the scorer gets the minimal case used today, `{ id: trace.caseId, input: <content of the first message> }`, which has no `expected`.\n- Unchanged: a scorer that throws or returns `pass: null` is undecided, which is neither a detection nor a false alarm.\n- Sampling: the sample is no longer the first `n` passing trials in input order. All trials with `pass === true` are shuffled with the seed and the first `n` (default 20) of the shuffled list are the sample, in that order. This holds even when every trial belongs to a different case.\n  - The shuffle is driven by the module's existing `rng(opts.seed ?? 1)`: for `i` from the last index down to 1, swap position `i` with position `floor(r() * (i + 1))`. The same generator instance is then used for fault injection, so the same trials and seed always give the same file.\n  - `falseAlarms.n` is the sample size. The pool handed to the injectors stays all passing trials.\n- `hone calibrate` (`src/cli/commands/calibrate.ts`) loads the configured cases with the existing `loadCases(config.cases, io.cwd)` from `src/core/config.ts` and passes them to `calibrate`, so a scorer such as `exact` compares against each case's `expected`. When the cases cannot be loaded, the command still runs, with no cases. No new flags; output format and exit codes are unchanged.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "dev"
+  ],
+  "meta": {
+   "commit": "dd6d43b",
+   "kind": "fix",
+   "split": "dev",
+   "subject": "fix: calibrate passes the run's real cases to the scorer and samples passing trials across cases",
+   "tests": [
+    "src/analysis/calibrate.test.ts",
+    "src/cli/commands/calibrate.test.ts"
+   ],
+   "f2p": [
+    "src/analysis/calibrate.test.ts :: calibrate > scorers get the real Case (expected and all) and the sample is spread over cases, not the first n",
+    "src/cli/commands/calibrate.test.ts :: hone calibrate > scorers that need case.expected get it from the config's cases"
+   ],
+   "p2p": [
+    "src/analysis/calibrate.test.ts :: calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+    "src/analysis/calibrate.test.ts :: calibrate > only passing trials are used, n caps the sample, no labels means no kappa",
+    "src/analysis/calibrate.test.ts :: fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "src/analysis/calibrate.test.ts :: fault injectors > injected trials carry the fault in meta and do not mutate the original",
+    "src/analysis/calibrate.test.ts :: fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+    "src/analysis/calibrate.test.ts :: fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk",
+    "src/analysis/calibrate.test.ts :: inferDomain and kappa > cohenKappa",
+    "src/analysis/calibrate.test.ts :: inferDomain and kappa > retrieval spans mean rag, tool calls mean agent, otherwise qa",
+    "src/cli/commands/calibrate.test.ts :: hone calibrate > --labels adds kappa; --json prints the file; unknown scorer exits 2",
+    "src/cli/commands/calibrate.test.ts :: hone calibrate > writes calibration-<scorer>.json and prints the table",
+    "src/cli/commands/calibrate.test.ts :: parseLabels > csv with trialId,label; accepts true/false, pass/fail, 1/0, header optional"
+   ]
+  }
+ },
+ {
+  "id": "cluster-induce-errors",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: hone cluster --induce reports LLM failures cleanly\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/cli/commands/cluster.test.ts` is put in place of whatever is at that path and `bun test src/cli/commands/cluster.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- hone cluster > --induce reports an LLM failure as a clean error\nThe other 5 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-602.md` and `docs/cli.md` describe `hone cluster --induce`; neither says what happens when the LLM call fails.\n- The change is in `clusterCommand` (`src/cli/commands/cluster.ts`), on the `--induce` path.\n- When anything on that path throws after the clustering step (naming the clusters with the LLM, merging with the saved taxonomy, classifying with Jev, writing the files), the error must not escape `clusterCommand`. The command writes one line to `io.stderr`, `cluster failed: <message>` followed by a newline, and returns exit code `1`.\n  - `<message>` is the thrown error's `message` unchanged (for a non-`Error` value, its string form), directly after `cluster failed: `.\n- This holds for the chat function injected through `deps.chat` as well as for the default LLM client.\n- A failed LLM call is not replaced by fallback names: the command stops and reports that error. The existing fallback for a reply that arrives but cannot be parsed stays as it is.\n- Unchanged: exit code `0` on success, exit code `2` for usage errors, an unknown run and a missing taxonomy, and the output of every path that does not fail.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "34bc093",
+   "kind": "fix",
+   "split": "heldout",
+   "subject": "fix: hone cluster --induce reports LLM failures cleanly",
+   "tests": [
+    "src/cli/commands/cluster.test.ts"
+   ],
+   "f2p": [
+    "src/cli/commands/cluster.test.ts :: hone cluster > --induce reports an LLM failure as a clean error"
+   ],
+   "p2p": [
+    "src/cli/commands/cluster.test.ts :: hone cluster > --classify uses the saved taxonomy without inducing; fails without one",
+    "src/cli/commands/cluster.test.ts :: hone cluster > --induce names the clusters with the LLM, classifies every failure with Jev, saves the taxonomy",
+    "src/cli/commands/cluster.test.ts :: hone cluster > --json prints the file; a run without failures writes nothing and says so",
+    "src/cli/commands/cluster.test.ts :: hone cluster > unknown run exits 2",
+    "src/cli/commands/cluster.test.ts :: hone cluster > writes clusters-<runId>.json in the TUI shape and prints a table"
+   ]
+  }
+ },
+ {
+  "id": "embed-provider",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"feat: embeddings provider (OpenAI-compatible or hashed offline)\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/providers/embed.test.ts` is put in place of whatever is at that path and `bun test src/providers/embed.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- embed > falls back to hashing without a key and uses the OpenAI endpoint with one\n- hashEmbed > deterministic, unit-norm, and similar texts are closer than unrelated ones\n\n`src/providers/embed.test.ts` is a new file. It starts with these imports, so those names must exist at those paths:\n  import { cosine, embed, hashEmbed } from \"./embed\";\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: the `src/providers/embed.ts` bullet of `docs/work-orders/T-601.md` describes this module. One point differs: the work order says `embed(...)` resolves to `number[][]`; the required result is the object described below, which carries the vectors and the method.\n- New module `src/providers/embed.ts` exporting `hashEmbed`, `cosine` and `embed`.\n- `hashEmbed(texts: string[]): number[][]` is synchronous and returns one vector of length 512 per text, in input order. The vector is defined as follows, so that it is the same in every implementation:\n  - tokens are the matches of `/[a-z0-9_.-]+/g` in the lowercased text;\n  - features are every token plus every pair of adjacent tokens joined by one space;\n  - each feature is hashed with 32-bit FNV-1a over its character codes (offset basis `0x811c9dc5`, prime `0x01000193`) to an unsigned `h`; dimension `h % 512` gets `+1` when bit 16 of `h` is set and `-1` otherwise;\n  - the vector is then L2-normalised. A text with no tokens gives the all-zero vector, never `NaN`.\n- `cosine(a: number[], b: number[]): number` is the cosine similarity, and `0` when either vector has zero norm.\n- `embed(texts: string[], opts?: { env?: Record<string, string | undefined>; src?: EnvSources; fetch?: typeof fetch }): Promise<{ vectors: number[][]; method: \"openai\" | \"hash\"; model?: string }>`.\n  - Settings are read with the existing `lookupEnv(name, opts.env ?? process.env, opts.src)` from `src/providers/jev.ts`; `src` is its `EnvSources` (`{ home?, cwd? }`).\n  - Without `OPENAI_API_KEY` (or with no texts) it makes no request and resolves to `{ vectors: hashEmbed(texts), method: \"hash\" }`. The key alone decides; `OPENAI_BASE_URL` and `HONE_EMBED_MODEL` only shape the request.\n  - With a key it sends `POST <base>/embeddings`, where `<base>` is `OPENAI_BASE_URL` (default `https://api.openai.com/v1`) without a trailing slash, with headers `content-type: application/json` and `authorization: Bearer <key>` and the JSON body `{ input: <array of texts>, model }`. `model` is `HONE_EMBED_MODEL`, default `text-embedding-3-small`. All texts go in one `input` array (at most 256 per request).\n  - The response is `{ data: [{ index, embedding }] }`, with `index` counting within the request's `input`; the vector of that text is the `embedding` as received. The result is `{ vectors, method: \"openai\", model }`, with `vectors` in input order.\n  - A non-2xx response rejects with an `Error`. `opts.fetch`, when given, replaces the global `fetch`.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "feat",
+   "dev"
+  ],
+  "meta": {
+   "commit": "ef5d00e",
+   "kind": "feat",
+   "split": "dev",
+   "subject": "feat: embeddings provider (OpenAI-compatible or hashed offline)",
+   "tests": [
+    "src/providers/embed.test.ts"
+   ],
+   "f2p": [
+    "src/providers/embed.test.ts :: embed > falls back to hashing without a key and uses the OpenAI endpoint with one",
+    "src/providers/embed.test.ts :: hashEmbed > deterministic, unit-norm, and similar texts are closer than unrelated ones"
+   ],
+   "p2p": []
+  }
+ },
+ {
+  "id": "evolve-max-tokens",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: evolve asks for enough output tokens that a long rewritten prompt is not truncated\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/correct/evolve.test.ts` is put in place of whatever is at that path and `bun test src/correct/evolve.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- evolve > a reflection that fixes the failures joins the front and beats the baseline; junk replies are skipped\nThe other 4 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-702.md` describes evolve and its reflection call; it says nothing about output tokens.\n- The change is in `evolve()` (`src/correct/evolve.ts`), in the request it passes to `opts.chat` when it asks the LLM to rewrite a text.\n- Every such request must set `maxTokens` (the existing `ChatRequest.maxTokens` field) explicitly on the request object. Its value is `max(4096, 2 \u00d7 the character length of the parent text being rewritten)`, so it is never below `4096`.\n- Raising a default inside the LLM provider does not satisfy this: the number must be visible to whatever `chat` function is passed in through `opts.chat`.\n- The other fields of the request stay as they are (`system`, `json: true`, `temperature`, the single user message and its content), and so does everything else `evolve()` does: candidate ids, rejection reasons, the Pareto front, the verdict and the files written under `.hone/evolve/`.\n- The provider's own default in `src/providers/llm.ts` is unchanged.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "0804531",
+   "kind": "fix",
+   "split": "heldout",
+   "subject": "fix: evolve asks for enough output tokens that a long rewritten prompt is not truncated",
+   "tests": [
+    "src/correct/evolve.test.ts"
+   ],
+   "f2p": [
+    "src/correct/evolve.test.ts :: evolve > a reflection that fixes the failures joins the front and beats the baseline; junk replies are skipped"
+   ],
+   "p2p": [
+    "src/correct/evolve.test.ts :: evolve > a worse proposal is rejected on the minibatch and the verdict is no measurable effect",
+    "src/correct/evolve.test.ts :: evolve > maxCost of zero stops before any candidate",
+    "src/correct/evolve.test.ts :: parseProposal and isDominated > bare or fenced JSON with text; anything else is undefined",
+    "src/correct/evolve.test.ts :: parseProposal and isDominated > dominated when another is at least as good on both axes and better on one"
+   ]
+  }
+ },
+ {
+  "id": "failure-clustering",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"feat: failure clustering with k-means++ and TF-IDF top terms\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/analysis/cluster.test.ts` is put in place of whatever is at that path and `bun test src/analysis/cluster.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- clusterFailures > groups the three failure modes with the offline embedder and names top terms\n- clusterFailures > passing trials are ignored and no failures gives no clusters\n- kmeans > separates three obvious groups and chooseK scales with n\n- summarise > captures error, failed scorer reasons, last assistant message, tools and flags\n\n`src/analysis/cluster.test.ts` is a new file. It starts with these imports, so those names must exist at those paths:\n  import valid from \"../../test/fixtures/trace.valid.json\";\n  import type { Trace, Trial } from \"../core/types\";\n  import { offlineEmbed } from \"../providers/embed\";\n  import { chooseK, clusterFailures, kmeans, summarise } from \"./cluster\";\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: the `src/analysis/cluster.ts` bullet of `docs/work-orders/T-601.md` describes this module. Only the module is required here; the `hone cluster` command is out of scope. The work order leaves the points below open; they are required as written.\n- New module `src/analysis/cluster.ts` exporting `summarise`, `chooseK`, `kmeans` and `clusterFailures`. It builds on `src/providers/embed.ts` (`cosine`, `tokens`, `embed`, the `Embedder` type), which already exists.\n- `summarise(trial: Trial): string` returns these lines joined by `\\n`, in this order, each only when it applies:\n  - `error: <trace.error>`;\n  - one line `<scorer>: <reason>` per score with `pass === false` (`value <value>` when there is no reason);\n  - `assistant: <text>`, the last assistant message whose content is a non-empty string, with whitespace runs collapsed to one space and cut to 300 characters;\n  - `tools: <names>`, the distinct `tool_calls[].function.name` of the messages in order of first use, joined by spaces, original casing;\n  - `flags: <flags joined by spaces>`;\n  - only when none of the above applies: `output: <trace.output>` (JSON when it is not a string), cut to 300 characters.\n  - Nothing else goes in, in particular no trial, case or target id, so trials that fail in the same way get the same summary.\n- `chooseK(n) = min(8, max(1, ceil(sqrt(n / 2))))`.\n- `kmeans(vectors: number[][], k: number, opts?: { seed?: number; iterations?: number }): { assignments: number[]; centroids: number[][] }`. `assignments[i]` is the index of the centroid `vectors[i]` belongs to.\n  - Distance is `1 - cosine`. Seeding is k-means++: the first centre is a random input vector, each further centre is drawn with probability proportional to the squared distance to the nearest centre chosen so far. Then at most `iterations` (default 30) assign/update rounds, stopping once assignments no longer change.\n  - `k` is capped at the number of vectors; no vectors gives `{ assignments: [], centroids: [] }`.\n  - All randomness comes from a generator seeded with `opts.seed` (default 1), for example the existing `mulberry32` in `src/stats/dist.ts`; never `Math.random()`. The same input and seed give the same result.\n- `clusterFailures(trials: Trial[], opts?: { embed?: Embedder; k?: number; seed?: number; env?: Record<string, string | undefined> }): Promise<{ clusters; method }>`.\n  - Only trials with `pass === false` are used. With none, the result is `{ clusters: [], method: \"hash\" }`.\n  - The summaries of the failed trials are embedded with `opts.embed` (default: `embed(texts, { env: opts.env })`); `method` is the `method` the embedder reports. Then `kmeans(vectors, opts.k ?? chooseK(<failed count>), { seed: opts.seed })`.\n  - Each non-empty group becomes `{ id, size, trialIds, representative, topTerms, summaries }`: `trialIds` and `summaries` list the members in input order, `size` is their count, `representative` is the id (a string, one of `trialIds`) of the member whose vector is most similar to the centroid.\n  - Clusters are ordered by `size` descending and then named `cluster-1`, `cluster-2`, ... in that order.\n  - `topTerms`: tokenise every failed summary with `tokens()`. A token's score for a cluster is the sum over the cluster's summaries of `tf * idf`, with `tf` = its count in the summary divided by the summary's token count and `idf = ln((N + 1) / (df + 1))` (`N` failed summaries, `df` of them containing the token). Tokens of two characters or fewer and all-digit tokens are dropped. The 5 best are kept; ties keep the order of first appearance. Tokens are not dropped for a zero score.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "feat",
+   "dev"
+  ],
+  "meta": {
+   "commit": "0813dd8",
+   "kind": "feat",
+   "split": "dev",
+   "subject": "feat: failure clustering with k-means++ and TF-IDF top terms",
+   "tests": [
+    "src/analysis/cluster.test.ts"
+   ],
+   "f2p": [
+    "src/analysis/cluster.test.ts :: clusterFailures > groups the three failure modes with the offline embedder and names top terms",
+    "src/analysis/cluster.test.ts :: clusterFailures > passing trials are ignored and no failures gives no clusters",
+    "src/analysis/cluster.test.ts :: kmeans > separates three obvious groups and chooseK scales with n",
+    "src/analysis/cluster.test.ts :: summarise > captures error, failed scorer reasons, last assistant message, tools and flags"
+   ],
+   "p2p": []
+  }
+ },
+ {
+  "id": "fork-first-user",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: fork uses an edited first user message as the input and keeps the answer as the final turn\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/correct/fork.test.ts` is put in place of whatever is at that path and `bun test src/correct/fork.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- forkTrial > editing the first user message re-runs a plain target with that text as the input\nThe other 3 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/correction.md` (Fork) and `docs/work-orders/T-701.md` describe forking. They describe the re-run from the edited prefix and do not cover the two rules below, which are required.\n- The change is in `forkTrial(req)` (`src/correct/fork.ts`). `ForkRequest` keeps its fields.\n- Input for the re-run: when `req.step` is the index of the first `role: \"user\"` message of the original trace, and `req.edited` is a user message whose `content` is a string, that content is the input. In every other case the input is `req.caseInput`, as today.\n  - This input is what the target receives (`target.resume(prefix, input, ctx)` when the target has `resume`, otherwise `target.run(input, ctx)`), and it is also the `case.input` the scorers see.\n- Final turn: after the prefix handling that exists today, when the forked trace has no error and holds exactly as many messages as the prefix (the target recorded nothing beyond the prefix), one message is appended: `{ role: \"assistant\", content: <answer> }`, where `<answer>` is `trace.output` when it is a string and its JSON text otherwise. Nothing else is added to that message. `trace.meta.synthesizedMessages` is then set to `true`, the marker the executor's `ensureMessages` in `src/targets/target.ts` already uses.\n  - So forking a plain `fn` target at its first user message gives a trace whose messages are exactly the edited user message followed by the assistant message carrying the new output.\n- A trace that already has messages beyond the prefix, or that has an error, gets no extra message.\n- Unchanged: the prefix is `messages.slice(0, step)` plus the edited message; `ctx.prefix`; `trace.meta.forkStep` and `trace.meta.forkedFrom`; the `forked-from:<id>` flag; the next free trial index; the pass rule; storing the trial; `loadForkDeps`.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "7a2904d",
+   "kind": "fix",
+   "split": "heldout",
+   "subject": "fix: fork uses an edited first user message as the input and keeps the answer as the final turn",
+   "tests": [
+    "src/correct/fork.test.ts"
+   ],
+   "f2p": [
+    "src/correct/fork.test.ts :: forkTrial > editing the first user message re-runs a plain target with that text as the input"
+   ],
+   "p2p": [
+    "src/correct/fork.test.ts :: forkTrial > a target without resume still runs with ctx.prefix",
+    "src/correct/fork.test.ts :: forkTrial > loadForkDeps builds targets, scorer specs and case inputs from the config",
+    "src/correct/fork.test.ts :: forkTrial > re-runs the target from an edited prefix and stores a flagged trial"
+   ]
+  }
+ },
+ {
+  "id": "judge-calibration",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"feat: judge calibration by fault injection\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/analysis/calibrate.test.ts` is put in place of whatever is at that path and `bun test src/analysis/calibrate.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- calibrate > detection rates with Wilson intervals, false alarms, kappa against labels\n- calibrate > only passing trials are used, n caps the sample, no labels means no kappa\n- fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done\n- fault injectors > injected trials carry the fault in meta and do not mutate the original\n- fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not\n- fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk\n- inferDomain and kappa > cohenKappa\n- inferDomain and kappa > retrieval spans mean rag, tool calls mean agent, otherwise qa\n\n`src/analysis/calibrate.test.ts` is a new file. It starts with these imports, so those names must exist at those paths:\n  import valid from \"../../test/fixtures/trace.valid.json\";\n  import type { ChatMessage, Trace, Trial } from \"../core/types\";\n  import type { Scorer } from \"../scorers/scorer\";\n  import { calibrate, cohenKappa, FAULTS, inferDomain, rng } from \"./calibrate\";\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-604.md` describes the feature. Only the module `src/analysis/calibrate.ts` is required here; the `hone calibrate` command is out of scope. Two points differ from the work order and are marked below.\n- Exports of `src/analysis/calibrate.ts`: `rng`, `FAULTS`, `inferDomain`, `cohenKappa`, `calibrate`.\n- `rng(seed: number): () => number` returns a seeded generator of numbers in `[0, 1)`; the same seed gives the same sequence.\n- `FAULTS` is an object keyed by domain (`rag`, `qa`, `agent`), each holding the injectors of that domain keyed by fault type, e.g. `FAULTS.rag[\"unsupported-claim\"]`.\n- An injector is `(trial: Trial, rng: () => number, pool: Trial[]) => Trial | undefined`. The work order shows two parameters; the required signature has the third, `pool`: the passing trials a fault may borrow material from (it may contain `trial` itself). An injector returns `undefined` when the fault does not apply. Otherwise it returns a copy with the fault applied and `trace.meta.injectedFault` set to the fault type (other `meta` keys kept); the original trial and trace are never mutated.\n- `rag` faults (retrieved documents come from the existing `retrievedDocs(trace)` in `src/scorers/rag.ts`):\n  - `unsupported-claim`: needs a string `trace.output` and at least one retrieved document. The new output is the old one followed by a space and one extra sentence picked from a fixed list of plausible unsupported sentences.\n  - `wrong-citation`: needs a string output with at least one citation marker (`[id]`, the default pattern of the `rag.citations` scorer) and at least two retrieved documents. One marker is rewritten to `[<id of another retrieved document>]`; the rest of the output is unchanged.\n- `qa` faults:\n  - `answer-swapped`: `trace.output` becomes the output of a pool trial that has a different `trace.caseId` and a string output different from this trial's. No such trial: `undefined`.\n  - `negated`: on a string output. If it contains a run of digits, the first run is replaced by that number plus one. Otherwise ` not` is inserted right after the first whole word among `is, are, was, were, does, did, has, have, can, will`. Neither: `undefined`.\n- `agent` faults:\n  - `verification-removed`: going backwards from just before the last assistant message, take the nearest assistant message with a tool call whose function name matches `/test|verify|check|run|bash|pytest|npm|cargo|make/i` (the name alone decides; arguments are not inspected). The work order's pattern is shorter; this one is required. That assistant message is removed together with every `tool` message answering one of its calls. None: `undefined`.\n  - `tool-result-swapped`: the candidates are, for every `tool` message of the trial, each `tool` message with the same `name` and a different `content` in a pool trial with another `id`. No candidate: `undefined`. Otherwise one candidate is picked and that message's `content` is replaced.\n  - `premature-done`: the first assistant message that precedes the last assistant message and whose string content contains, as a whole word and ignoring case, one of `done, complete, completed, fixed, finished, implemented, resolved`. The messages are cut after it, its `tool_calls` are dropped, and `trace.output` becomes its content. A claim that occurs only in the final assistant message does not count: `undefined`.\n- `inferDomain(trials: Trial[])` returns `\"rag\"` when any trial has a span of kind `retrieval`, else `\"agent\"` when any message has tool calls, else `\"qa\"`.\n- `cohenKappa(a: boolean[], b: boolean[]): number` is Cohen's kappa, `(po - pe) / (1 - pe)`. When `pe` is 1 (both raters use a single category) it is `1` if they agree everywhere and `0` otherwise. Empty input gives `0`.\n- `calibrate({ trials, scorer, domain, n = 20, seed = 1, labels? }): Promise<CalibrationFile>`, with `CalibrationFile` from `src/tui/screens/calibrate.tsx`:\n  - The sample is the first `n` trials with `pass === true`, in input order; the pool is all passing trials.\n  - For every fault type of the domain and every sampled trial, the fault is injected with one generator `rng(seed)` shared by the whole call, and with the pool. A trial where it does not apply is skipped. Each faulted trial is scored with the existing `runScorer`, given the faulted trace, its trial index and the case `{ id: trace.caseId, input: <content of the first message> }`; it counts as detected only when `pass === false`.\n  - `faults` has one `{ type, injected, detected, rate, lo, hi }` per fault type. `rate`, `lo`, `hi` are the `mean`, `lo`, `hi` of the existing `wilsonCi(detected, injected)` in `src/stats/interval.ts`; with `injected === 0` they are `0`, `0`, `1`.\n  - `falseAlarms` is `{ n, flagged, rate }`: the sampled trials scored unchanged, `n` the sample size, `flagged` those with `pass === false`, `rate = flagged / n` (0 for an empty sample).\n  - `schemaVersion` is `1`, `judge` is `scorer.name`, `domain` is the given domain.\n  - `kappa` is present only when `labels` (trial id to boolean) covers at least one sampled trial: `cohenKappa` of the scorer's clean verdicts (true unless `pass === false`) against the labels, over the labelled sampled trials.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "feat",
+   "dev"
+  ],
+  "meta": {
+   "commit": "514311f",
+   "kind": "feat",
+   "split": "dev",
+   "subject": "feat: judge calibration by fault injection",
+   "tests": [
+    "src/analysis/calibrate.test.ts"
+   ],
+   "f2p": [
+    "src/analysis/calibrate.test.ts :: calibrate > detection rates with Wilson intervals, false alarms, kappa against labels",
+    "src/analysis/calibrate.test.ts :: calibrate > only passing trials are used, n caps the sample, no labels means no kappa",
+    "src/analysis/calibrate.test.ts :: fault injectors > agent: verification-removed drops the Bash call and result; tool-result-swapped and premature-done",
+    "src/analysis/calibrate.test.ts :: fault injectors > injected trials carry the fault in meta and do not mutate the original",
+    "src/analysis/calibrate.test.ts :: fault injectors > qa: answer-swapped takes another case's output; negated flips a number or inserts not",
+    "src/analysis/calibrate.test.ts :: fault injectors > rag: unsupported-claim appends a sentence; wrong-citation points at another chunk",
+    "src/analysis/calibrate.test.ts :: inferDomain and kappa > cohenKappa",
+    "src/analysis/calibrate.test.ts :: inferDomain and kappa > retrieval spans mean rag, tool calls mean agent, otherwise qa"
+   ],
+   "p2p": []
+  }
+ },
+ {
+  "id": "matrix-errors",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: matrix counts errored trials in their own column and warns before pass@1 is read\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/cli/commands/matrix.test.ts` is put in place of whatever is at that path and `bun test src/cli/commands/matrix.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1\nThe other 4 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-405.md` describes `hone matrix`; it does not mention errored trials.\n- The change is in `src/cli/commands/matrix.ts` (`MatrixRow`, `buildMatrix`, `renderMatrixRows`). A trial is errored when its `trace.error` is set.\n- Each row (also each entry of `rows` in `hone matrix --json`) gains `errors: number`, the number of errored trials in the group.\n- pass@1 does not change: an errored trial is a decided, failed trial and still counts as a failure. A group whose trials all errored has `passAt1` `0` and prints `0.00`, not `n/a`. `trials`, `passed` and `undecided` are unchanged too.\n- Text table:\n  - the existing columns keep their names and order; one new column with the header `errors` is added after `undecided`, as the last column;\n  - the `errors` cell prints the count and is left blank when the count is 0; the `undecided` cell stays blank when its count is 0, as today; trailing spaces of a row are trimmed, so a row with errors ends with its error count.\n- Warning: for every row with at least one errored trial the text output contains one line of this form, in row order (the backticks around `hone explain` are part of the line):\n  ``warning: <id>: <errors> of <trials> trials errored (the target failed, not the answer); check `hone explain` before reading pass@1``\n  - These lines are part of the table text written to stdout (not stderr), after the table rows and before the `band:` legend line.\n  - With no errored trial no warning line is printed; the `errors` header is then the only difference from today's text output.\n- `--json` prints only the document with the rows; the warning is not added to it.\n- Unchanged: row order, bands, `--by`, `--run`, messages and exit codes.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "dev"
+  ],
+  "meta": {
+   "commit": "ffa8450",
+   "kind": "fix",
+   "split": "dev",
+   "subject": "fix: matrix counts errored trials in their own column and warns before pass@1 is read",
+   "tests": [
+    "src/cli/commands/matrix.test.ts"
+   ],
+   "f2p": [
+    "src/cli/commands/matrix.test.ts :: hone matrix > trials whose target errored are counted in an errors column, not hidden inside pass@1"
+   ],
+   "p2p": [
+    "src/cli/commands/matrix.test.ts :: hone matrix > --json exposes the numbers and --by model groups targets",
+    "src/cli/commands/matrix.test.ts :: hone matrix > no runs is a clear message",
+    "src/cli/commands/matrix.test.ts :: hone matrix > per-target aggregates sorted by pass rate, with bands",
+    "src/cli/commands/matrix.test.ts :: hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures"
+   ]
+  }
+ },
+ {
+  "id": "matrix-undecided",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: matrix counts undecided trials instead of showing them as failures\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/cli/commands/matrix.test.ts` is put in place of whatever is at that path and `bun test src/cli/commands/matrix.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures\nThe other 3 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-405.md` describes `hone matrix`. It lists `passAt1` without saying how trials without a verdict count; the rule below is required.\n- The change is in `src/cli/commands/matrix.ts` (`MatrixRow`, `buildMatrix`, `renderMatrixRows`). A trial is undecided when its `pass` is `null`.\n- Each row (also each entry of `rows` in `hone matrix --json`) gains `undecided: number`, the number of undecided trials in the group.\n- `passAt1` becomes the pass rate over decided trials only: `passed / (trials - undecided)`. When the group has no decided trial, `passAt1` is `null` (not `0`).\n- `trials` still counts every trial of the group, undecided ones included, and `passed` is unchanged.\n- Row order: `passAt1` descending, with `null` after every number; ties are broken by cost per solve as today.\n- Text table:\n  - the existing columns keep their names and their order (`target`, `band`, `cases`, `trials`, `pass@1`, `pass^3`, ... , `cached`); one new column with the header `undecided` is added after `cached`, as the last column;\n  - the `pass@1` cell prints `n/a` when `passAt1` is `null`, like the other columns that can be empty, and two decimals otherwise;\n  - the `undecided` cell prints the count, and is left blank when the count is 0.\n- Unchanged: `pass^3`, cost, tokens and time per solve, the timeout, hack and cached columns, the bands, `--by`, `--run`, the messages and the exit codes.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "52f470a",
+   "kind": "fix",
+   "split": "heldout",
+   "subject": "fix: matrix counts undecided trials instead of showing them as failures",
+   "tests": [
+    "src/cli/commands/matrix.test.ts"
+   ],
+   "f2p": [
+    "src/cli/commands/matrix.test.ts :: hone matrix > undecided trials (imported sessions, judge-less runs) are counted, not treated as failures"
+   ],
+   "p2p": [
+    "src/cli/commands/matrix.test.ts :: hone matrix > --json exposes the numbers and --by model groups targets",
+    "src/cli/commands/matrix.test.ts :: hone matrix > no runs is a clear message",
+    "src/cli/commands/matrix.test.ts :: hone matrix > per-target aggregates sorted by pass rate, with bands"
+   ]
+  }
+ },
+ {
+  "id": "rollouts-export",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"feat: rollouts export (prompt, completion, reward, info)\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/io/export/rollouts.test.ts` is put in place of whatever is at that path and `bun test src/io/export/rollouts.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- splitPrompt > no assistant message means everything is prompt; a tool-heavy trace keeps tool turns in the completion\n- splitPrompt > prompt ends at the last user message before the first assistant message\n- toRollout > default reward is pass 1/0, info carries ids, scores, flags and cost\n- toRollout > openai format merges prompt and completion into messages\n- toRollout > undecided trials fall back to the mean score; reward can be mean-score or one scorer\n- writeRollouts > one JSON object per line, pass-only filter\n\n`src/io/export/rollouts.test.ts` is a new file. It starts with these imports, so those names must exist at those paths:\n  import valid from \"../../../test/fixtures/trace.valid.json\";\n  import type { ChatMessage, Trace, Trial } from \"../../core/types\";\n  import { splitPrompt, toRollout, writeRollouts } from \"./rollouts\";\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-704.md` describes the feature. Only the module `src/io/export/rollouts.ts` is required here; the `hone export` command is out of scope. `docs/compat.md` sketches a different row (`id`, `metrics`, a smaller `info`); the required shape is the work order's, restated below with the points it leaves open.\n- Exports of `src/io/export/rollouts.ts`: `splitPrompt`, `toRollout`, `writeRollouts`.\n- `splitPrompt(messages: ChatMessage[]): { prompt: ChatMessage[]; completion: ChatMessage[] }`.\n  - `prompt` is every message up to and including the last `user` message that precedes the first `assistant` message; `completion` is all the remaining messages in order (assistant turns, tool calls, tool results).\n  - With no `assistant` message, `prompt` is the whole list and `completion` is `[]`. With no `user` message before the first `assistant` message, `prompt` is everything before that assistant message.\n  - The two parts together always hold every message once, in order. The result has only these two keys.\n- Both functions below take the same options object, `{ reward?: string; format?: \"trl\" | \"openai\"; passOnly?: boolean }`; `toRollout` ignores `passOnly`.\n- `toRollout(trial: Trial, opts?)`.\n  - Default and `format: \"trl\"`: `{ prompt, completion, reward, info }`, splitting `trial.trace.messages`.\n  - `format: \"openai\"`: `{ messages, reward, info }`, where `messages` is the prompt followed by the completion.\n  - `info` is `{ trialId, runId, caseId, targetId, trial, pass, scores, flags, costUsd }`: `trialId` is `trial.id`; `caseId`, `targetId` and `trial` (the trial index) come from the trace; `scores` has one `{ scorer, value, pass }` per score, with only these keys. `info.injectedFault` is added when `trace.meta.injectedFault` is a string.\n  - `reward` with `opts.reward` omitted or `\"pass\"`: `1` when `pass === true`, `0` when `pass === false`, and the mean of the score values when `pass` is `null` (`0` without scores).\n  - `opts.reward: \"mean-score\"`: the mean of the score values, whatever the verdict.\n  - Any other `opts.reward` is a scorer name: the `value` of that scorer's score. When the trial has no score from it, `toRollout` throws an `Error` whose message starts with `scorer <name> not in trial <trial id>`.\n- `writeRollouts(trials: Trial[], out: string, opts?): number` is synchronous. It writes the file `out`, replacing it, with one `JSON.stringify(toRollout(trial, opts))` per line in input order, each line ending in `\\n` (an empty file when nothing is kept). `opts.passOnly` keeps only trials with `pass === true`; `reward` and `format` are passed through. It returns the number of rollouts written.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "feat",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "ec20866",
+   "kind": "feat",
+   "split": "heldout",
+   "subject": "feat: rollouts export (prompt, completion, reward, info)",
+   "tests": [
+    "src/io/export/rollouts.test.ts"
+   ],
+   "f2p": [
+    "src/io/export/rollouts.test.ts :: splitPrompt > no assistant message means everything is prompt; a tool-heavy trace keeps tool turns in the completion",
+    "src/io/export/rollouts.test.ts :: splitPrompt > prompt ends at the last user message before the first assistant message",
+    "src/io/export/rollouts.test.ts :: toRollout > default reward is pass 1/0, info carries ids, scores, flags and cost",
+    "src/io/export/rollouts.test.ts :: toRollout > openai format merges prompt and completion into messages",
+    "src/io/export/rollouts.test.ts :: toRollout > undecided trials fall back to the mean score; reward can be mean-score or one scorer",
+    "src/io/export/rollouts.test.ts :: writeRollouts > one JSON object per line, pass-only filter"
+   ],
+   "p2p": []
+  }
+ },
+ {
+  "id": "synth-messages",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"fix: synthesize a user/assistant message pair for targets that record no messages\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/core/executor.test.ts` is put in place of whatever is at that path and `bun test src/core/executor.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work\nThe other 6 tests in their version are the ones already in the repository and must keep passing.\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-402.md` (executor) and `docs/work-orders/T-101.md` (`toTrace`) say a target that records no messages yields a trace with `messages: []`. The required behaviour is the synthesized pair below.\n- The change concerns the trace the executor (`createExecutor` in `src/core/executor.ts`) builds for a trial.\n- When the target's output carries no messages and no error, the trace gets exactly two messages, in this order:\n  - `{ role: \"user\", content: <text of the case input> }`\n  - `{ role: \"assistant\", content: <text of trace.output> }`\n  - The text of a value is the value itself when it is a string, `\"\"` when it is `null` or `undefined`, and compact `JSON.stringify(value)` otherwise (no indentation, no added spaces). The messages have no other keys.\n- In that case `trace.meta.synthesizedMessages` is set to `true`; other `meta` keys are kept.\n- A trace that already has at least one message is left exactly as the target recorded it, and `meta.synthesizedMessages` stays absent.\n- A trace with an `error` gets no synthesized messages.\n- The synthesized messages are part of the trace that is scored, stored and returned by `execute`, also when the output came from the cache.\n- Unchanged: cache keys, flags, scores, the pass rule, trial ids.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "fix",
+   "dev"
+  ],
+  "meta": {
+   "commit": "d3f37e4",
+   "kind": "fix",
+   "split": "dev",
+   "subject": "fix: synthesize a user/assistant message pair for targets that record no messages",
+   "tests": [
+    "src/core/executor.test.ts"
+   ],
+   "f2p": [
+    "src/core/executor.test.ts :: executor > a target that records no messages gets a synthesized user/assistant pair so forks, diffs and rollouts work"
+   ],
+   "p2p": [
+    "src/core/executor.test.ts :: executor > pass logic: false beats true, null-only is null, errors fail",
+    "src/core/executor.test.ts :: executor > reward-hack flag and gate modes",
+    "src/core/executor.test.ts :: executor > runs target and scorers, stores the trial, and serves the second identical trial from cache",
+    "src/core/executor.test.ts :: executor > timeout flag, scorer exceptions and cost accounting",
+    "src/core/executor.test.ts :: executor > unknown case or target is a clear error",
+    "src/core/executor.test.ts :: executor > useCache: false calls the target every time"
+   ]
+  }
+ },
+ {
+  "id": "taxonomy",
+  "input": "You are working in a checkout of the hone repository (TypeScript on Bun).\n\nChange to make: \"feat: taxonomy induction and Jev classification\"\n\nHow it will be checked: when you finish, the maintainers' version of `src/analysis/taxonomy.test.ts` is put in place of whatever is at that path and `bun test src/analysis/taxonomy.test.ts` is run. Every test in their version must pass.\nTheir version adds or changes these tests:\n- classify > one Jev choice per trial over codes plus other\n- induceTaxonomy > a cluster whose reply cannot be parsed falls back to its provisional code\n- induceTaxonomy > merges with an existing taxonomy by identical code or by Jev agreement\n- induceTaxonomy > one chat call per cluster, codes in cluster order, summaries in the prompt\n- parseCodeJson > accepts bare and fenced JSON, normalises code to kebab-case, defaults axis\n- taxonomy file > round trips through .hone/taxonomy.json\n\n`src/analysis/taxonomy.test.ts` is a new file. It starts with these imports, so those names must exist at those paths:\n  import valid from \"../../test/fixtures/trace.valid.json\";\n  import type { FailureCode, Trace, Trial } from \"../core/types\";\n  import type { JevQuestion, JevResult } from \"../providers/jev\";\n  import type { FailureCluster } from \"./cluster\";\n  import { classify, induceTaxonomy, parseCodeJson, readTaxonomy, writeTaxonomy } from \"./taxonomy\";\n\nRequirements. The maintainers' tests check exactly this, so follow the names and wording given here:\n- Background: `docs/work-orders/T-602.md` describes the feature. Only the module `src/analysis/taxonomy.ts` is required here; extending `hone cluster` is out of scope. Two points differ from the work order: `induceTaxonomy` does not save anything itself (callers save with `writeTaxonomy`), and the `classify` state also carries the trial id (see below).\n- Exports of `src/analysis/taxonomy.ts`: `parseCodeJson`, `induceTaxonomy`, `classify`, `readTaxonomy`, `writeTaxonomy`.\n- Taxonomy file: `<root>/taxonomy.json`, where `root` is the store directory (normally `.hone`), holding `{ schemaVersion: 1, updatedAt, codes }`.\n  - `writeTaxonomy(root: string, codes: FailureCode[]): void` creates `root` when needed and writes the file with `updatedAt` set to the current ISO timestamp.\n  - `readTaxonomy(root: string)` returns the parsed file object (`schemaVersion`, `updatedAt`, `codes`), or `undefined` when the file is missing or unreadable.\n- `parseCodeJson(text: string): FailureCode | undefined` reads the JSON object in `text`, which may be bare or wrapped in a Markdown code fence or other text. It returns `undefined` when no object can be parsed, or when `code` or `definition` is not a string. Otherwise it returns exactly `{ code, axis, definition, evidencePatterns }`:\n  - `code` in kebab-case: lowercased, every run of characters other than `a-z0-9` replaced by one `-`, leading and trailing `-` removed;\n  - `axis` kept when it is `\"role\"` or `\"domain\"`, otherwise `\"system\"`;\n  - `evidencePatterns` the string entries of the given array, `[]` when absent.\n- `opts.chat` is a function called like `chat` in `src/providers/llm.ts`, with one `ChatRequest`; only the `text` of what it resolves to is used. `opts.jev` is any object with `ask(state, questions): Promise<JevResult>`, the shape of `JevClient`.\n- `induceTaxonomy(clusters: FailureCluster[], opts: { chat; existing?: FailureCode[]; jev?; sameThreshold?: number }): Promise<FailureCode[]>`:\n  - one `chat` call per cluster, in cluster order. The request's `messages` carry the cluster's top terms and up to 6 of its `summaries` verbatim.\n  - The reply goes through `parseCodeJson`. When that gives `undefined`, the cluster's provisional code is used: `{ code: cluster.id, axis: \"system\", definition: <top terms joined by \", \">, evidencePatterns: <top terms> }`.\n  - Merging with `opts.existing`: when an existing entry has the same `code`, that existing entry is used unchanged and Jev is not asked. Otherwise, when `opts.jev` is given and there are existing entries, exactly one `jev.ask` call is made for the candidate: the state is `{ candidate: { code, definition }, existing: [{ code, definition }, ...] }` and the questions object holds one `noul` question per existing entry, keyed by that entry's `code`. The existing entry whose answer has the highest `noul` is used when that value is at least `sameThreshold` (default `0.8`). In every other case the new code is used.\n  - The result lists the codes in cluster order, each `code` once.\n- `classify(trials: Trial[], codes: FailureCode[], opts: { jev }): Promise<Map<string, { code: string; confidence: number }>>`, keyed by trial id:\n  - with no codes, an empty map and no Jev call;\n  - otherwise one `jev.ask` per trial. The questions object is `{ code: <choice question> }`: a single `choice` question (the `choice` helper of `src/providers/jev.ts`) under the key `code`, whose options are the codes in the given order, keyed by `code` with the definition as text, followed by `other`;\n  - the state is `{ trialId: <trial id>, summary: summarise(trial), lastMessages: <the last 6 messages> }`, with `summarise` from `src/analysis/cluster.ts`. The work order names only the summary and the messages; the trial id is required too;\n  - the entry for a trial is `{ code: <choice>, confidence: <confidence> }` from the answer under `code`; when that answer is missing or not a `choice`, `{ code: \"other\", confidence: 0 }`.\n\nEnvironment: dependencies are installed, `bun test <path>` runs tests, and there is no network access. Work only inside this directory.",
+  "tags": [
+   "feat",
+   "heldout"
+  ],
+  "meta": {
+   "commit": "d59c303",
+   "kind": "feat",
+   "split": "heldout",
+   "subject": "feat: taxonomy induction and Jev classification",
+   "tests": [
+    "src/analysis/taxonomy.test.ts"
+   ],
+   "f2p": [
+    "src/analysis/taxonomy.test.ts :: classify > one Jev choice per trial over codes plus other",
+    "src/analysis/taxonomy.test.ts :: induceTaxonomy > a cluster whose reply cannot be parsed falls back to its provisional code",
+    "src/analysis/taxonomy.test.ts :: induceTaxonomy > merges with an existing taxonomy by identical code or by Jev agreement",
+    "src/analysis/taxonomy.test.ts :: induceTaxonomy > one chat call per cluster, codes in cluster order, summaries in the prompt",
+    "src/analysis/taxonomy.test.ts :: parseCodeJson > accepts bare and fenced JSON, normalises code to kebab-case, defaults axis",
+    "src/analysis/taxonomy.test.ts :: taxonomy file > round trips through .hone/taxonomy.json"
+   ],
+   "p2p": []
+  }
+ }
+]

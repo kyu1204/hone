@@ -1,0 +1,7 @@
+- Background: `docs/work-orders/T-602.md` and `docs/cli.md` describe `hone cluster --induce`; neither says what happens when the LLM call fails.
+- The change is in `clusterCommand` (`src/cli/commands/cluster.ts`), on the `--induce` path.
+- When anything on that path throws after the clustering step (naming the clusters with the LLM, merging with the saved taxonomy, classifying with Jev, writing the files), the error must not escape `clusterCommand`. The command writes one line to `io.stderr`, `cluster failed: <message>` followed by a newline, and returns exit code `1`.
+  - `<message>` is the thrown error's `message` unchanged (for a non-`Error` value, its string form), directly after `cluster failed: `.
+- This holds for the chat function injected through `deps.chat` as well as for the default LLM client.
+- A failed LLM call is not replaced by fallback names: the command stops and reports that error. The existing fallback for a reply that arrives but cannot be parsed stays as it is.
+- Unchanged: exit code `0` on success, exit code `2` for usage errors, an unknown run and a missing taxonomy, and the output of every path that does not fail.

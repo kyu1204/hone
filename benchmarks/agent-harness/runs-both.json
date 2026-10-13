@@ -1,0 +1,442 @@
+[
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T05-31-23.590Z-7d16",
+  "fiveHour": 0.28,
+  "sevenDay": 0.57
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T05-33-29.432Z-4cdf",
+  "fiveHour": 0.3,
+  "sevenDay": 0.58
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T05-35-27.987Z-5307",
+  "fiveHour": 0.31,
+  "sevenDay": 0.58
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T05-37-40.406Z-a28d",
+  "fiveHour": 0.33,
+  "sevenDay": 0.58
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T05-40-34.076Z-ccb1",
+  "fiveHour": 0.35,
+  "sevenDay": 0.58
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T06-23-29.758Z-4916",
+  "fiveHour": 0.44,
+  "sevenDay": 0.59
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T06-24-58.016Z-efc5",
+  "fiveHour": 0.45,
+  "sevenDay": 0.59
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T06-26-32.578Z-95fa",
+  "fiveHour": 0.46,
+  "sevenDay": 0.59
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T06-28-36.866Z-b509",
+  "fiveHour": 0.47,
+  "sevenDay": 0.59
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T06-30-30.378Z-1003",
+  "fiveHour": 0.48,
+  "sevenDay": 0.59
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T06-33-53.073Z-6e50",
+  "fiveHour": 0.5,
+  "sevenDay": 0.6
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T06-36-58.866Z-7216",
+  "fiveHour": 0.53,
+  "sevenDay": 0.6
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T06-40-01.953Z-12d5",
+  "fiveHour": 0.55,
+  "sevenDay": 0.6
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T06-43-27.369Z-7186",
+  "fiveHour": 0.57,
+  "sevenDay": 0.6
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T06-48-09.457Z-9a1f",
+  "fiveHour": 0.6,
+  "sevenDay": 0.6
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T06-52-33.452Z-7825",
+  "fiveHour": 0.64,
+  "sevenDay": 0.61
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T06-59-53.479Z-1490",
+  "fiveHour": 0.68,
+  "sevenDay": 0.61
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T07-05-39.683Z-d14e",
+  "fiveHour": 0.72,
+  "sevenDay": 0.61
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T07-11-34.590Z-a97d",
+  "fiveHour": 0.79,
+  "sevenDay": 0.62
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T07-22-57.201Z-505d",
+  "fiveHour": 0.85,
+  "sevenDay": 0.63
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T09-40-14.436Z-264e",
+  "fiveHour": 0.01,
+  "sevenDay": 0.63
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T09-41-46.305Z-c471",
+  "fiveHour": 0.03,
+  "sevenDay": 0.63
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T09-43-20.792Z-f85b",
+  "fiveHour": 0.04,
+  "sevenDay": 0.63
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T09-45-12.891Z-031e",
+  "fiveHour": 0.06,
+  "sevenDay": 0.63
+ },
+ {
+  "target": "sonnet-spec",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T09-47-11.619Z-5e15",
+  "fiveHour": 0.07,
+  "sevenDay": 0.63
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T09-48-53.939Z-bd28",
+  "fiveHour": 0.08,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T09-50-38.538Z-26d1",
+  "fiveHour": 0.09,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T09-52-55.187Z-4705",
+  "fiveHour": 0.1,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T09-54-58.490Z-34f4",
+  "fiveHour": 0.12,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T09-58-01.787Z-17c4",
+  "fiveHour": 0.14,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T10-00-51.959Z-0cb2",
+  "fiveHour": 0.15,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T10-03-47.465Z-f292",
+  "fiveHour": 0.17,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T10-06-43.247Z-1ea9",
+  "fiveHour": 0.19,
+  "sevenDay": 0.64
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T10-09-45.705Z-f2d6",
+  "fiveHour": 0.22,
+  "sevenDay": 0.65
+ },
+ {
+  "target": "sonnet-plain-rules",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T10-14-12.601Z-d51f",
+  "fiveHour": 0.25,
+  "sevenDay": 0.65
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "anthropic-temperature",
+   "branchpoints",
+   "cache-per-trial"
+  ],
+  "runId": "2026-10-13T10-19-34.018Z-65da",
+  "fiveHour": 0.29,
+  "sevenDay": 0.65
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "calibrate-cases",
+   "cluster-induce-errors",
+   "embed-provider"
+  ],
+  "runId": "2026-10-13T10-26-35.646Z-e49b",
+  "fiveHour": 0.32,
+  "sevenDay": 0.66
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "evolve-max-tokens",
+   "failure-clustering",
+   "fork-first-user"
+  ],
+  "runId": "2026-10-13T10-31-41.831Z-0b96",
+  "fiveHour": 0.36,
+  "sevenDay": 0.66
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "judge-calibration",
+   "matrix-errors",
+   "matrix-undecided"
+  ],
+  "runId": "2026-10-13T10-37-10.317Z-a798",
+  "fiveHour": 0.42,
+  "sevenDay": 0.66
+ },
+ {
+  "target": "opus-plain",
+  "cases": [
+   "rollouts-export",
+   "synth-messages",
+   "taxonomy"
+  ],
+  "runId": "2026-10-13T10-48-13.013Z-236a",
+  "fiveHour": 0.49,
+  "sevenDay": 0.67
+ }
+]
