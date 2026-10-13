@@ -121,6 +121,16 @@ Why: the two 2026-10 studies showed that a person was still chaining the steps a
 - [ ] T-1005 Proposals as patches from an agent hone starts itself; diagnosis by intervention; `--apply` (L) DEFERRED: a change file can already point the config at new code, and a coding agent writes change files through the skill (T-1008, T-1010). Reopen when a change has to edit files in place.
 - [ ] T-1006 Replicate both studies with zero human decisions (M) BLOCKED: spends API credit and subscription quota; the maintainer sets the budget first.
 
+## P11 Custom agents (after P10)
+
+Why: the agents teams build in-house (LangChain, Strands) are where an evaluation cycle is hardest to set up and most needed.
+
+- [ ] T-1101 Python targets for custom agents: `params`, traces recorded from LangChain and Strands, concurrency (M)
+- [ ] T-1102 Example: an in-house helpdesk agent in LangChain and in Strands, 36 cases over six house rules (M)
+- [ ] T-1103 Benchmark: the cycle on both, by hone's own rewrites and by a coding agent (Codex) writing changes (M)
+- [ ] T-1104 `hone init` recognises LangChain and Strands projects (S)
+- [ ] T-1105 README rewritten around what hone is now, with a new demo recording (M)
+
 ## Progress log
 
 | Date | Task | PR | Note |
