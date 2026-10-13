@@ -16,6 +16,8 @@ const tmp = (): string => {
   return d;
 };
 
+/** Sentences of the account wrap at 100 columns; match them with the line breaks taken out. */
+const flat = (s: string): string => s.replace(/\s+/g, " ");
 const idOf = (input: unknown): string => `c${String(input).slice(1)}`;
 const even = (id: string): boolean => Number(id.slice(1)) % 2 === 0;
 
@@ -101,9 +103,11 @@ describe("sharpen", () => {
     expect(r.path).toBe(path.join(cwd, ".hone", "sharpen", `${r.id}.json`));
     expect(fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`), "utf8")).toBe("Answer in UPPERCASE.");
     expect(r.message).toMatch(/^Now: 0% of 20 cases pass\. 10 more cases are held out for the final check\./);
-    expect(r.message).toMatch(/1\. answers-lowercase \(20 of 20 failed trials, e\.g\. c\d+\): outputs were not capitalised/);
+    expect(r.message).toMatch(/1\. answers-lowercase \(20 of 20 failed trials, e\.g\. c\d+\)\n {5}outputs were not capitalised\n/);
+    // the account fits a terminal: no line runs past 100 columns
+    expect(Math.max(...r.message.split("\n").map((l) => l.length))).toBeLessThanOrEqual(100);
     expect(r.message).toMatch(/\+ rewrite 1\s+0% -> 100%\s+outputs were lowercase/);
-    expect(r.message).toMatch(/Result: PROVEN\. On 10 cases it never saw, rewrite 1 takes the pass rate from 0% to 100%/);
+    expect(flat(r.message)).toMatch(/Result: PROVEN\. On 10 cases it never saw, rewrite 1 takes the pass rate from 0% to 100%/);
     expect(r.message).toContain(`.hone/sharpen/${r.id}-best.txt`);
   });
 
@@ -115,7 +119,7 @@ describe("sharpen", () => {
     // budget 0 is the proposer's first step: measure, diagnose, write the file, try nothing
     expect(r.candidates).toEqual([]);
     expect(r.stopped).toBe("budget");
-    expect(r.message).toMatch(/Result: NO GAIN\. Nothing was tried\./);
+    expect(flat(r.message)).toMatch(/Result: NO GAIN\. Nothing was tried\./);
     expect(r.message).not.toMatch(/Tried 0/);
     expect(r.diagnosisPath).toBe(path.join(cwd, ".hone", "sharpen", `${r.id}-diagnosis.md`));
     expect(r.message).toContain(`  Examples of each, and how to write a change: .hone/sharpen/${r.id}-diagnosis.md`);
@@ -141,6 +145,16 @@ describe("sharpen", () => {
     expect(md).toContain("- variants in the config: wide");
     expect(md).toContain("- change files: sharpen/idea.ts (idea)");
     expect(md).toContain('import { change } from "hone-eval";');
+  });
+
+  test("long wording from a model is cut so that no line of the account runs past 100 columns", async () => {
+    const long = "the assistant wraps the requested value in a long conversational sentence with greetings and thanks, ".repeat(3);
+    const chat = async (): Promise<{ text: string }> => ({ text: JSON.stringify({ text: "Answer in UPPERCASE.", rationale: long, code: "a-rather-long-failure-mode-name-from-the-model", definition: long }) });
+    const r = await sharpen({ config: config((_id, text) => text.includes("UPPERCASE"), { text: true }), hash: "h", cwd: tmp(), chat, budget: 1, useCache: false });
+    expect(r.verdict).toBe("proven");
+    expect(Math.max(...r.message.split("\n").map((l) => l.length))).toBeLessThanOrEqual(100);
+    expect(r.message).toMatch(/\n {5}the assistant wraps the requested value .*\.\.\.\n/);
+    expect(r.candidates[0]!.rationale).toBe(long); // the ledger keeps it whole
   });
 
   test("a variant and a rewrite that each fix half combine without anyone deciding to combine them", async () => {
@@ -169,9 +183,9 @@ describe("sharpen", () => {
     expect(r.candidates[2]).toMatchObject({ kind: "variant", parent: "rewrite 1", variant: "wide", text: "Answer in UPPERCASE.", dev: 1 });
     expect(r.best).toMatchObject({ id: "variant wide on rewrite 1", label: "variant wide on rewrite 1", baseline: 0, candidate: 1 });
     expect(r.verdict).toBe("proven");
-    expect(r.message).toMatch(/Result: PROVEN\. On 10 cases it never saw, variant wide on rewrite 1 takes the pass rate from 0% to 100%/);
+    expect(flat(r.message)).toMatch(/Result: PROVEN\. On 10 cases it never saw, variant wide on rewrite 1 takes the pass rate from 0% to 100%/);
     expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt`);
-    expect(r.message).toContain('It uses the variant "wide" from sharpen.variants.');
+    expect(flat(r.message)).toContain('It uses the variant "wide" from sharpen.variants.');
     expect(fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`), "utf8")).toBe("Answer in UPPERCASE.");
     // the saved change file is the rewrite itself, under its own name and with the model's reason, not the pairing
     const saved = fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`), "utf8");
@@ -197,8 +211,8 @@ describe("sharpen", () => {
     expect(r.best).toMatchObject({ id: "uppercase", label: "uppercase", baseline: 0, candidate: 1 });
     expect(r.verdict).toBe("proven");
     expect(r.message).toMatch(/\+ uppercase\s+0% -> 100%\s+outputs were lowercase/);
-    expect(r.message).toContain("The text comes from sharpen/up.ts.");
-    expect(r.message).not.toMatch(/No LLM key/); // a person's change needs no key, so nothing is missing
+    expect(flat(r.message)).toContain("The text comes from sharpen/up.ts.");
+    expect(flat(r.message)).not.toMatch(/No LLM key/); // a person's change needs no key, so nothing is missing
     expect(fs.existsSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.txt`))).toBe(false); // the file is already the change
   });
 
@@ -221,8 +235,8 @@ describe("sharpen", () => {
     expect(a.candidates[0]).toMatchObject({ kind: "variant", source: "file", file: "sharpen/wide.ts", why: "odd cases are matched too strictly", dev: 0 });
     expect(a.candidates[2]).toMatchObject({ kind: "variant", source: "file", parent: "uppercase", variant: "wide matching", text: "Answer in UPPERCASE.", dev: 1 });
     expect(a.verdict).toBe("proven");
-    expect(a.message).toContain("The text comes from sharpen/up.ts.");
-    expect(a.message).toContain('It uses the change "wide matching" from sharpen/wide.ts.');
+    expect(flat(a.message)).toContain("The text comes from sharpen/up.ts.");
+    expect(flat(a.message)).toContain('It uses the change "wide matching" from sharpen/wide.ts.');
 
     // (2) the variant alone is the best single change; the text from the file is then tried on top of it
     const third = (id: string): boolean => Number(id.slice(1)) % 3 === 0;
@@ -236,7 +250,7 @@ describe("sharpen", () => {
     expect(b.candidates.map((c) => c.id)).toEqual(["uppercase", "variant wide", "uppercase on variant wide"]);
     expect(b.candidates[2]).toMatchObject({ kind: "text", source: "file", parent: "variant wide", variant: "wide", text: "Answer in UPPERCASE.", dev: 1 });
     expect(b.verdict).toBe("proven");
-    expect(b.message).toContain('It uses the variant "wide" from sharpen.variants.');
+    expect(flat(b.message)).toContain('It uses the variant "wide" from sharpen.variants.');
   });
 
   test("a change that carries a text and a config is one candidate; a text change needs the config to say where a text goes", async () => {
@@ -257,7 +271,7 @@ describe("sharpen", () => {
     const { chat } = stubChat();
     const r = await sharpen({ config: config((_id, text) => text.includes("UPPERCASE"), { text: true }), hash: "h", cwd, chat, budget: 1, useCache: false });
     const file = path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`);
-    expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt (as a change file: .hone/sharpen/${r.id}-best.ts)`);
+    expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt\nAs a change file: .hone/sharpen/${r.id}-best.ts\n`);
     const source = fs.readFileSync(file, "utf8");
     expect(source).toContain('import { change } from "hone-eval";');
     const kept = tmp();
@@ -276,7 +290,7 @@ describe("sharpen", () => {
     expect(r.candidates[0]!.dev).toBeGreaterThan(0);
     expect(r.best).toMatchObject({ id: "rewrite 1", baseline: 0, candidate: 0, diff: 0 });
     expect(r.verdict).toBe("no gain");
-    expect(r.message).toMatch(/Result: NO GAIN\. rewrite 1 looked better on the cases it learned from \(0% -> \d+%\) but not on 10 cases it never saw \(0% -> 0%\)/);
+    expect(flat(r.message)).toMatch(/Result: NO GAIN\. rewrite 1 looked better on the cases it learned from \(0% -> \d+%\) but not on 10 cases it never saw \(0% -> 0%\)/);
   });
 
   test("with too few cases to hold any out the verdict stops at promising", async () => {
@@ -286,7 +300,7 @@ describe("sharpen", () => {
     expect(r.best).toMatchObject({ cases: 8, baseline: 0, candidate: 1 });
     expect(r.verdict).toBe("promising");
     expect(r.message).toMatch(/Too few cases to hold any out/);
-    expect(r.message).toMatch(/Result: PROMISING, not proven\./);
+    expect(flat(r.message)).toMatch(/Result: PROMISING, not proven\./);
   });
 
   test("five held-out cases that all improve are promising, not proof; six are the least that can be", async () => {
@@ -296,8 +310,8 @@ describe("sharpen", () => {
     expect(five.best).toMatchObject({ cases: 5, baseline: 0, candidate: 1, needed: 6 });
     expect(five.best!.p).toBeCloseTo(0.0625, 6);
     expect(five.verdict).toBe("promising");
-    expect(five.message).toMatch(/Result: PROMISING, not proven\./);
-    expect(five.message).toMatch(/About 6 held-out cases would settle it\./);
+    expect(flat(five.message)).toMatch(/Result: PROMISING, not proven\./);
+    expect(flat(five.message)).toMatch(/About 6 held-out cases would settle it\./);
     const six = await sharpen({ config: config((_id, text) => text.includes("UPPERCASE"), { text: true, n: 18 }), hash: "h", cwd: tmp(), chat, budget: 1, useCache: false });
     expect(six.split.holdout).toHaveLength(6);
     expect(six.verdict).toBe("proven");
@@ -319,8 +333,8 @@ describe("sharpen", () => {
     const second = await run(cwd, 18, "Always answer in UPPERCASE letters.");
     expect(second.best).toMatchObject({ confirmations: 2, alpha: 0.025, needed: 7 });
     expect(second.verdict).toBe("promising"); // the same evidence, but these cases have been asked before
-    expect(second.message).toContain("These 6 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New cases restore the bar.");
-    expect(second.message).toMatch(/About 7 held-out cases would settle it\./);
+    expect(flat(second.message)).toContain("These 6 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New cases restore the bar.");
+    expect(flat(second.message)).toMatch(/About 7 held-out cases would settle it\./);
     // another split is another set of cases: its count starts again
     expect((await run(cwd, 18, "Reply in UPPERCASE.", 2)).best).toMatchObject({ confirmations: 1, alpha: 0.05 });
     // with ten held out a second change still clears the higher bar
@@ -339,11 +353,11 @@ describe("sharpen", () => {
     const broken = await sharpen({ config: boom, hash: "h", cwd: tmp(), chat: stubChat().chat, useCache: false });
     expect(broken.verdict).toBe("cannot measure");
     expect(broken.candidates).toEqual([]);
-    expect(broken.message).toMatch(/Cannot measure: the system failed to run in 20 of 20 trials \(first error: .*boom: connection refused/);
+    expect(flat(broken.message)).toMatch(/Cannot measure: the system failed to run in 20 of 20 trials \(first error: .*boom: connection refused/);
 
     const fine = await sharpen({ config: config(() => true, { text: true }), hash: "h", cwd: tmp(), chat: stubChat().chat, useCache: false });
     expect(fine.verdict).toBe("nothing to sharpen");
-    expect(fine.message).toMatch(/Nothing to sharpen: all 20 cases pass/);
+    expect(flat(fine.message)).toMatch(/Nothing to sharpen: all 20 cases pass/);
     // what a newcomer sees right after `hone init`: one example case, and it passes
     const one = await sharpen({ config: config(() => true, { text: true, n: 1 }), hash: "h", cwd: tmp(), useCache: false });
     expect(one.message).toBe("Nothing to sharpen: the one case passes. Add cases that are harder.\n");
@@ -353,8 +367,8 @@ describe("sharpen", () => {
     expect(bare.verdict).toBe("nothing to change");
     expect(bare.diagnosis[0]).toMatchObject({ code: "answers-lowercase" });
     expect(bare.message).toMatch(/Why it fails:/);
-    expect(bare.message).toMatch(/sharpen: \{ text: \{ seed, apply \} \}/);
-    expect(bare.message).toMatch(/Nothing to change: there is no change to try\. Write one, for example sharpen\/first\.ts:/);
+    expect(flat(bare.message)).toMatch(/sharpen: \{ text: \{ seed, apply \} \}/);
+    expect(flat(bare.message)).toMatch(/Nothing to change: there is no change to try\. Write one, for example sharpen\/first\.ts:/);
     expect(bare.message).toContain('change("what it does", { why: "which failure it fixes", text: "the new text" });');
     expect(prompts.length).toBeGreaterThan(0); // the model named the failure modes
     expect(prompts.some((p) => p.includes("Current text"))).toBe(false); // and was not asked for rewrites
@@ -371,13 +385,13 @@ describe("sharpen", () => {
     expect(budget.candidates.map((c) => c.id)).toEqual(["variant a", "variant b"]);
     expect(budget.stopped).toBe("budget");
     expect(budget.verdict).toBe("no gain");
-    expect(budget.message).toMatch(/Result: NO GAIN\. None of the 2 changes beat what you have\./);
-    expect(budget.message).not.toMatch(/No LLM key/); // no text is declared, so no key is missing
+    expect(flat(budget.message)).toMatch(/Result: NO GAIN\. None of the 2 changes beat what you have\./);
+    expect(flat(budget.message)).not.toMatch(/No LLM key/); // no text is declared, so no key is missing
 
     const cost = await sharpen({ config: dud, hash: "h", cwd: tmp(), maxCost: 0, useCache: false });
     expect(cost.candidates).toEqual([]);
     expect(cost.stopped).toBe("maxCost");
-    expect(cost.message).toMatch(/Result: NO GAIN\. Nothing was tried\./);
+    expect(flat(cost.message)).toMatch(/Result: NO GAIN\. Nothing was tried\./);
 
     const { chat, prompts } = stubChat();
     const half = config((id, text, variant) => (even(id) ? variant === "wide" : text.includes("UPPERCASE")), { text: true, variants: ["wide"] });
