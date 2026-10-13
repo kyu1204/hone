@@ -1,0 +1,202 @@
+{
+  "id": "20261013144515",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.5208333333333334,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.21458499999999997,
+    "runId": "2026-10-13T14-45-15.021Z-273e"
+  },
+  "diagnosis": [
+    {
+      "code": "incomplete-escalation-handling",
+      "definition": "The assistant handles an IT support or security request but leaves out a required escalation step: it skips create_ticket, files the ticket at the wrong priority (e.g. \"high\" instead of \"urgent\"), or omits the required security contact address from its reply.",
+      "size": 7,
+      "example": "sec-lost-laptop",
+      "cases": [
+        "sec-lost-laptop",
+        "ticket-monitor-flicker",
+        "sec-fake-cleaner",
+        "sec-password-in-chat"
+      ]
+    },
+    {
+      "code": "missing-ticket-creation",
+      "definition": "The assistant answers a policy or request question (often admitting no policy was found, or only offering to help) without calling create_ticket, so no ticket is filed and the expected ticket ID (e.g. 'T-') never appears in the answer.",
+      "size": 7,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "nopolicy-parking",
+        "nopolicy-referral",
+        "ticket-jetbrains"
+      ]
+    },
+    {
+      "code": "missing-policy-citation",
+      "definition": "The assistant gives a substantively policy-based answer but omits the required bracketed policy ID citation (e.g. [P-02]) or, in the ticket case, the ticket ID, so the output fails the response contract.",
+      "size": 7,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "cite-parental",
+        "cite-training",
+        "ticket-jetbrains"
+      ]
+    },
+    {
+      "code": "missing-policy-citation-format",
+      "definition": "The assistant answers a policy question and references the policy ID in plain text (e.g., 'policy P-12') but omits the required bracketed citation tag '[P-12]' demanded by the output contract.",
+      "size": 2,
+      "example": "cite-travel",
+      "cases": [
+        "cite-travel"
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "id": "cite policy results in brackets",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/cite-policy-results.ts",
+      "why": "The missing-citation-tag failures happen because the prompt never specifies how retrieved policy IDs must appear in the answer.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nFor questions about company policy, search the policy tool before answering. When the search returns a relevant policy, answer from that result and cite every policy you rely on using its exact ID in square brackets, for example [P-02]. Do not cite a policy when the search found no relevant policy.",
+      "textFile": "sharpen/cite-policy-results.ts",
+      "textFrom": "cite policy results in brackets",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.625,
+        "parent": 0.425
+      },
+      "dev": 0.6875,
+      "costUsd": 0.41910500000000006,
+      "runId": "2026-10-13T14-45-56.104Z-cfb3"
+    },
+    {
+      "id": "complete security escalation",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/complete-security-escalation.ts",
+      "why": "The incomplete-escalation-contract failures show that security incidents need an explicit, consistent escalation contract in the prompt.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nTreat suspected compromise, malware, credential exposure, phishing interaction, and lost company devices as security incidents. Immediately create a security-category ticket with urgent priority, include the returned ticket reference (T-...) in the response, and tell the employee to contact security@acme.example. Give concise immediate containment steps appropriate to the incident.",
+      "textFile": "sharpen/complete-security-escalation.ts",
+      "textFrom": "complete security escalation",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.525,
+        "parent": 0.425
+      },
+      "dev": 0.6041666666666666,
+      "costUsd": 0.39279099999999995,
+      "runId": "2026-10-13T14-46-29.594Z-2698"
+    },
+    {
+      "id": "complete ticket escalation",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/complete-ticket-escalation.ts",
+      "why": "The missing-ticket-escalation failures occur because the prompt does not require the agent to open a ticket immediately and report its reference instead of merely offering or redirecting the employee.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nUse the available tools to complete support requests, not merely suggest that the employee contact someone else or ask whether they want a ticket. For a technical support problem, create a ticket with the appropriate category and severity-based priority. If a policy search has no relevant result, do not invent an answer: create an \"other\" category ticket at low priority to obtain a definitive answer. Whenever you create a ticket, include the returned ticket reference (T-...) in your response.",
+      "textFile": "sharpen/complete-ticket-escalation.ts",
+      "textFrom": "complete ticket escalation",
+      "sample": {
+        "cases": 20,
+        "candidate": 0.55,
+        "parent": 0.425
+      },
+      "dev": 0.625,
+      "costUsd": 0.45893399999999995,
+      "runId": "2026-10-13T14-47-04.412Z-5ac9"
+    },
+    {
+      "id": "variant model: sonnet",
+      "kind": "variant",
+      "source": "config",
+      "parent": "baseline",
+      "variant": "model: sonnet",
+      "dev": 0.625,
+      "costUsd": 0.7045380000000001,
+      "runId": "2026-10-13T14-47-12.927Z-0455"
+    },
+    {
+      "id": "variant model: sonnet on cite policy results in brackets",
+      "kind": "variant",
+      "source": "config",
+      "parent": "cite policy results in brackets",
+      "variant": "model: sonnet",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions.\n\nFor questions about company policy, search the policy tool before answering. When the search returns a relevant policy, answer from that result and cite every policy you rely on using its exact ID in square brackets, for example [P-02]. Do not cite a policy when the search found no relevant policy.",
+      "textFile": "sharpen/cite-policy-results.ts",
+      "textFrom": "cite policy results in brackets",
+      "dev": 0.75,
+      "costUsd": 0.6785490000000001,
+      "runId": "2026-10-13T14-47-59.580Z-f006"
+    }
+  ],
+  "verdict": "promising",
+  "stopped": "exhausted",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-codex/.hone/sharpen/20261013144515-diagnosis.md",
+  "best": {
+    "id": "variant model: sonnet on cite policy results in brackets",
+    "label": "variant model: sonnet on cite policy results in brackets",
+    "cases": 12,
+    "baseline": 0.3333333333333333,
+    "candidate": 0.6666666666666666,
+    "diff": 0.3333333333333333,
+    "lo": 0.020498924786896078,
+    "hi": 0.6461677418797706,
+    "p": 0.1250000000000001,
+    "confirmations": 1,
+    "alpha": 0.05,
+    "costRatio": 3.2040715662974746,
+    "needed": 20
+  },
+  "message": "Now: 52% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. incomplete-escalation-handling (7 of 23 failed trials, e.g. sec-lost-laptop)\n     The assistant handles an IT support or security request but leaves out a required escalation...\n  2. missing-ticket-creation (7 of 23 failed trials, e.g. nopolicy-dress)\n     The assistant answers a policy or request question (often admitting no policy was found, or...\n  3. missing-policy-citation (7 of 23 failed trials, e.g. cite-remote)\n     The assistant gives a substantively policy-based answer but omits the required bracketed pol...\n  4. missing-policy-citation-format (2 of 23 failed trials, e.g. cite-travel)\n     The assistant answers a policy question and references the policy ID in plain text (e.g., 'p...\n  Examples of each, and how to write a change: .hone/sharpen/20261013144515-diagnosis.md\nTried 5 changes:\n  + cite policy results in brackets                           52% -> 69%   The missing-citation-t...\n  + complete security escalation                              52% -> 60%   The incomplete-escalat...\n  + complete ticket escalation                                52% -> 63%   The missing-ticket-esc...\n  + variant model: sonnet                                     52% -> 63%\n  + variant model: sonnet on cite policy results in brackets  52% -> 75%\nResult: PROMISING, not proven. On 12 cases it never saw, variant model: sonnet on cite policy\nresults in brackets takes the pass rate from 33% to 67% (+33 points, 95% interval +2 to +65, p =\n0.13). Cost per case: 3.2x. About 20 held-out cases would settle it.\nThe text comes from sharpen/cite-policy-results.ts.\nIt uses the variant \"model: sonnet\" from sharpen.variants.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-codex/.hone/sharpen/20261013144515.json"
+}

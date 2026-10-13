@@ -1,0 +1,8 @@
+running baseline (24 cells x 2)
+finding why 22 trials fail
+running rewrite 2 sample (19 cells x 2)
+running rewrite 2 (24 cells x 2)
+running variant model: sonnet (24 cells x 2)
+running variant model: sonnet on rewrite 2 (24 cells x 2)
+running baseline, held-out cases (12 cells x 2)
+running variant model: sonnet on rewrite 2, held-out cases (12 cells x 2)

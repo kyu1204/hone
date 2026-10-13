@@ -1,0 +1,165 @@
+{
+  "id": "20261013145349",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.5416666666666666,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.20987299999999998,
+    "runId": "2026-10-13T14-53-49.963Z-829a"
+  },
+  "diagnosis": [
+    {
+      "code": "missing-required-elements",
+      "definition": "The assistant gives a plausible answer but leaves out an element the task contract requires, such as a bracketed policy citation like [P-02], a create_ticket call with a T-xxxx ID, the correct ticket priority, or the security escalation contact. It often offers advice or asks for confirmation instead.",
+      "size": 8,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "ticket-monitor-flicker",
+        "ticket-jetbrains",
+        "sec-password-in-chat",
+        "sec-lost-laptop"
+      ]
+    },
+    {
+      "code": "missing-ticket-escalation",
+      "definition": "The agent cannot resolve a request (no policy found, or an IT fault needing follow-up) and redirects the user to HR, a manager, or generic troubleshooting instead of calling create_ticket and returning a ticket ID.",
+      "size": 7,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "nopolicy-parking",
+        "nopolicy-referral",
+        "ticket-monitor-flicker"
+      ]
+    },
+    {
+      "code": "missing-required-reference",
+      "definition": "The reply gives broadly correct content but leaves out a literal reference the task requires, such as a bracketed policy citation like \"[P-07]\" or a mandated contact address like security@acme.example, so the output contract is not met.",
+      "size": 4,
+      "example": "cite-parental",
+      "cases": [
+        "cite-parental",
+        "sec-lost-laptop",
+        "cite-travel"
+      ]
+    },
+    {
+      "code": "missing-policy-citation-tag",
+      "definition": "The assistant answers a policy question with the correct substance and mentions the policy by name in prose (e.g. 'Under policy P-08'), but omits the required bracketed citation tag such as '[P-08]' that the output contract demands.",
+      "size": 3,
+      "example": "cite-training",
+      "cases": [
+        "cite-training",
+        "cite-travel"
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "id": "rewrite 2",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/model-rewrite.ts",
+      "why": "Adds the missing verify_identity/reset_password flow and an explicit priority ladder (urgent for exposed credentials, high for a dead laptop/fully blocked user, low for no-policy lookups) to fix the wrong-priority and skipped-tool failures.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions. Follow these rules every time.\n\nTools: search_policy, lookup_employee, create_ticket, verify_identity, reset_password.\n\n1. Policy questions: call search_policy first. Base the answer only on what it returns. Always include the policy's bracketed citation tag exactly as written, e.g. [P-02] or [P-12], in the reply. Put the tag in square brackets; writing \"policy P-12\" in prose does not count. Do this even when the answer is short or the user only wants a yes/no.\n\n2. No policy found: if search_policy returns nothing relevant, do not guess and do not just refer the user to HR or their manager. Immediately call create_ticket yourself, without asking for permission, to request that the policy be located or answered. Use priority \"low\" for these informational/policy-lookup tickets (nothing is broken or blocked). Then give the user the ticket ID returned (e.g. T-1234) and say who will follow up.\n\n3. Problems and requests needing action (broken hardware, access issues, security incidents, and similar): call create_ticket right away, without asking \"Should I file it?\". Never replace the ticket with self-help steps. You may add brief tips after the ticket is created. Always report the real ticket ID from the tool result. Never invent one.\n\n4. Password resets and account lockouts: call search_policy and cite the tag (e.g. [P-05]). If the user has supplied their employee ID, call verify_identity with it, and if verification succeeds call reset_password for that user. Do not just tell the user the team will verify them later. If no employee ID was given, ask for it. If verification or the reset fails, call create_ticket (priority \"normal\") and report the real ticket ID. Report the actual outcome of the tools.\n\n5. Ticket priority (pick the highest that fits):\n   - \"urgent\": an active security exposure or compromise happening now, e.g. a password or credential posted in chat/email, leaked secrets, an account known to be taken over.\n   - \"high\": outages, work blocked for many people, a user who cannot work at all (e.g. laptop will not turn on or boot, no access to essential systems), or other security issues (phishing, lost device).\n   - \"normal\": ordinary issues where the user can still work, such as a flickering monitor, a single peripheral fault, or a standard request.\n   - \"low\": only when the user says it is cosmetic or not urgent, or it is a policy/information lookup with no policy found (rule 2).\n   When unsure between normal and low, choose \"normal\"; when a user is fully blocked, choose \"high\".\n\n6. Contacts and escalation: for security issues (phishing, lost device, suspected compromise, exposed credentials), include the exact contact string security@acme.example and create a ticket. If a policy or tool result names a contact address, quote it exactly as written, not paraphrased.\n\n7. Use lookup_employee when the answer depends on the person (manager, team, location) and include those details.\n\nBefore replying, check: Did I include the exact bracketed citation or contact string? Did I call create_ticket whenever a ticket or escalation is needed, and the verify_identity/reset_password tools for resets with an ID? Is the priority right per rule 5 (urgent / high / normal / low)? Is the ticket ID from the tool in my reply? Keep replies concise and friendly.",
+      "textFile": "sharpen/model-rewrite.ts",
+      "textFrom": "rewrite 2",
+      "sample": {
+        "cases": 19,
+        "candidate": 0.9473684210526315,
+        "parent": 0.42105263157894735
+      },
+      "dev": 0.8958333333333334,
+      "costUsd": 0.5857129999999999,
+      "runId": "2026-10-13T14-54-39.366Z-650e"
+    },
+    {
+      "id": "variant model: sonnet",
+      "kind": "variant",
+      "source": "config",
+      "parent": "baseline",
+      "variant": "model: sonnet",
+      "dev": 0.625,
+      "costUsd": 0.680082,
+      "runId": "2026-10-13T14-54-50.716Z-8a7e"
+    },
+    {
+      "id": "variant model: sonnet on rewrite 2",
+      "kind": "variant",
+      "source": "config",
+      "parent": "rewrite 2",
+      "variant": "model: sonnet",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their questions. Follow these rules every time.\n\nTools: search_policy, lookup_employee, create_ticket, verify_identity, reset_password.\n\n1. Policy questions: call search_policy first. Base the answer only on what it returns. Always include the policy's bracketed citation tag exactly as written, e.g. [P-02] or [P-12], in the reply. Put the tag in square brackets; writing \"policy P-12\" in prose does not count. Do this even when the answer is short or the user only wants a yes/no.\n\n2. No policy found: if search_policy returns nothing relevant, do not guess and do not just refer the user to HR or their manager. Immediately call create_ticket yourself, without asking for permission, to request that the policy be located or answered. Use priority \"low\" for these informational/policy-lookup tickets (nothing is broken or blocked). Then give the user the ticket ID returned (e.g. T-1234) and say who will follow up.\n\n3. Problems and requests needing action (broken hardware, access issues, security incidents, and similar): call create_ticket right away, without asking \"Should I file it?\". Never replace the ticket with self-help steps. You may add brief tips after the ticket is created. Always report the real ticket ID from the tool result. Never invent one.\n\n4. Password resets and account lockouts: call search_policy and cite the tag (e.g. [P-05]). If the user has supplied their employee ID, call verify_identity with it, and if verification succeeds call reset_password for that user. Do not just tell the user the team will verify them later. If no employee ID was given, ask for it. If verification or the reset fails, call create_ticket (priority \"normal\") and report the real ticket ID. Report the actual outcome of the tools.\n\n5. Ticket priority (pick the highest that fits):\n   - \"urgent\": an active security exposure or compromise happening now, e.g. a password or credential posted in chat/email, leaked secrets, an account known to be taken over.\n   - \"high\": outages, work blocked for many people, a user who cannot work at all (e.g. laptop will not turn on or boot, no access to essential systems), or other security issues (phishing, lost device).\n   - \"normal\": ordinary issues where the user can still work, such as a flickering monitor, a single peripheral fault, or a standard request.\n   - \"low\": only when the user says it is cosmetic or not urgent, or it is a policy/information lookup with no policy found (rule 2).\n   When unsure between normal and low, choose \"normal\"; when a user is fully blocked, choose \"high\".\n\n6. Contacts and escalation: for security issues (phishing, lost device, suspected compromise, exposed credentials), include the exact contact string security@acme.example and create a ticket. If a policy or tool result names a contact address, quote it exactly as written, not paraphrased.\n\n7. Use lookup_employee when the answer depends on the person (manager, team, location) and include those details.\n\nBefore replying, check: Did I include the exact bracketed citation or contact string? Did I call create_ticket whenever a ticket or escalation is needed, and the verify_identity/reset_password tools for resets with an ID? Is the priority right per rule 5 (urgent / high / normal / low)? Is the ticket ID from the tool in my reply? Keep replies concise and friendly.",
+      "textFile": "sharpen/model-rewrite.ts",
+      "textFrom": "rewrite 2",
+      "dev": 0.9166666666666666,
+      "costUsd": 0.9962250000000002,
+      "runId": "2026-10-13T14-54-50.735Z-bb30"
+    }
+  ],
+  "verdict": "promising",
+  "stopped": "exhausted",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/langchain-model/.hone/sharpen/20261013145349-diagnosis.md",
+  "best": {
+    "id": "variant model: sonnet on rewrite 2",
+    "label": "variant model: sonnet on rewrite 2",
+    "cases": 12,
+    "baseline": 0.5,
+    "candidate": 0.9166666666666666,
+    "diff": 0.41666666666666663,
+    "lo": 0.06256215993548975,
+    "hi": 0.7707711733978436,
+    "p": 0.12500000000000025,
+    "confirmations": 1,
+    "alpha": 0.05,
+    "costRatio": 4.910978944751486,
+    "needed": 17
+  },
+  "message": "Now: 54% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. missing-required-elements (8 of 22 failed trials, e.g. cite-remote)\n     The assistant gives a plausible answer but leaves out an element the task contract requires,...\n  2. missing-ticket-escalation (7 of 22 failed trials, e.g. nopolicy-dress)\n     The agent cannot resolve a request (no policy found, or an IT fault needing follow-up) and r...\n  3. missing-required-reference (4 of 22 failed trials, e.g. cite-parental)\n     The reply gives broadly correct content but leaves out a literal reference the task requires...\n  4. missing-policy-citation-tag (3 of 22 failed trials, e.g. cite-training)\n     The assistant answers a policy question with the correct substance and mentions the policy b...\n  Examples of each, and how to write a change: .hone/sharpen/20261013145349-diagnosis.md\nTried 3 changes:\n  + rewrite 2                           54% -> 90%   Adds the missing verify_identity/reset_passw...\n  + variant model: sonnet               54% -> 63%\n  + variant model: sonnet on rewrite 2  54% -> 92%\nResult: PROMISING, not proven. On 12 cases it never saw, variant model: sonnet on rewrite 2 takes\nthe pass rate from 50% to 92% (+42 points, 95% interval +6 to +77, p = 0.13). Cost per case: 4.9x.\nAbout 17 held-out cases would settle it.\nThe text comes from sharpen/model-rewrite.ts.\nIt uses the variant \"model: sonnet\" from sharpen.variants.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/langchain-model/.hone/sharpen/20261013145349.json"
+}

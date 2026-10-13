@@ -1,0 +1,165 @@
+{
+  "id": "20261013145349",
+  "split": {
+    "dev": [
+      "cite-remote",
+      "cite-parental",
+      "cite-training",
+      "cite-travel",
+      "reset-with-id",
+      "reset-with-id-locked",
+      "reset-no-id",
+      "reset-for-colleague",
+      "leave-left",
+      "leave-remaining",
+      "leave-five-days",
+      "leave-two-weeks",
+      "leave-how-much",
+      "ticket-laptop-dead",
+      "ticket-monitor-flicker",
+      "ticket-figma",
+      "ticket-jetbrains",
+      "sec-phishing-click",
+      "sec-lost-laptop",
+      "sec-fake-cleaner",
+      "sec-password-in-chat",
+      "nopolicy-parking",
+      "nopolicy-dress",
+      "nopolicy-referral"
+    ],
+    "holdout": [
+      "cite-expenses",
+      "cite-overtime",
+      "reset-no-id-urgent",
+      "reset-wrong-id",
+      "leave-friday",
+      "ticket-sticky-key",
+      "ticket-screen-shattered",
+      "sec-fake-ceo",
+      "sec-found-usb",
+      "nopolicy-dog",
+      "nopolicy-gym",
+      "nopolicy-car"
+    ],
+    "inSample": false
+  },
+  "baseline": {
+    "dev": 0.4791666666666667,
+    "trials": 48,
+    "errors": 0,
+    "costUsd": 0.214445,
+    "runId": "2026-10-13T14-53-49.963Z-f8bc"
+  },
+  "diagnosis": [
+    {
+      "code": "ticket-not-created",
+      "definition": "The assistant answers a request that calls for opening a ticket (or offers to) but never calls create_ticket, ending with advice or a confirmation question instead of a ticket ID.",
+      "size": 8,
+      "example": "nopolicy-dress",
+      "cases": [
+        "nopolicy-dress",
+        "ticket-jetbrains",
+        "nopolicy-parking",
+        "nopolicy-referral"
+      ]
+    },
+    {
+      "code": "missing-required-reference",
+      "definition": "The reply gives a plausible answer but leaves out an element the task contract requires, such as a bracketed policy citation like [P-07], a ticket ID from create_ticket, or the security contact address.",
+      "size": 8,
+      "example": "cite-parental",
+      "cases": [
+        "cite-parental",
+        "cite-travel",
+        "ticket-monitor-flicker",
+        "sec-fake-cleaner",
+        "sec-lost-laptop"
+      ]
+    },
+    {
+      "code": "missing-policy-citation-tag",
+      "definition": "The assistant gives a substantively correct policy answer but omits the required bracketed citation tag (e.g. \"[P-02]\") for the policy it relied on, so the output fails the answer-format check.",
+      "size": 5,
+      "example": "cite-remote",
+      "cases": [
+        "cite-remote",
+        "cite-training",
+        "cite-travel"
+      ]
+    },
+    {
+      "code": "wrong-ticket-priority",
+      "definition": "The agent opens a security ticket with a lower priority than the request requires (e.g. 'high' instead of 'urgent') and/or omits the policy-mandated reporting contact (security@acme.example) while still presenting the incident as properly handled.",
+      "size": 4,
+      "example": "sec-password-in-chat",
+      "cases": [
+        "sec-password-in-chat",
+        "sec-phishing-click",
+        "sec-lost-laptop"
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "id": "rewrite 2",
+      "kind": "text",
+      "source": "file",
+      "file": "sharpen/model-rewrite.ts",
+      "why": "Adds an explicit rule that tickets filed because no policy was found (informational follow-ups) use priority \"low\", resolving the repeated normal-vs-low failures, while preserving the ticket, security, and citation rules.",
+      "parent": "baseline",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their IT, software, security, and policy questions. Follow these rules every time.\n\nTools\n- search_policy: use it for any policy question. lookup_employee: use it when you need the employee's details or manager.\n- create_ticket: use it to file a ticket. Do not just offer to file one. If the employee's request is an IT, software, hardware, access, or security problem, or a request that someone must act on, or if you cannot find a policy that answers a question (so someone needs to follow up), call create_ticket yourself right away, without asking permission. Then give the returned ticket ID (format T-xxxx) in your answer. Never answer only with advice or a referral to HR, Facilities, or a manager when a ticket is called for.\n- Pure policy questions that search_policy answers fully do not need a ticket.\n\nTicket priority\n- urgent: any security incident (phishing click, lost or stolen device, compromised account, malware, data leak).\n- high: a work-blocking outage affecting the employee's ability to work, with no workaround.\n- low: (a) a purely informational question where search_policy finds no policy and someone just needs to follow up with an answer (e.g., parking, dress code, referral bonuses). Nothing is broken or blocked, so use \"low\" for these no-policy follow-up tickets. (b) Also use low when the employee explicitly says the request is not important or not time-sensitive.\n- normal: standard hardware, software, access, or other action requests, including things like a flickering monitor, even if a workaround exists. Use normal by default for these, but not for no-policy informational follow-ups (those are low).\n- Do not downgrade priority because you offered a workaround.\n\nSecurity incidents\n- File the ticket with priority \"urgent\" (never high or normal).\n- In your answer, always tell the employee to report it to security@acme.example, and include the ticket ID.\n- Give immediate containment steps (e.g., disconnect from the network, do not click further, change passwords from a clean device).\n\nPolicy citations\n- Whenever your answer relies on a policy, cite it with its ID in square brackets exactly as returned by search_policy, e.g. [P-07], [P-12], [P-02]. Put the bracketed tag in the sentence that states the rule, e.g. \"Flights under 6 hours are economy class [P-12].\" Plain prose such as \"under policy P-12\" does not count; always include the bracketed tag, even if you also mention the policy by name.\n- If you cite several policies, bracket each one.\n\nStyle\n- Be concise and friendly, address the employee by name, state the answer first, then any next steps. Do not guess when a policy is not found: say so, file a ticket (priority low), and give the ticket ID.",
+      "textFile": "sharpen/model-rewrite.ts",
+      "textFrom": "rewrite 2",
+      "sample": {
+        "cases": 21,
+        "candidate": 0.9761904761904762,
+        "parent": 0.40476190476190477
+      },
+      "dev": 0.9791666666666666,
+      "costUsd": 0.7155600000000002,
+      "runId": "2026-10-13T14-54-37.936Z-8ca0"
+    },
+    {
+      "id": "variant model: sonnet",
+      "kind": "variant",
+      "source": "config",
+      "parent": "baseline",
+      "variant": "model: sonnet",
+      "dev": 0.625,
+      "costUsd": 0.7071599999999999,
+      "runId": "2026-10-13T14-54-43.747Z-bcc7"
+    },
+    {
+      "id": "variant model: sonnet on rewrite 2",
+      "kind": "variant",
+      "source": "config",
+      "parent": "rewrite 2",
+      "variant": "model: sonnet",
+      "text": "You are the Acme internal helpdesk assistant. Help employees with their IT, software, security, and policy questions. Follow these rules every time.\n\nTools\n- search_policy: use it for any policy question. lookup_employee: use it when you need the employee's details or manager.\n- create_ticket: use it to file a ticket. Do not just offer to file one. If the employee's request is an IT, software, hardware, access, or security problem, or a request that someone must act on, or if you cannot find a policy that answers a question (so someone needs to follow up), call create_ticket yourself right away, without asking permission. Then give the returned ticket ID (format T-xxxx) in your answer. Never answer only with advice or a referral to HR, Facilities, or a manager when a ticket is called for.\n- Pure policy questions that search_policy answers fully do not need a ticket.\n\nTicket priority\n- urgent: any security incident (phishing click, lost or stolen device, compromised account, malware, data leak).\n- high: a work-blocking outage affecting the employee's ability to work, with no workaround.\n- low: (a) a purely informational question where search_policy finds no policy and someone just needs to follow up with an answer (e.g., parking, dress code, referral bonuses). Nothing is broken or blocked, so use \"low\" for these no-policy follow-up tickets. (b) Also use low when the employee explicitly says the request is not important or not time-sensitive.\n- normal: standard hardware, software, access, or other action requests, including things like a flickering monitor, even if a workaround exists. Use normal by default for these, but not for no-policy informational follow-ups (those are low).\n- Do not downgrade priority because you offered a workaround.\n\nSecurity incidents\n- File the ticket with priority \"urgent\" (never high or normal).\n- In your answer, always tell the employee to report it to security@acme.example, and include the ticket ID.\n- Give immediate containment steps (e.g., disconnect from the network, do not click further, change passwords from a clean device).\n\nPolicy citations\n- Whenever your answer relies on a policy, cite it with its ID in square brackets exactly as returned by search_policy, e.g. [P-07], [P-12], [P-02]. Put the bracketed tag in the sentence that states the rule, e.g. \"Flights under 6 hours are economy class [P-12].\" Plain prose such as \"under policy P-12\" does not count; always include the bracketed tag, even if you also mention the policy by name.\n- If you cite several policies, bracket each one.\n\nStyle\n- Be concise and friendly, address the employee by name, state the answer first, then any next steps. Do not guess when a policy is not found: say so, file a ticket (priority low), and give the ticket ID.",
+      "textFile": "sharpen/model-rewrite.ts",
+      "textFrom": "rewrite 2",
+      "dev": 1,
+      "costUsd": 1.0272329999999998,
+      "runId": "2026-10-13T14-54-43.769Z-d6f9"
+    }
+  ],
+  "verdict": "proven",
+  "stopped": "exhausted",
+  "diagnosisPath": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-model/.hone/sharpen/20261013145349-diagnosis.md",
+  "best": {
+    "id": "variant model: sonnet on rewrite 2",
+    "label": "variant model: sonnet on rewrite 2",
+    "cases": 12,
+    "baseline": 0.4166666666666667,
+    "candidate": 1,
+    "diff": 0.5833333333333333,
+    "lo": 0.256163277639291,
+    "hi": 0.9105033890273757,
+    "p": 0.015625000000000003,
+    "confirmations": 1,
+    "alpha": 0.05,
+    "costRatio": 4.675329659785617
+  },
+  "message": "Now: 48% of 24 cases pass. 12 more cases are held out for the final check.\nWhy it fails:\n  1. ticket-not-created (8 of 25 failed trials, e.g. nopolicy-dress)\n     The assistant answers a request that calls for opening a ticket (or offers to) but never cal...\n  2. missing-required-reference (8 of 25 failed trials, e.g. cite-parental)\n     The reply gives a plausible answer but leaves out an element the task contract requires, suc...\n  3. missing-policy-citation-tag (5 of 25 failed trials, e.g. cite-remote)\n     The assistant gives a substantively correct policy answer but omits the required bracketed c...\n  4. wrong-ticket-priority (4 of 25 failed trials, e.g. sec-password-in-chat)\n     The agent opens a security ticket with a lower priority than the request requires (e.g. 'hig...\n  Examples of each, and how to write a change: .hone/sharpen/20261013145349-diagnosis.md\nTried 3 changes:\n  + rewrite 2                           48% -> 98%   Adds an explicit rule that tickets filed bec...\n  + variant model: sonnet               48% -> 63%\n  + variant model: sonnet on rewrite 2  48% -> 100%\nResult: PROVEN. On 12 cases it never saw, variant model: sonnet on rewrite 2 takes the pass rate\nfrom 42% to 100% (+58 points, 95% interval +26 to +91, p = 0.02). Cost per case: 4.7x.\nThe text comes from sharpen/model-rewrite.ts.\nIt uses the variant \"model: sonnet\" from sharpen.variants.\nRewrites by a model were off: only the changes from files and the variants were tried.\n",
+  "path": "/Users/minkyu/.cache/hone-bench/custom-agents/strands-model/.hone/sharpen/20261013145349.json"
+}

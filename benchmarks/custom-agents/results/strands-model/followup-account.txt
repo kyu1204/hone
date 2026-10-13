@@ -1,0 +1,20 @@
+Now: 48% of 24 cases pass. 12 more cases are held out for the final check.
+Why it fails:
+  1. ticket-not-created (8 of 25 failed trials, e.g. nopolicy-dress)
+     The assistant answers a request that calls for opening a ticket (or offers to) but never cal...
+  2. missing-required-reference (8 of 25 failed trials, e.g. cite-parental)
+     The reply gives a plausible answer but leaves out an element the task contract requires, suc...
+  3. missing-policy-citation-tag (5 of 25 failed trials, e.g. cite-remote)
+     The assistant gives a substantively correct policy answer but omits the required bracketed c...
+  4. wrong-ticket-priority (4 of 25 failed trials, e.g. sec-password-in-chat)
+     The agent opens a security ticket with a lower priority than the request requires (e.g. 'hig...
+  Examples of each, and how to write a change: .hone/sharpen/20261013145349-diagnosis.md
+Tried 3 changes:
+  + rewrite 2                           48% -> 98%   Adds an explicit rule that tickets filed bec...
+  + variant model: sonnet               48% -> 63%
+  + variant model: sonnet on rewrite 2  48% -> 100%
+Result: PROVEN. On 12 cases it never saw, variant model: sonnet on rewrite 2 takes the pass rate
+from 42% to 100% (+58 points, 95% interval +26 to +91, p = 0.02). Cost per case: 4.7x.
+The text comes from sharpen/model-rewrite.ts.
+It uses the variant "model: sonnet" from sharpen.variants.
+Rewrites by a model were off: only the changes from files and the variants were tried.

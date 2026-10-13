@@ -1,0 +1,24 @@
+Now: 54% of 24 cases pass. 12 more cases are held out for the final check.
+Why it fails:
+  1. missing-required-deliverables (8 of 22 failed trials, e.g. cite-remote)
+     The assistant answers conversationally but leaves out something the task contract requires,...
+  2. skipped-ticket-creation (7 of 22 failed trials, e.g. nopolicy-dress)
+     When the request could not be resolved from the policy database or needed support follow-up,...
+  3. missing-required-reference (4 of 22 failed trials, e.g. cite-parental)
+     The final answer gives substantively reasonable content but omits a literal token the task r...
+  4. missing-policy-citation-tag (3 of 22 failed trials, e.g. cite-training)
+     The assistant answers a policy question using correct policy content and even names the poli...
+  Examples of each, and how to write a change: .hone/sharpen/20261013150231-diagnosis.md
+Tried 3 changes:
+  + rewrite 2                           54% -> 90%   Adds the missing verify_identity/reset_passw...
+  + variant model: sonnet               54% -> 63%
+  + variant model: sonnet on rewrite 2  54% -> 92%
+variant model: sonnet on rewrite 2 scored higher on the cases it learned from (92% against 90%) at
+3.0x the cost. That is within one case, so the cheaper one is the candidate.
+Result: PROMISING, not proven. On 12 cases it never saw, rewrite 2 takes the pass rate from 50% to
+83% (+33 points, 95% interval -6 to +72, p = 0.45). Cost per case: 1.6x. About 35 held-out cases
+would settle it.
+These 12 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New
+cases restore the bar.
+The text comes from sharpen/model-rewrite.ts.
+Rewrites by a model were off: only the changes from files and the variants were tried.

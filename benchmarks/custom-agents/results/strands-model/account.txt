@@ -1,0 +1,20 @@
+Now: 48% of 24 cases pass. 12 more cases are held out for the final check.
+Why it fails:
+  1. missing-ticket-creation (10 of 25 failed trials, e.g. nopolicy-dress)
+     The assistant answers the user's IT, software, or policy request with advice or a referral t...
+  2. security-escalation-miss (7 of 25 failed trials, e.g. sec-lost-laptop)
+     On a security incident request, the assistant files the ticket at the wrong priority (high i...
+  3. missing-policy-citation-tag (5 of 25 failed trials, e.g. cite-remote)
+     The assistant answers a policy question using the search_policy tool but omits the required...
+  4. missing-bracketed-citation (3 of 25 failed trials, e.g. cite-travel)
+     The assistant answers a policy question and names the policy in prose (e.g. 'policy P-12') b...
+  Examples of each, and how to write a change: .hone/sharpen/20261013143716-diagnosis.md
+Tried 3 changes:
+  + variant model: sonnet  48% -> 63%
+  + rewrite 1              48% -> 88%   Adds explicit rules for always calling create_ticket (not...
+  + rewrite 2              48% -> 100%   Adds an explicit rule that tickets filed because no poli...
+Result: PROVEN. On 12 cases it never saw, rewrite 2 (on variant model: sonnet) takes the pass rate
+from 42% to 100% (+58 points, 95% interval +26 to +91, p = 0.02). Cost per case: 4.7x.
+The new text is in .hone/sharpen/20261013143716-best.txt
+As a change file: .hone/sharpen/20261013143716-best.ts
+It uses the variant "model: sonnet" from sharpen.variants.
