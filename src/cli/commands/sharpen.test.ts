@@ -51,7 +51,8 @@ describe("hone sharpen", () => {
     expect(o.out).toMatch(/The new text is in \.hone\/sharpen\/\d+-best\.txt/);
     expect(o.err).toBe(""); // --quiet
     const files = fs.readdirSync(path.join(dir, ".hone", "sharpen"));
-    expect(files.filter((f) => f.endsWith(".json"))).toHaveLength(1);
+    expect(files.filter((f) => /^\d+\.json$/.test(f))).toHaveLength(1); // the ledger; holdout.json beside it counts what the held-out cases have judged
+    expect(files).toContain("holdout.json");
     expect(files.some((f) => f.endsWith("-best.txt"))).toBe(true);
   });
 
