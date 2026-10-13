@@ -342,7 +342,10 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       return textHook && m.text !== undefined ? textHook.apply(c, m.text) : c;
     };
     const run = (m: { cfg?: ConfigChange; text?: string }, label: string, caseIds: string[]): Promise<RunOutcome> => runConfig(build(m), label, { ...deps, caseIds });
+    // two different sums: the price of a run's answers (to compare candidates), and what running it spent (to stop at --max-cost
+    // and to say what a candidate cost to try); a full run that takes its sample from the cache spends only the rest
     const cost = (r: RunOutcome): number => r.summary.totals.costUsd;
+    const paid = (r: RunOutcome): number => r.spentUsd;
 
     const base: Member = { id: "baseline", run: await run({}, "baseline", split.dev) };
     const errored = base.run.trials.filter((t) => t.trace.error);
@@ -380,7 +383,7 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     const size = (m: Member): number => (m.cfg ? 1 : 0) + (m.text !== undefined ? 1 : 0);
     // the highest pass rate; equal rates go to the cheaper one, and at equal cost to the one that changes less
     const best = (): Member => members.reduce((a, b) => (dev(b) > dev(a) || (dev(b) === dev(a) && (cost(b.run) < cost(a.run) || (cost(b.run) === cost(a.run) && size(b) < size(a)))) ? b : a));
-    let spent = cost(base.run);
+    let spent = paid(base.run);
     let tried = 0;
     const over = (): SharpenResult["stopped"] | undefined => (opts.maxCost !== undefined && spent >= opts.maxCost ? "maxCost" : opts.until !== undefined && dev(best()) >= opts.until ? "until" : tried >= budget ? "budget" : undefined);
     let stopped: SharpenResult["stopped"] | undefined;
@@ -394,9 +397,9 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       tried++;
       const child = { cfg, text: parent.text, textFile: parent.textFile, textFrom: parent.textFrom };
       const full = await run(child, cid, split.dev);
-      spent += cost(full);
+      spent += paid(full);
       members.push({ id: cid, ...child, run: full });
-      r.candidates.push({ id: cid, kind: "variant", source: cfg.file ? "file" : "config", parent: parent.id, ...(cfg.file ? { file: cfg.file } : {}), ...(cfg.why ? { why: cfg.why } : {}), ...carried(child), dev: rate(full, split.dev), costUsd: cost(full), runId: full.runId });
+      r.candidates.push({ id: cid, kind: "variant", source: cfg.file ? "file" : "config", parent: parent.id, ...(cfg.file ? { file: cfg.file } : {}), ...(cfg.why ? { why: cfg.why } : {}), ...carried(child), dev: rate(full, split.dev), costUsd: paid(full), runId: full.runId });
     };
     /** A text on top of `parent`: first on the parent's failing cases plus eight passing ones, and only then in full. */
     const tryText = async (parent: Member, cid: string, text: { cfg?: ConfigChange; text: string; textFile?: string; textFrom?: string }, meta: Pick<SharpenCandidate, "kind" | "source" | "file" | "why" | "rationale">): Promise<void> => {
@@ -405,18 +408,18 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       const failed = failing(parent.run, split.dev);
       const sampleCases = [...failed, ...split.dev.filter((c) => !failed.includes(c)).slice(0, 8)];
       const quick = await run(child, `${cid} sample`, sampleCases);
-      spent += cost(quick);
+      spent += paid(quick);
       const sample = { cases: sampleCases.length, candidate: rate(quick, sampleCases), parent: rate(parent.run, sampleCases) };
       const entry = { id: cid, ...meta, parent: parent.id, ...carried(child), sample };
       if (sample.candidate < sample.parent) {
-        r.candidates.push({ ...entry, costUsd: cost(quick), dropped: "sample" });
+        r.candidates.push({ ...entry, costUsd: paid(quick), dropped: "sample" });
         return;
       }
       const whole = sampleCases.length === split.dev.length; // the sample already was every dev case
       const full = whole ? quick : await run(child, cid, split.dev);
-      if (!whole) spent += cost(full);
+      if (!whole) spent += paid(full);
       members.push({ id: cid, ...child, run: full });
-      r.candidates.push({ ...entry, dev: rate(full, split.dev), costUsd: cost(quick) + (whole ? 0 : cost(full)), runId: full.runId });
+      r.candidates.push({ ...entry, dev: rate(full, split.dev), costUsd: paid(quick) + (whole ? 0 : paid(full)), runId: full.runId });
     };
 
     // 1. every change from a file on its own, then every inline variant on its own

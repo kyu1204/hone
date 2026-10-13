@@ -37,6 +37,8 @@ export interface RunOutcome {
   /** Pass rate per case over its trials. */
   perCase: Map<string, number>;
   trials: Trial[];
+  /** What this run spent on the system under test. `summary.totals.costUsd` is the price of its answers, including the ones taken from the cache, which cost nothing this time. */
+  spentUsd: number;
 }
 
 /** Run one config (optionally only `caseIds`) into a fresh run; shared by ablate, evolve and optimize. */
@@ -60,7 +62,8 @@ export async function runConfig(config: HoneConfig, label: string, deps: { cwd: 
   const byCase = new Map<string, Trial[]>();
   for (const t of trials) (byCase.get(t.trace.caseId) ?? byCase.set(t.trace.caseId, []).get(t.trace.caseId)!).push(t);
   for (const [id, ts] of byCase) perCase.set(id, ts.filter((t) => t.pass === true).length / ts.length);
-  return { runId: run.id, summary, perCase, trials };
+  const spentUsd = trials.filter((t) => !t.flags.includes("cached")).reduce((sum, t) => sum + t.costUsd, 0);
+  return { runId: run.id, summary, perCase, trials, spentUsd };
 }
 
 export async function runAblations(opts: { config: HoneConfig; hash: string; cwd: string; names?: string[]; trials?: number; alpha?: number; useCache?: boolean; log?: (s: string) => void }): Promise<AblationResult> {
