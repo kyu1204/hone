@@ -72,7 +72,26 @@ Run, check per-axis gates, exit non-zero on the failing axis, leave artifacts.
   --concurrency     parallel trials
 ```
 
-## Single steps of the improvement cycle
+### hone sharpen
+
+```
+usage: hone sharpen [--budget 6] [--max-cost usd] [--until 0.9] [--trials n] [--holdout 0.33] [--seed n] [--no-cache] [--quiet] [--json]
+
+The whole cycle: evaluate, find why cases fail, try changes (rewrites of config.sharpen.text, the variants in config.sharpen.variants, and both together), re-test them, and confirm the best one on cases no proposal has seen. Writes .hone/sharpen/<id>.json.
+
+  --json      print the whole result as JSON
+  --no-cache  re-run the system instead of using cached outputs
+  --quiet     no progress on stderr
+  --budget    changes to try (default 6)
+  --max-cost  stop trying changes when the spend on the system under test (USD) reaches this
+  --until     stop trying changes once this pass rate is reached, e.g. 0.9
+  --trials    trials per case
+  --holdout   share of the cases kept away from every proposal for the final check (default 0.33)
+  --seed      seed of the held-out split
+  --alpha     significance level of the final check (default 0.05)
+```
+
+## Steps that `hone sharpen` runs for you
 
 ### hone cluster
 

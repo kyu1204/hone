@@ -63,7 +63,7 @@ export function isDominated(x: { passAt1: number; costUsd: number }, others: { p
   return others.some((o) => o !== x && o.passAt1 >= x.passAt1 && o.costUsd <= x.costUsd && (o.passAt1 > x.passAt1 || o.costUsd < x.costUsd));
 }
 
-const REFLECT_SYSTEM = `You improve the text that steers an AI system (a prompt, a rule file, a rubric). You see the current text and samples of failed runs. Propose one revised text that addresses the failures without breaking what works. Reply with one JSON object only: {"text": "<the full revised text>", "rationale": "<one sentence>"}.`;
+export const REFLECT_SYSTEM = `You improve the text that steers an AI system (a prompt, a rule file, a rubric). You see the current text and samples of failed runs. Propose one revised text that addresses the failures without breaking what works. Reply with one JSON object only: {"text": "<the full revised text>", "rationale": "<one sentence>"}.`;
 
 interface Member {
   id: string;
