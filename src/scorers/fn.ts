@@ -22,7 +22,8 @@ export function fnScorer(spec: FnScorerSpec): Scorer {
       const r = await spec.score(ctx);
       if (typeof r === "number") return { scorer: "", value: r, pass: r >= threshold };
       if (typeof r === "boolean") return { scorer: "", value: r ? 1 : 0, pass: r };
-      return { scorer: "", value: r.value ?? (r.pass === true ? 1 : r.pass === false ? 0 : 0), pass: r.pass ?? (r.value === undefined ? null : r.value >= threshold), ...(r.reason ? { reason: r.reason } : {}), ...(r.evidence ? { evidence: r.evidence } : {}), ...(r.costUsd ? { costUsd: r.costUsd } : {}) };
+      // an explicit `pass: null` means undecided (an informational score); only a missing `pass` is derived from the value
+      return { scorer: "", value: r.value ?? (r.pass === true ? 1 : r.pass === false ? 0 : 0), pass: r.pass !== undefined ? r.pass : r.value === undefined ? null : r.value >= threshold, ...(r.reason ? { reason: r.reason } : {}), ...(r.evidence ? { evidence: r.evidence } : {}), ...(r.costUsd ? { costUsd: r.costUsd } : {}) };
     },
     cacheKeyExtra: () => (spec.cacheKey === undefined ? Symbol.for("no-cache") : { cacheKey: spec.cacheKey }),
   };

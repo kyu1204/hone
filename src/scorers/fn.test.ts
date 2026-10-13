@@ -26,4 +26,11 @@ describe("fn scorer", () => {
     const keyed = createScorer({ name: "fn", score: () => 1, cacheKey: "v2" });
     expect(keyed.cacheKeyExtra?.()).toEqual({ cacheKey: "v2" });
   });
+  test("an explicit pass: null stays undecided whatever the value; only a missing pass is derived from the value", async () => {
+    const ctx = { case: { id: "c", input: "" }, trace: base, trial: 0 };
+    expect(await runScorer(createScorer({ name: "fn", score: () => ({ value: 0, pass: null, reason: "informational" }) }), ctx)).toMatchObject({ value: 0, pass: null, reason: "informational" });
+    expect(await runScorer(createScorer({ name: "fn", score: () => ({ value: 1, pass: null }) }), ctx)).toMatchObject({ value: 1, pass: null });
+    expect(await runScorer(createScorer({ name: "fn", score: () => ({ value: 0.2 }) }), ctx)).toMatchObject({ value: 0.2, pass: false });
+    expect(await runScorer(createScorer({ name: "fn", score: () => ({ pass: true }) }), ctx)).toMatchObject({ value: 1, pass: true });
+  });
 });
