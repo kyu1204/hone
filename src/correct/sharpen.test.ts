@@ -184,6 +184,9 @@ describe("sharpen", () => {
     const fine = await sharpen({ config: config(() => true, { text: true }), hash: "h", cwd: tmp(), chat: stubChat().chat, useCache: false });
     expect(fine.verdict).toBe("nothing to sharpen");
     expect(fine.message).toMatch(/Nothing to sharpen: all 20 cases pass/);
+    // what a newcomer sees right after `hone init`: one example case, and it passes
+    const one = await sharpen({ config: config(() => true, { text: true, n: 1 }), hash: "h", cwd: tmp(), useCache: false });
+    expect(one.message).toBe("Nothing to sharpen: the one case passes. Add cases that are harder.\n");
 
     const { chat, prompts } = stubChat();
     const bare = await sharpen({ config: config(() => false), hash: "h", cwd: tmp(), chat, useCache: false });
