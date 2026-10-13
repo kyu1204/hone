@@ -44,7 +44,7 @@ The full documentation ships in the `docs/` directory of the installed package (
    });
    ```
 5. Run the cycle: `hone sharpen`. It tries every change, pairs changes that only help together, and checks the best one on the held-out cases.
-6. Report the `Result:` line as printed, with what was tried. Apply a change to the project only when the verdict is `PROVEN`, or when the user decides otherwise knowing the verdict.
+6. Report the `Result:` line as printed, with what was tried. Apply a change to the project only when the verdict is `PROVEN`, or when the user decides otherwise knowing the verdict. After applying one, delete its file from `sharpen/`: it is now part of the system and would only be tried against itself.
 
 ## Rules
 
