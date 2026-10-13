@@ -43,6 +43,27 @@ describe("process target (generic)", () => {
     await t.close?.();
   });
 
+  test("workspace may contain {caseId}: each case runs in its own directory, and node_modules is linked into the copy", async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "hone-ws-cases-"));
+    dirs.push(root);
+    for (const c of ["alpha", "beta"]) {
+      fs.mkdirSync(path.join(root, c, "node_modules", "dep"), { recursive: true });
+      fs.writeFileSync(path.join(root, c, "node_modules", "dep", "index.js"), "module.exports = 1;");
+      fs.writeFileSync(path.join(root, c, "name.txt"), c);
+    }
+    const t = createTarget("agent", { kind: "process", agent: "generic", workspace: path.join(root, "{caseId}"), command: ["bash", "-c", "cat name.txt; ls node_modules/dep/index.js >/dev/null && echo linked; echo changed >> name.txt"] });
+    const a = await t.run("go", { runId: "r", caseId: "alpha", trial: 0 });
+    const b = await t.run("go", { runId: "r", caseId: "beta", trial: 0 });
+    expect(String(a.output)).toContain("alpha");
+    expect(String(a.output)).toContain("linked");
+    expect(String(b.output)).toContain("beta");
+    expect(fs.readFileSync(path.join(root, "alpha", "name.txt"), "utf8")).toBe("alpha"); // the source is untouched
+    expect(a.meta?.workspace).not.toBe(path.join(root, "alpha"));
+    const missing = await t.run("go", { runId: "r", caseId: "gamma", trial: 0 });
+    expect(missing.error).toMatch(/workspace .*gamma.* does not exist/);
+    await t.close?.();
+  });
+
   test("plain stdout becomes the output when it is not JSON", async () => {
     const t = createTarget("agent", { kind: "process", agent: "generic", workspace: workspace(), command: ["echo", "plain {prompt}"] });
     const out = await t.run("hi", ctx);
