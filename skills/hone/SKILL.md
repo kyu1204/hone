@@ -3,9 +3,11 @@ name: hone
 description: Evaluate and correct an AI system (RAG, agent, LLM QA, coding-agent harness) with hone. Use when asked to measure quality, find why cases fail, compare two versions, or prove an improvement with statistics.
 ---
 
-# hone: evaluate, localize, correct, verify
+# hone: evaluate, then sharpen
 
-hone stores every result as a trace (messages + spans) in `.hone/` and reports pass rates with confidence intervals. Never report an improvement without the paired verdict (`hone compare`, `hone evolve`, `hone optimize` print one).
+Three commands cover the normal path: `hone init` (once), `hone test` (evaluate), `hone sharpen` (improve). `hone help all` lists the single steps and tools below.
+
+hone stores every result as a trace (messages + spans) in `.hone/` and reports pass rates with confidence intervals. Never report an improvement without a verdict from hone (`hone sharpen`, `hone compare`, `hone evolve` and `hone optimize` print one).
 
 ## Setup (once)
 
@@ -13,7 +15,18 @@ hone stores every result as a trace (messages + spans) in `.hone/` and reports p
 2. Keys live in `~/.config/hone/env` (`TYPESAFE_API_KEY` for the Jev judge, `OPENAI_API_KEY`/`ANTHROPIC_API_KEY` for LLM judges and embeddings). Deterministic scorers need none.
 3. Existing Claude Code sessions: `hone import claude-code` puts them in the matrix without running anything.
 
-## The loop
+## Improve: `hone sharpen`
+
+`hone sharpen` runs the whole cycle and prints a plain account: the pass rate now, why cases fail, each change it tried, and a verdict. It holds a third of the cases out before proposing anything and confirms the best change on those.
+
+- It changes only what `hone.config.ts` declares under `sharpen`: `text` (one prompt, rule file or rubric, with `apply`) and `variants` (named alternative configs). Declare them before running it.
+- Verdicts: `PROVEN` (adopt it), `PROMISING, not proven` (the account says how many held-out cases would settle it; do not report it as an improvement), `NO GAIN` (keep what you have), `Nothing to sharpen`, `Nothing to change`, `Cannot measure` (the system errored; fix that first).
+- The winning text is in `.hone/sharpen/<id>-best.txt`, the full ledger in `.hone/sharpen/<id>.json`. `--json` prints the ledger; `--budget`, `--max-cost` and `--until` bound the search.
+- Without an LLM key it tries the variants only and says that rewrites were skipped.
+
+## The single steps
+
+Use these when you need one step on its own, or to look into what `hone sharpen` reported.
 
 1. Measure: `hone test --adaptive` (runs cases until intervals are tight; `--json` for machines). `hone matrix` shows per-target pass@1, cost and significance bands.
 2. Localize: `hone cluster --induce` groups failures and names the failure modes (`.hone/analysis/clusters-<run>.json`). `hone explain <trialId>` prints one trial with fork candidates. `hone diff <a> <b>` aligns two trajectories and shows where they diverge.

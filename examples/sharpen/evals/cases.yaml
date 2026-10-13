@@ -1,0 +1,146 @@
+[
+  {
+    "id": "return-window",
+    "input": "What is the return window?",
+    "expected": "30 days",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "shipping-time",
+    "input": "How long does shipping take?",
+    "expected": "3 to 5 business days",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "support-email",
+    "input": "What is the support email?",
+    "expected": "help@example.com",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "ship-abroad",
+    "input": "Do you ship abroad?",
+    "expected": "yes",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "warranty",
+    "input": "What is the warranty period?",
+    "expected": "2 years",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "payment",
+    "input": "Which payment methods do you accept?",
+    "expected": "card and bank transfer",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "invoice",
+    "input": "Where is my invoice?",
+    "expected": "in your account under Orders",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "address",
+    "input": "Can I change my delivery address?",
+    "expected": "yes, until the parcel ships",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "hours",
+    "input": "What are your opening hours?",
+    "expected": "9 to 18 on weekdays",
+    "tags": [
+      "plain"
+    ]
+  },
+  {
+    "id": "gift-wrap",
+    "input": "Hi!! Quick question - do you offer gift wrapping for orders??",
+    "expected": "yes, for 3 euros",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "student",
+    "input": "Hello, could you tell me: is there a student discount, by any chance?",
+    "expected": "10 percent with a valid ID",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "cancel",
+    "input": "ok so... how do I cancel my order again",
+    "expected": "from the order page, within one hour",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "exchange",
+    "input": "Sorry to bother you, but can I exchange an item instead of returning it?",
+    "expected": "yes, once per order",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "express",
+    "input": "Before I buy: how much is express delivery to my door?",
+    "expected": "9 euros",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "phone",
+    "input": "hey - what is the support phone number these days?",
+    "expected": "+49 30 1234567",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "tracking",
+    "input": "I looked everywhere. Where is my tracking number, please?",
+    "expected": "in the shipping confirmation email",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "refund-time",
+    "input": "One more thing, how long do refunds take after you get the parcel?",
+    "expected": "5 business days",
+    "tags": [
+      "messy"
+    ]
+  },
+  {
+    "id": "newsletter",
+    "input": "Morning! How do I unsubscribe from the newsletter this week?",
+    "expected": "with the link at the bottom of any email",
+    "tags": [
+      "messy"
+    ]
+  }
+]

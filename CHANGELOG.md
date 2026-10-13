@@ -8,7 +8,7 @@ First release. Everything below landed as reviewed pull requests #1 to #80 on ht
 
 ### Core
 - Data model: Target, Case, Trial, Trace (OpenAI/Docent-compatible messages plus spans), Score, Verdict; JSON store under `.hone/` with a rebuildable SQLite index; content-addressed caching of target outputs and judge results.
-- Config as TypeScript (`hone.config.ts`), YAML/JSON/JSONL cases, gates, ablations, evolve and optimize hooks.
+- Config as TypeScript (`hone.config.ts`), YAML/JSON/JSONL cases, gates, ablations, and a `sharpen` block (`text`, `variants`) that says what hone may change.
 
 ### Targets
 - `http`, `fn`, `python` (embedded bridge), `process` (Claude Code, Codex, OpenCode, Aider, generic, with workspace isolation and stream parsers), `mcp` (own JSON-RPC client), `replay`, `docker` (Harbor task directories, ATIF trajectories); `resume(prefix)` for forks.
@@ -22,13 +22,15 @@ First release. Everything below landed as reviewed pull requests #1 to #80 on ht
 - Wilson/CLT/bootstrap intervals, pass@k and pass^k, paired t with exact McNemar, cluster-robust errors, Holm-adjusted leaderboard bands, noncentral-t power, sequential stopping, 2PL IRT, Thompson sampling. Test vectors from errorbars/scipy/statsmodels.
 
 ### Commands
-- `run` (adaptive sampling), `matrix`, `compare`, `ci` (gates, JUnit, PR comment), `init`, `power`, `explain`, `report`, `diff`, `cluster` (with `--induce` taxonomy), `calibrate` (fault injection), `fork`, `evolve` (GEPA-style with minibatch verification and a Pareto front), `optimize` (Thompson sampling with a paired verdict), `ablate`, `bisect`, `import` (Claude Code sessions, Inspect, Docent, plugin-eval, Harbor, OTel), `export` (rollouts, OTel GenAI, Docent, JUnit, HTML), `serve ssh|reward|mcp`, `tui`.
+- Three everyday commands: `init`, `test` (with `--ci` for gates, JUnit and a PR comment, `--report` for HTML) and `sharpen`. `hone help all` lists the rest in three groups.
+- `sharpen` runs the whole cycle: a seeded held-out split that keeps declared clusters together, gates, failure diagnosis, variants and rewrites (each from the best candidate so far, variants retried on a winning rewrite), a sample check before a full run, a ledger of every attempt, and a confirmation on held-out cases that needs both a paired t test and an exact sign test.
+- Single steps and tools: `matrix`, `compare`, `power`, `explain`, `diff`, `cluster` (with `--induce` taxonomy), `calibrate` (fault injection), `fork`, `evolve` (GEPA-style with minibatch verification and a Pareto front), `optimize` (Thompson sampling with a paired verdict), `ablate`, `bisect`, `import` (Claude Code sessions, Inspect, Docent, plugin-eval, Harbor, OTel), `export` (rollouts, OTel GenAI, Docent, JUnit, HTML), `serve ssh|reward|mcp`, `tui`.
 
 ### TUI
 - OpenTUI dashboard: matrix, trace viewer with score context and search, side-by-side trajectory diff, failure clusters, judge calibration, candidates (Pareto), fork with inline edit and re-run, charts. Served over SSH.
 
 ### Ecosystem
-- `hone init --skills` installs a skill for Claude Code and Codex; shipped docs; five examples green under `hone test --ci`; compiled binaries for six platforms; release workflow with npm provenance.
+- `hone init --skills` installs a skill for Claude Code and Codex; shipped docs; six examples (`sharpen` shows the three commands on a toy that starts broken; the other five are green under `hone test --ci`); compiled binaries for six platforms; release workflow with npm provenance.
 
 ### Deferred
 - Kitty pixel charts inside the OpenTUI layout (the escape builder and PNG encoder exist; the charts screen uses character cells).

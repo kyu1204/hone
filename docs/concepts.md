@@ -35,4 +35,6 @@ Pass rates carry Wilson intervals. Comparisons are paired on the same cases (pai
  hone calibrate (is the judge trustworthy?)       hone ablate / bisect
 ```
 
+`hone sharpen` runs this loop in one command, from measuring to a verdict on held-out cases; the commands in the diagram are its single steps.
+
 Each arrow is a command; each command reads the store the previous one wrote. The TUI (`hone`) shows the same data live, and `hone serve mcp` exposes the loop to an agent.

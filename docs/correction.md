@@ -2,6 +2,26 @@
 
 The point of measuring is to change something and know whether it helped. Every command here ends with a paired verdict and says `no measurable effect` when the data do not support a claim.
 
+## The whole cycle: `hone sharpen`
+
+One command for what the rest of this page does step by step. It needs to know what it may change:
+
+```ts
+sharpen: {
+  text: { seed: PROMPT, apply: (config, text) => withPrompt(config, text) },   // one prompt, rule file or rubric
+  variants: { "top_k 30": (config) => withTopK(config, 30) },                   // named alternative configs
+},
+```
+
+1. **Split.** A third of the cases is held out, chosen by a hash of `--seed` and the case id, so the split is the same on every run. Cases that declare the same `cluster` stay on the same side. Below 12 cases nothing can be held out.
+2. **Measure** the unchanged config on the other cases.
+3. **Gates.** It stops before proposing when more than 20% of the trials errored (`Cannot measure`: an error is not a wrong answer), when nothing fails (`Nothing to sharpen`), or when the config declares nothing to change (`Nothing to change`).
+4. **Diagnose.** Failed trials are clustered; with an LLM key the clusters get names and definitions.
+5. **Propose and verify,** at most `--budget` candidates. Every variant first. Then rewrites of the text, each from the best candidate so far, so a rewrite lands on a variant that helped. A variant that did nothing alone is tried again on top of a rewrite that became the best. A rewrite runs on a sample (the failing cases plus eight passing ones) before it gets a full run.
+6. **Confirm.** The baseline and the best candidate run on the held-out cases. `PROVEN` needs a positive difference that both a paired t test and an exact sign test call significant; six improvements out of six are the fewest that can. `PROMISING, not proven` comes with the number of held-out cases that would settle it. `NO GAIN` keeps the baseline.
+
+The account is printed in plain words with the statistics in parentheses. `.hone/sharpen/<id>.json` holds every candidate, including the dropped ones and why; a winning text is also written to `.hone/sharpen/<id>-best.txt`. See [`examples/sharpen`](../examples/sharpen/) for a run.
+
 ## Fork: `hone fork <trialId> --step N --content "..."`
 
 Replaces one message of a stored trial and re-runs the target from that prefix (targets with `resume` continue the conversation; others receive the prefix in `ctx.prefix`). Prints the verdict change, the scores and the rows where the new trajectory diverges. Without `--step` it lists the ranked branch points. Forked trials carry a `forked-from:<id>` flag and never count in run totals.
