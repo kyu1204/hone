@@ -13,7 +13,9 @@ export function summarise(trial: Trial): string {
   if (last && typeof last.content === "string") parts.push(`assistant: ${clip(last.content.replace(/\s+/g, " "), 300)}`);
   const tools = [...new Set(trial.trace.messages.flatMap((m) => m.tool_calls?.map((c) => c.function.name) ?? []))];
   if (tools.length) parts.push(`tools: ${tools.join(" ")}`);
-  if (trial.flags.length) parts.push(`flags: ${trial.flags.join(" ")}`);
+  // "cached" is hone's own bookkeeping; in a summary it reads as something the system did, and a model naming the failure says so
+  const flags = trial.flags.filter((f) => f !== "cached");
+  if (flags.length) parts.push(`flags: ${flags.join(" ")}`);
   if (parts.length === 0) parts.push(`output: ${clip(typeof trial.trace.output === "string" ? trial.trace.output : JSON.stringify(trial.trace.output ?? ""), 300)}`);
   return parts.join("\n");
 }
