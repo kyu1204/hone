@@ -467,14 +467,20 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       if (made && dev(made) > dev(stack!)) stack = made;
     }
 
+    // The search runs at the baseline's price. A config change whose own run cost clearly more (a larger model) is not
+    // built on, even when it leads: otherwise every rewrite is written and measured at its price, and the text may turn
+    // out not to need it. It goes on top of the best text once, when the search is over.
+    const costly = new Set(members.filter((m) => m.cfg && m.text === undefined && cost(m.run) > 1.1 * cost(base.run)).map((m) => m.cfg!.key));
+    const frugal = (): Member => members.filter((m) => !(m.cfg && costly.has(m.cfg.key))).reduce((a, b) => (dev(b) > dev(a) || (dev(b) === dev(a) && cost(b.run) < cost(a.run)) ? b : a));
+
     // 3. from the best member so far: the primitive of the kind it lacks (a config change on a text, a text from a file on
     //    a config change), so changes that only help together are found without anyone combining them; then a rewrite
     const paired = new Set<string>();
     for (let n = 1; !stopped && !(stopped = over()); ) {
-      const parent = best();
+      const parent = frugal();
       if (failing(parent.run, split.dev).length === 0) break;
       const fresh = (key: string): boolean => !paired.has(`${parent.id}|${key}`) && paired.add(`${parent.id}|${key}`).size > 0;
-      const cfg = parent.text !== undefined && !parent.cfg ? [...fromFiles, ...inline].find((c) => fresh(c.key)) : undefined;
+      const cfg = parent.text !== undefined && !parent.cfg ? [...fromFiles, ...inline].find((c) => !costly.has(c.key) && fresh(c.key)) : undefined;
       if (cfg) {
         await tryConfig(parent, cfg, `${cfg.key} on ${parent.id}`);
         continue;
@@ -501,6 +507,14 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
       await tryText(parent, cid, { cfg: parent.cfg, text: proposal.text }, { kind: "text", source: "model", rationale: proposal.rationale });
     }
     r.stopped = stopped ?? "exhausted";
+
+    // 4. each costly config change once on top of what the search found: a variant that was declared gets weighed against
+    //    the final text. Outside the budget, inside --max-cost.
+    const ground = frugal();
+    for (const c of [...fromFiles, ...inline].filter((x) => costly.has(x.key))) {
+      if (ground === base || ground.cfg || failing(ground.run, split.dev).length === 0 || (opts.maxCost !== undefined && spent >= opts.maxCost)) break;
+      await tryConfig(ground, c, `${c.key} on ${ground.id}`);
+    }
 
     // A rewrite written on top of a config change may not need it: the variant won the first round, so every rewrite
     // was measured with it. The same text is tried once without it, outside the budget like the held-out runs, and

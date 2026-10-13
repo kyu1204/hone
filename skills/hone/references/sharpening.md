@@ -99,7 +99,7 @@ hone sharpen --max-cost 2    # stop trying when the system under test has cost 2
 hone sharpen --no-rewrites   # judge only the changes you wrote and the variants: the model writes none of its own
 ```
 
-Order of candidates: every change from a file alone, then inline variants from the config, then the stack of additions, then pairings on top of the best one so far, then (with an LLM key and `sharpen.text`) rewrites by a model. A winning rewrite that was written on top of a variant is also tried without it (`rewrite 2 without <variant>`); when it does as well, the smaller and cheaper change is the winner. Raise `--budget` when there are more changes than the default covers.
+Order of candidates: every change from a file alone, then inline variants from the config, then the stack of additions, then pairings on top of the best one so far, then (with an LLM key and `sharpen.text`) rewrites by a model. A variant that costs clearly more than the current system (a larger model) is measured alone and then put on top of the best text once at the end; the search itself runs at the current system's price. A winning rewrite that was written on top of a variant is also tried without it (`rewrite 2 without <variant>`); when it does as well, the smaller and cheaper change is the winner. Raise `--budget` when there are more changes than the default covers.
 
 ## 4. Read the result
 
