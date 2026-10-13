@@ -91,4 +91,4 @@ Result: PROVEN. On 6 cases it never saw, loose matching on rewrite 1 takes the p
 
 ## 5. Go around again, with care
 
-Each run that reaches the held-out check uses those cases once more. Write the next changes from the diagnosis, not from the last verdict, and add cases when the suite is too small to prove anything.
+The held-out cases wear out. Every different winner they judge leaks a little about them, so hone divides the level by the count: the second different change confirmed on the same held-out cases has to reach p < 0.025, the third p < 0.017. The account says when this applies. Running the same change again does not count. Write the next changes from the diagnosis, not from the last verdict, and add cases when the bar has moved out of reach.

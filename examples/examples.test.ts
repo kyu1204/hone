@@ -55,6 +55,7 @@ describe("examples", () => {
 
   test("sharpen: nothing passes as written; hone sharpen finds that the change file and a rewrite only work together", async () => {
     const cwd = path.join(here, "sharpen");
+    fs.rmSync(path.join(cwd, ".hone"), { recursive: true, force: true }); // an earlier run by hand must not have worn the held-out cases
     cleanups.push(() => fs.rmSync(path.join(cwd, ".hone"), { recursive: true, force: true }));
     const before = io(cwd);
     expect(await runCommand(["--quiet", "--no-cache", "--json"], before)).toBe(0);

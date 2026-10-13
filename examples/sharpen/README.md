@@ -43,6 +43,8 @@ It uses the change "loose matching" from sharpen/loose-matching.ts.
 
 Six of the 18 cases were held out before anything was tried, and no proposal saw them. The model wrote `rewrite 1`; hone put the change from the file on top of it on its own. Six improvements out of six is the fewest an exact test accepts at the 5% level, which is why the verdict is PROVEN with p = 0.03 and not more.
 
+Run it again and the model writes a different rewrite. That is a second question to the same six cases, so the bar rises to p < 0.025 and six out of six no longer clears it: the verdict becomes `PROMISING`, and the account says why. `rm -rf .hone` starts over; a real project adds cases.
+
 ## Write the text yourself
 
 The rewrite does not have to come from a model. Add a second change and no key is needed:

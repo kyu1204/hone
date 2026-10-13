@@ -60,7 +60,22 @@ export interface SharpenResult {
   diagnosisPath?: string;
   candidates: SharpenCandidate[];
   /** The best candidate against the baseline on the confirmation cases (held out, or the dev cases when nothing could be held out). */
-  best?: { id: string; label: string; cases: number; baseline: number; candidate: number; diff: number; lo: number; hi: number; p: number; costRatio?: number; needed?: number };
+  best?: {
+    id: string;
+    label: string;
+    cases: number;
+    baseline: number;
+    candidate: number;
+    diff: number;
+    lo: number;
+    hi: number;
+    p: number;
+    /** How many different winners these held-out cases have judged, this one included, and the level this one had to reach: alpha divided by that count. */
+    confirmations: number;
+    alpha: number;
+    costRatio?: number;
+    needed?: number;
+  };
   verdict: SharpenVerdict;
   stopped: "gate" | "budget" | "maxCost" | "until" | "exhausted";
   message: string;
@@ -242,6 +257,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
     const cost = b.costRatio !== undefined ? ` Cost per case: ${b.costRatio.toFixed(1)}x.` : "";
     const more = r.verdict === "proven" ? "" : `${b.needed ? ` About ${b.needed} held-out cases would settle it.` : ""}${r.split.inSample ? " Add cases (18 or more) so that at least six can be held out." : ""}`;
     lines.push(`Result: ${r.verdict === "proven" ? "PROVEN" : "PROMISING, not proven"}. ${where}, ${b.label} takes the pass rate from ${pct(b.baseline)} to ${pct(b.candidate)}`, `${stats}${cost}${more}`);
+    if (b.confirmations > 1) lines.push(`These ${b.cases} held-out cases have now judged ${b.confirmations} different changes, so this one had to reach p < ${Number(b.alpha.toPrecision(2))}. New cases restore the bar.`);
     // what to adopt, and where it is
     const w = r.candidates.find((c) => c.id === b.id);
     if (w?.text !== undefined) lines.push(w.textFile ? `The text comes from ${w.textFile}.` : `The new text is in ${path.relative(x.cwd, x.textFile ?? "")} (as a change file: ${path.relative(x.cwd, x.changeFile ?? "")})`);
@@ -249,6 +265,25 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
   }
   if (x.noKey && !r.candidates.some((c) => c.textFile)) lines.push("No LLM key (ANTHROPIC_API_KEY or OPENAI_API_KEY): rewrites of sharpen.text were not tried and the failure groups are unnamed.");
   return `${lines.join("\n")}\n`;
+}
+
+/**
+ * How many different winners this held-out set has judged, this one included. The same winner again keeps its place:
+ * running a change a second time is a replication, not another attempt to get past the same cases.
+ */
+function countConfirmation(file: string, split: string, winner: string): number {
+  let seen: Record<string, string[]> = {};
+  try {
+    seen = JSON.parse(fs.readFileSync(file, "utf8")) as Record<string, string[]>;
+  } catch {
+    // first confirmation in this project, or an unreadable file: start counting
+  }
+  const list = Array.isArray(seen[split]) ? seen[split] : [];
+  const at = list.indexOf(winner);
+  if (at >= 0) return at + 1;
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify({ ...seen, [split]: [...list, winner] }, null, 2)}\n`);
+  return list.length + 1;
 }
 
 /** A model's winning rewrite in the form a person writes: a change file that can be moved into sharpen/. */
@@ -421,11 +456,16 @@ export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {
     const sign = mcnemarExact(units.filter((u) => u.a > u.b).length, units.filter((u) => u.a < u.b).length).p;
     const diff = rate(w, cases) - rate(b, cases);
     const perTrial = (x: RunOutcome): number => cost(x) / Math.max(1, x.trials.length);
-    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.cfg ? `${winner.id} (on ${winner.cfg.key})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: Math.max(cmp?.p ?? 1, sign), ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
+    // a held-out set wears out: every winner it judges leaks a little, so the n-th different one has to clear alpha / n (Bonferroni)
+    const digest = (text: string): string => createHash("sha256").update(text).digest("hex").slice(0, 16);
+    const confirmations = split.inSample ? 1 : countConfirmation(path.join(root, "sharpen", "holdout.json"), `${seed}:${digest([...split.holdout].sort().join("\n"))}`, digest(`${winner.cfg?.key ?? ""}\n${winner.text ?? ""}`));
+    const level = alpha / confirmations;
+    r.best = { id: winner.id, label: winner.id.startsWith("rewrite") && winner.cfg ? `${winner.id} (on ${winner.cfg.key})` : winner.id, cases: cases.length, baseline: rate(b, cases), candidate: rate(w, cases), diff, lo: cmp?.lo ?? diff, hi: cmp?.hi ?? diff, p: Math.max(cmp?.p ?? 1, sign), confirmations, alpha: level, ...(perTrial(b) > 0 ? { costRatio: perTrial(w) / perTrial(b) } : {}) };
     if (diff <= 0) return finish("no gain");
-    if (r.best.p < alpha && !split.inSample) return finish("proven");
-    // six units that all improve are the fewest an exact test can call at 0.05
-    r.best.needed = Math.max(6, cmp && cmp.se > 0 ? Math.ceil(pairedPowerN({ effect: diff / (cmp.se * Math.sqrt(cmp.n)), alpha })) : 0);
+    if (r.best.p < level && !split.inSample) return finish("proven");
+    // the fewest units an exact test can call at this level when all of them improve: six at 0.05, seven at 0.025
+    const fewest = Math.floor(Math.log2(2 / level)) + 1;
+    r.best.needed = Math.max(fewest, cmp && cmp.se > 0 ? Math.ceil(pairedPowerN({ effect: diff / (cmp.se * Math.sqrt(cmp.n)), alpha: level })) : 0);
     return finish("promising");
   } finally {
     store.close();

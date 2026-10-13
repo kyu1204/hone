@@ -28,6 +28,7 @@ The statistics in parentheses are the difference in pass rate on the held-out ca
 - A rise on the cases a change learned from (the `+` rows) is not evidence. Only the held-out check is.
 - When too few cases are held out to prove anything (fewer than six), say that the suite is too small, not that the change does not work.
 - Give the cost next to the gain when the account prints one.
+- When the account says the held-out cases have judged several different changes, say so: the bar was higher for this one, and new cases restore it.
 
 ## Where things are
 

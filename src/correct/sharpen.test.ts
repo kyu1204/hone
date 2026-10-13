@@ -303,6 +303,36 @@ describe("sharpen", () => {
     expect(six.verdict).toBe("proven");
   });
 
+  test("a held-out set wears out: each new winner it judges has to clear a higher bar; the same one again does not", async () => {
+    const run = (cwd: string, n: number, text: string, seed?: number) => sharpen({ config: config((_id, t) => t.includes("UPPERCASE"), { text: true, n }), changes: [{ name: "uppercase", why: "w", text, file: "sharpen/up.ts" }], hash: "h", cwd, seed, useCache: false });
+    // 18 cases: six held out, and six out of six gives p = 0.031
+    const cwd = tmp();
+    const first = await run(cwd, 18, "Answer in UPPERCASE.");
+    expect(first.best).toMatchObject({ confirmations: 1, alpha: 0.05 });
+    expect(first.verdict).toBe("proven");
+    expect(first.message).not.toMatch(/have now judged/);
+    // running the same change again is a replication, not another attempt
+    const same = await run(cwd, 18, "Answer in UPPERCASE.");
+    expect(same.best).toMatchObject({ confirmations: 1, alpha: 0.05 });
+    expect(same.verdict).toBe("proven");
+    // another change on the same held-out cases is a second question to them
+    const second = await run(cwd, 18, "Always answer in UPPERCASE letters.");
+    expect(second.best).toMatchObject({ confirmations: 2, alpha: 0.025, needed: 7 });
+    expect(second.verdict).toBe("promising"); // the same evidence, but these cases have been asked before
+    expect(second.message).toContain("These 6 held-out cases have now judged 2 different changes, so this one had to reach p < 0.025. New cases restore the bar.");
+    expect(second.message).toMatch(/About 7 held-out cases would settle it\./);
+    // another split is another set of cases: its count starts again
+    expect((await run(cwd, 18, "Reply in UPPERCASE.", 2)).best).toMatchObject({ confirmations: 1, alpha: 0.05 });
+    // with ten held out a second change still clears the higher bar
+    const big = tmp();
+    await run(big, 30, "Answer in UPPERCASE.");
+    const again = await run(big, 30, "Always answer in UPPERCASE letters.");
+    expect(again.best).toMatchObject({ confirmations: 2, alpha: 0.025 });
+    expect(again.verdict).toBe("proven");
+    const counts = JSON.parse(fs.readFileSync(path.join(big, ".hone", "sharpen", "holdout.json"), "utf8")) as Record<string, string[]>;
+    expect(Object.values(counts).map((v) => v.length)).toEqual([2]);
+  });
+
   test("gates: a system that does not run, a suite that passes, a config with nothing to change", async () => {
     const boom = config(() => false, { text: true });
     boom.targets = { t: { kind: "fn", fn: () => { throw new Error("boom: connection refused"); } } };
