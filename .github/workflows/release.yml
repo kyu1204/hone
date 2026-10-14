@@ -58,7 +58,7 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
-      - run: bun install --frozen-lockfile
+      - run: bun install --frozen-lockfile --os='*' --cpu='*' # every platform's native OpenTUI package, to cross-compile
       - run: bun scripts/build-binaries.ts --only ${{ matrix.target }} --out dist/bin
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
@@ -95,6 +95,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.check.outputs.sha }}
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           path: artifacts
@@ -103,6 +106,10 @@ jobs:
           mkdir -p dist/bin
           find artifacts -type f -name 'hone-*' -exec cp {} dist/bin/ \;
           (cd dist/bin && sha256sum hone-* > SHA256SUMS && cat SHA256SUMS)
+      - name: release notes are the CHANGELOG section for this version
+        env:
+          TAG: ${{ needs.check.outputs.tag }}
+        run: awk -v v="${TAG#v}" '/^## /{on = index($0, "## " v " ") == 1 || $0 == "## " v; next} on' CHANGELOG.md > notes.md && cat notes.md
       - name: tag and GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -111,4 +118,4 @@ jobs:
           SHA: ${{ needs.check.outputs.sha }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" dist/bin/* --clobber
-          else gh release create "$TAG" dist/bin/* --target "$SHA" --title "hone $TAG" --generate-notes --latest; fi
+          else gh release create "$TAG" dist/bin/* --target "$SHA" --title "hone $TAG" --notes-file notes.md --generate-notes --latest # the merged pull requests follow the CHANGELOG section; fi
