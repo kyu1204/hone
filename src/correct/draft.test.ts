@@ -56,6 +56,8 @@ describe("draftCases", () => {
     expect(prompts[0]).toContain("def create_ticket");
     expect(prompts[0]).toContain("reset-ok");
     expect(prompts[0]).toContain("Write 6 new cases");
+    // a case is one message to a fresh agent: a flow that needs an earlier turn or saved state cannot be tested this way
+    expect(prompts[0]).toContain("no earlier conversation and nothing saved from one");
     expect(r.cases.map((c) => c.id)).toEqual(["lost-laptop", "reset-ok-2", "greets", "one-word"]); // an id that is taken gets a number
     expect(r.cases[3]!.expected).toEqual({ says: ["hello"] }); // one word where a list goes is a list of one
     expect(r.cases[0]).toEqual({ id: "lost-laptop", input: "I left my laptop on the bus", expected: { calls: ["create_ticket"], args: { create_ticket: { priority: "urgent" } } }, tags: ["drafted"], meta: { why: "P-09: security tickets are urgent" } });
