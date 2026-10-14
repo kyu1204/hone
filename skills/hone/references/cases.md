@@ -34,7 +34,7 @@ With `{ name: "agent" }` among the scorers, a case says what must hold in the co
     judge: tells the employee what to do in the next hour    # a rule in words, decided by a model
 ```
 
-`order: [verify_identity, reset_password]` says which tools must come first, `never_says` what the answer must not contain. `hone init --cases` drafts cases in this form from the agent's prompt and code and runs them once; review them before you trust them. Write each house rule the way a QA engineer would check it, and prefer the written keys over `judge` wherever they can decide: they cost nothing and never guess. A failed trial's reason names every expectation it broke.
+`order: [verify_identity, reset_password]` says which tools must come first, `never_says` what the answer must not contain. `hone draft` drafts cases in this form from the agent's prompt and code and runs them once; review them before you trust them. Write each house rule the way a QA engineer would check it, and prefer the written keys over `judge` wherever they can decide: they cost nothing and never guess. A failed trial's reason names every expectation it broke.
 
 ## How many
 
