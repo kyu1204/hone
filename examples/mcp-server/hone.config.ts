@@ -1,5 +1,5 @@
 // Evaluate an MCP tool directly: hone starts the server, calls tools/call per case, scores the JSON it returns.
-import { defineConfig } from "../../src/index.ts"; // in your project: from "honed"
+import { defineConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
 
 const here = new URL(".", import.meta.url).pathname;
 

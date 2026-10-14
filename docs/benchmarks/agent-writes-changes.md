@@ -21,7 +21,7 @@ Date: 2026-10-13. Status: **one session.** This is a demonstration that the path
 
    ```ts
    // sharpen/bare-answers.ts
-   import { change } from "honed";
+   import { change } from "hone-eval";
 
    change("answer with the bare value", {
      why: "clusters 2 and 3: the bot wraps the fact in 'Thanks for asking! The answer is ...' but the cases expect the value alone",
@@ -31,7 +31,7 @@ Date: 2026-10-13. Status: **one session.** This is a demonstration that the path
 
    ```ts
    // sharpen/loose-matching.ts
-   import { change } from "honed";
+   import { change } from "hone-eval";
    import { withBot } from "../bot.ts";
 
    change("match questions loosely", {

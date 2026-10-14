@@ -145,7 +145,7 @@ describe("sharpen", () => {
     expect(md).toContain("> Answer.");
     expect(md).toContain("- variants in the config: wide");
     expect(md).toContain("- change files: sharpen/idea.ts (idea)");
-    expect(md).toContain('import { change } from "honed";');
+    expect(md).toContain('import { change } from "hone-eval";');
   });
 
   test("long wording from a model is cut so that no line of the account runs past 100 columns", async () => {
@@ -364,7 +364,7 @@ describe("sharpen", () => {
       const saved = fs.readFileSync(path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`), "utf8");
       expect(saved).toContain(`The additions ${order.map((n) => `"${n}"`).join(", ")} put together as one text`);
       fs.mkdirSync(path.join(cwd, "sharpen"));
-      fs.writeFileSync(path.join(cwd, "sharpen", "best.ts"), saved.replace('"honed"', JSON.stringify(new URL("./change.ts", import.meta.url).pathname)));
+      fs.writeFileSync(path.join(cwd, "sharpen", "best.ts"), saved.replace('"hone-eval"', JSON.stringify(new URL("./change.ts", import.meta.url).pathname)));
       expect((await loadChanges(cwd))[0]).toMatchObject({ name: stack.id, text: stack.text });
     });
 
@@ -419,10 +419,10 @@ describe("sharpen", () => {
     const file = path.join(cwd, ".hone", "sharpen", `${r.id}-best.ts`);
     expect(r.message).toContain(`The new text is in .hone/sharpen/${r.id}-best.txt\nAs a change file: .hone/sharpen/${r.id}-best.ts\n`);
     const source = fs.readFileSync(file, "utf8");
-    expect(source).toContain('import { change } from "honed";');
+    expect(source).toContain('import { change } from "hone-eval";');
     const kept = tmp();
     fs.mkdirSync(path.join(kept, "sharpen"));
-    fs.writeFileSync(path.join(kept, "sharpen", "kept.ts"), source.replace('"honed"', JSON.stringify(new URL("./change.ts", import.meta.url).pathname)));
+    fs.writeFileSync(path.join(kept, "sharpen", "kept.ts"), source.replace('"hone-eval"', JSON.stringify(new URL("./change.ts", import.meta.url).pathname)));
     const loaded = await loadChanges(kept);
     expect(loaded).toHaveLength(1);
     expect(loaded[0]).toMatchObject({ name: "rewrite 1", why: "outputs were lowercase", text: "Answer in UPPERCASE.", file: "sharpen/kept.ts" });

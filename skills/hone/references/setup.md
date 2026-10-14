@@ -1,7 +1,7 @@
 # setup: adding hone to a project
 
 ```bash
-bunx honed init     # in the project root; requires Bun >= 1.3.14
+bunx hone-eval init     # in the project root; requires Bun >= 1.3.14
 ```
 
 `init` detects what the project is and writes:
@@ -36,7 +36,7 @@ That one function is the whole integration: `ctx.from_langchain` / `ctx.from_str
 ## The config
 
 ```ts
-import { defineConfig } from "honed";
+import { defineConfig } from "hone-eval";
 
 export default defineConfig({
   targets: {

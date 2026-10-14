@@ -215,7 +215,7 @@ function diagnosisPage(x: { r: Omit<SharpenResult, "message" | "path">; trials: 
   out.push(x.seed !== undefined ? "- the text (`sharpen.text` in hone.config.ts), now:" : "- no text is declared (`sharpen.text` in hone.config.ts says where a new text goes)");
   if (x.seed !== undefined) out.push(...shown(x.seed, 4000).split("\n").map((l) => `  > ${l}`));
   out.push(`- variants in the config: ${x.variants.join(", ") || "none"}`, `- change files: ${x.changes.length ? [...new Set(x.changes.map((c) => c.file ?? "?"))].map((f) => `${f} (${x.changes.filter((c) => (c.file ?? "?") === f).map((c) => c.name).join(", ")})`).join("; ") : "none yet"}`, "");
-  out.push("## Write a change", "", "One file per idea under `sharpen/`, with the failure it fixes as `why`. Then run `hone sharpen`.", "", "```ts", "// sharpen/<what-it-does>.ts", 'import { change } from "honed";', "", 'change("what it does", {', '  why: "which failure mode above, and why this fixes it",', '  add: "one rule for the text above",      // a paragraph added to the text as it is', '  // text: "the whole new text",           // or a new version of the whole text', "  // config: (config) => ({ ...config }),  // or a change to the config: a setting, a model, new code", "});", "```", "", "One failure mode, one change. Additions that help are stacked into one text for you, so do not merge them yourself. New code goes into a new file that the `config` function points at. Do not edit a file the current system runs: the comparison needs it unchanged.", "");
+  out.push("## Write a change", "", "One file per idea under `sharpen/`, with the failure it fixes as `why`. Then run `hone sharpen`.", "", "```ts", "// sharpen/<what-it-does>.ts", 'import { change } from "hone-eval";', "", 'change("what it does", {', '  why: "which failure mode above, and why this fixes it",', '  add: "one rule for the text above",      // a paragraph added to the text as it is', '  // text: "the whole new text",           // or a new version of the whole text', "  // config: (config) => ({ ...config }),  // or a change to the config: a setting, a model, new code", "});", "```", "", "One failure mode, one change. Additions that help are stacked into one text for you, so do not merge them yourself. New code goes into a new file that the `config` function points at. Do not edit a file the current system runs: the comparison needs it unchanged.", "");
   return out.join("\n");
 }
 
@@ -255,7 +255,7 @@ function describe(r: Omit<SharpenResult, "message" | "path">, x: { cwd: string; 
   if (r.verdict === "nothing to change") {
     lines.push(
       "Nothing to change: there is no change to try. Write one, for example sharpen/first.ts:",
-      '  import { change } from "honed";',
+      '  import { change } from "hone-eval";',
       '  change("what it does", { why: "which failure it fixes", add: "one rule for the text" });',
       "An `add` or a `text` needs `sharpen: { text: { seed, apply } }` in hone.config.ts, which says where a text goes; a `config` function needs nothing.",
       x.noRewrites ? "Rewrites by a model were off, so only a change you write can be tried." : x.noKey ? "sharpen.text is declared, but there is no LLM key for the model to write rewrites with (ANTHROPIC_API_KEY or OPENAI_API_KEY)." : "With `sharpen.text` declared and an LLM key set, a model writes rewrites too.",
@@ -326,7 +326,7 @@ function asChangeFile(winner: SharpenCandidate, origin: SharpenCandidate, verdic
   const together = winner.variant ? `// It was confirmed together with ${winner.variantFile ? `the change "${winner.variant}" (${winner.variantFile})` : `the variant "${winner.variant}" (sharpen.variants)`}.\n` : "";
   const parts = quoted(origin.adds ?? []);
   const [from, why] = origin.source === "file" ? [`The additions ${parts} put together as one text`, `the additions ${parts} together`] : [`Proposed by the model as ${origin.id}`, origin.rationale || "rewritten by the model from the failure modes"];
-  return `// ${from}; the held-out check said: ${verdict}. Move this file into sharpen/ to keep it as a candidate.\n${together}import { change } from "honed";\n\nchange(${JSON.stringify(origin.id)}, {\n  why: ${JSON.stringify(why)},\n  text: ${JSON.stringify(winner.text)},\n});\n`;
+  return `// ${from}; the held-out check said: ${verdict}. Move this file into sharpen/ to keep it as a candidate.\n${together}import { change } from "hone-eval";\n\nchange(${JSON.stringify(origin.id)}, {\n  why: ${JSON.stringify(why)},\n  text: ${JSON.stringify(winner.text)},\n});\n`;
 }
 
 export async function sharpen(opts: SharpenOptions): Promise<SharpenResult> {

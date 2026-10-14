@@ -24,7 +24,7 @@ def swap(old, new):
     s = s.replace(old, new)
 head = s[: s.index("import { defineConfig")]
 swap(head, f"// The Acme internal helpdesk agent ({'LangChain' if fw == 'langchain' else 'Strands'}), checked against the cases in evals/.\n")
-swap('from "../../src/index.ts"; // in your project: from "honed"', 'from "honed";')
+swap('from "../../src/index.ts"; // in your project: from "hone-eval"', 'from "hone-eval";')
 swap('const only = process.env.HONE_AGENT; // langchain | strands; both when unset\nconst agents = { langchain: "langchain_agent", strands: "strands_agent" };', f'const only = undefined;\nconst agents = {{ {fw}: "{fw}_agent" }};')
 open(dst, "w").write(s)
 PY
@@ -34,7 +34,7 @@ pack=$(mktemp -d)
 (cd "$repo" && bun run build > /dev/null && bun pm pack --destination "$pack" > /dev/null)
 cd "$dir"
 printf '{ "name": "helpdesk", "private": true }\n' > package.json
-bun add -d "$pack"/honed-*.tgz > /dev/null 2>&1
+bun add -d "$pack"/hone-eval-*.tgz > /dev/null 2>&1
 bunx hone init --skills > /dev/null
 printf '.hone/\nnode_modules/\n.venv\n__pycache__/\n' > .gitignore
 echo "$dir"
