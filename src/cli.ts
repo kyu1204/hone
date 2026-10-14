@@ -6,6 +6,7 @@ import { ciCommand } from "./cli/commands/ci";
 import { clusterCommand } from "./cli/commands/cluster";
 import { compareCommand } from "./cli/commands/compare";
 import { diffCommand } from "./cli/commands/diff";
+import { draftCommand } from "./cli/commands/draft";
 import { evolveCommand } from "./cli/commands/evolve";
 import { explainCommand } from "./cli/commands/explain";
 import { exportCommand } from "./cli/commands/export";
@@ -28,6 +29,7 @@ type Group = Record<string, { run: Command; summary: string }>;
 // What a newcomer needs. Everything else is one step of these, a way to look at results, or a tool: `hone help all`.
 const EVERYDAY: Group = {
   init: { run: initCommand, summary: "set up: detect the project, write hone.config.ts and example cases" },
+  draft: { run: draftCommand, summary: "write cases: hone's model drafts them from the agent's prompt and code, runs them, says which fail" },
   // `hone test --ci` is the gate for pipelines: thresholds per axis, JUnit, a pull request comment
   test: { run: (argv, io) => (argv.includes("--ci") ? ciCommand(argv.filter((a) => a !== "--ci"), io) : runCommand(argv, io)), summary: "evaluate: run every case, score it, say how far to trust the score" },
   sharpen: { run: sharpenCommand, summary: "improve: find why cases fail, try changes, re-test, keep what is proven" },

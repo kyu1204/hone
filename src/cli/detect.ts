@@ -100,7 +100,7 @@ export function detectProject(dir: string): Detection {
 `;
     d.cases.push({ id: "sample", input: "What can you help me with?", expected: { never_says: ["traceback", "exception"] }, tags: ["smoke"] });
     addScorer({ name: "agent" });
-    d.notes.push("agent target: edit build_agent in hone_target.py so that it returns your agent, and put its system prompt in PROMPT. Then hone init --cases --read <the files that define the agent> drafts cases, runs them once and says which fail.");
+    d.notes.push("agent target: edit build_agent in hone_target.py so that it returns your agent, and put its system prompt in PROMPT. Then hone draft --read <the files that define the agent> drafts cases, runs them once and says which fail.");
     if (frameworks.length > 1) d.notes.push("LangChain and Strands are both installed; hone_target.py is written for LangChain. For a Strands agent, return ctx.from_strands(agent.messages, result.metrics.accumulated_usage).");
   }
   if (/\b(fastapi|flask)\b/.test(py)) {
