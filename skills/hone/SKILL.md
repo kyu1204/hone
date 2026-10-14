@@ -5,10 +5,11 @@ description: Evaluates an AI system (a RAG pipeline, an agent, an LLM endpoint, 
 
 # hone: evaluate, then sharpen
 
-hone runs every case against the system several times, scores each run, and says how far to trust the score. `hone sharpen` then tries changes and keeps only what holds up on cases no change was allowed to see. Three commands cover the normal path:
+hone runs every case against the system several times, scores each run, and says how far to trust the score. `hone sharpen` then tries changes and keeps only what holds up on cases no change was allowed to see. Four commands cover the normal path:
 
 ```bash
 hone init       # once: writes hone.config.ts, example cases, this skill, the MCP registration
+hone draft      # cases: drafted from the agent's prompt and code, run once, failures reported
 hone test       # evaluate: pass rate per case, with trials and intervals
 hone sharpen    # improve: why cases fail, each change tried, a verdict on held-out cases
 ```
@@ -31,7 +32,7 @@ The full documentation ships in the `docs/` directory of the installed package (
 ## Workflow: improving a system
 
 1. Look at what exists: `hone.config.ts`, the cases (`evals/`), the changes already tried (`sharpen/`). No config: follow `setup`.
-2. No cases yet, or too few: `hone init --cases` has hone's model read the agent's prompt and code, draft cases into `evals/drafted.yaml`, run them once and say which fail (`--read <file>` for the files that define the agent). Read the drafts and delete the ones that do not describe what the agent should do; they are proposals, like change files. Or write cases yourself (topic `cases`).
+2. No cases yet, or too few: `hone draft` has hone's model read the agent's prompt and code, draft cases into `evals/drafted.yaml`, run them once and say which fail (`--read <file>` for the files that define the agent). Read the drafts and delete the ones that do not describe what the agent should do; they are proposals, like change files. Or write cases yourself (topic `cases`).
 3. Measure: `hone test`. If the system errors, fix that first; an error is not a wrong answer.
 4. Read why cases fail: `hone sharpen --budget 0` measures, diagnoses and names a page, `.hone/sharpen/<id>-diagnosis.md`. Read that page. It shows each failure mode with failing cases in full.
 5. Write one change per hypothesis as a file under `sharpen/` (topic `sharpening`):

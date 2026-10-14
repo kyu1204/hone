@@ -20,15 +20,16 @@
 
 ---
 
-## Three commands
+## Four commands
 
 ```bash
 hone init       # set up: finds what the project is, writes hone.config.ts and example cases
+hone draft      # write cases: drafts them from the agent's prompt and code, runs them, says which fail
 hone test       # evaluate: every case, several times, and how far to trust the score
 hone sharpen    # improve: why cases fail, each change tried, a verdict on cases no change saw
 ```
 
-`hone` alone opens the results in the terminal. Every other command is one step of these three or a tool, and stays out of the way until you ask: `hone help all`.
+`hone` alone opens the results in the terminal. Every other command is one step of these four or a tool, and stays out of the way until you ask: `hone help all`.
 
 <p align="center"><img alt="hone test and hone sharpen on the sharpen example" src=".github/assets/demo.gif" width="880"></p>
 
@@ -100,7 +101,7 @@ def answer(input, ctx):
 
 The system prompt comes from `params` in the config, which is what lets a change replace it without touching your code.
 
-You do not have to write the cases first. `hone init --cases` has hone's model read the agent's prompt and code (its tools, its data, its policies), draft cases in that form into `evals/drafted.yaml`, run them once and say which fail, the way a QA engineer would start. The drafts are proposals: keep the ones that say what the agent should do.
+You do not have to write the cases first. `hone draft` has hone's model read the agent's prompt and code (its tools, its data, its policies), draft cases in that form into `evals/drafted.yaml`, run them once and say which fail, the way a QA engineer would start. The drafts are proposals: keep the ones that say what the agent should do.
 
 [`examples/helpdesk-agent`](./examples/helpdesk-agent/) is such an agent, the same one in LangChain and in Strands: six tools, a one-line prompt, 36 cases over six house rules. Measured once per arm, on 12 held-out cases ([`docs/benchmarks/custom-agents.md`](./docs/benchmarks/custom-agents.md)):
 

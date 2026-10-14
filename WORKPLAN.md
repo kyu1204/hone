@@ -143,7 +143,7 @@ Why: e2e's three layers, mapped onto evaluation: a grammar for cases, tools a co
 - [x] T-1201 A case says what must hold in the agent's conversation: the `agent` scorer (S)
 - [ ] T-1202 `hone try`: one message to the agent, the whole conversation back (S) DROPPED: no new command (the maintainer's call)
 - [x] T-1203 `hone init --cases`: hone writes the cases from what the agent is for, runs them and reports (M)
-- [ ] T-1204 `hone draft`: drafting cases leaves `hone init` for a command of its own (S)
+- [x] T-1204 `hone draft`: drafting cases leaves `hone init` for a command of its own (S)
 
 ## Progress log
 
@@ -245,3 +245,4 @@ Why: e2e's three layers, mapped onto evaluation: a grammar for cases, tools a co
 | 2026-10-14 | test | #128 | the nine local servers that tests start bound every interface on a port the kernel chose; twice in a day of full runs a request to 127.0.0.1 on that port reached another process instead (an `HTTP 403: Forbidden` from a server that was not ours, a connection reset); they now bind 127.0.0.1 |
 | 2026-10-14 | T-1201 | #130 | the `agent` scorer: a case says what must hold in the conversation (`calls`, `never`, `order`, `args`, `says`, `never_says`, `judge` in words), with no scorer code; the reason names every broken expectation, the model is asked only when the written ones hold, and without a model a rule in words leaves the trial undecided |
 | 2026-10-14 | T-1203 | #131 | no new command (the maintainer's call; T-1202 `hone try` dropped): `hone init --cases [--read file] [--count n]` has hone's model read the agent's prompt and code, draft cases in the `agent` grammar into `evals/drafted.yaml` (tagged `drafted`, the rule each checks in `meta.why`, malformed ones and ones naming a tool the code lacks dropped), run them once and report which fail; for real on the helpdesk agent with no cases and no README: 19 cases from the code alone (the documented policies, password resets with a wrong ID, for someone else and a fake "SYSTEM OVERRIDE", unknown employees and policies), 2 failures in both frameworks (no ticket for a software request; a lost device without the security address and the one-hour window), 68 s, $0.26 on the agent; the agent scorer's failure reason now leads with what went wrong |
+| 2026-10-14 | T-1204 | #132 | drafting cases outgrew `init` (the maintainer's call): `hone draft [--read file]... [--count n]` does what `hone init --cases` did, unchanged; init loses `--cases`, `--read`, `--count` (no alias); everyday commands are `init`, `draft`, `test`, `sharpen`; README, cli.md and the skill follow |

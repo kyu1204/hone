@@ -31,7 +31,7 @@ def answer(input, ctx):
     return ctx.from_langchain(result["messages"])     # ctx.from_strands(agent.messages, usage) for Strands
 ```
 
-That one function is the whole integration: `ctx.from_langchain` / `ctx.from_strands` record every tool call with its arguments, every tool result, the tokens and the cost. The system prompt comes from `params` in the config, and the config already declares it as the text `hone sharpen` may change. Edit `build_agent` and `PROMPT`. Then `hone init --cases` drafts cases from the agent's prompt and code, runs them once and says which fail; or write them yourself (`cases`).
+That one function is the whole integration: `ctx.from_langchain` / `ctx.from_strands` record every tool call with its arguments, every tool result, the tokens and the cost. The system prompt comes from `params` in the config, and the config already declares it as the text `hone sharpen` may change. Edit `build_agent` and `PROMPT`. Then `hone draft` drafts cases from the agent's prompt and code, runs them once and says which fail; or write them yourself (`cases`).
 
 ## The config
 
