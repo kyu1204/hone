@@ -103,7 +103,7 @@ Sizes: S half a day, M a day, L two to three days. Phases in dependency order; t
 - [x] T-902 README demo gif, docs pages (M)
 - [x] T-903 `release.yml`: trusted publishing, compiled binaries, GitHub Release (M)
 - [x] T-904 Repository hardening (S)
-- [ ] T-905 v0.1.0 tag, npm publish, launch posts (S) BLOCKED: npm publish needs the maintainer (no npm login on this machine; trusted publishing not configured). Prepared: CHANGELOG 0.1.0, version 0.1.0, launch drafts, README badge. Remaining for a human: configure npm trusted publishing or `npm login`, then `git tag v0.1.0 && git push origin v0.1.0`, verify the release, submit the awesome-list PRs.
+- [ ] T-905 v0.1.0 tag, npm publish, launch posts (S) BLOCKED: launch posts and awesome-list PRs need the maintainer. Done: hone-eval 0.1.0 on npm and the v0.1.0 GitHub Release with six binaries, both from the release workflow (a merged `release/vX.Y.Z` pull request releases; #136-#140).
 
 ## P10 One cycle, three commands (after P7)
 
