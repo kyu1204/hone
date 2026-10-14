@@ -88,7 +88,7 @@ export async function draftCases(opts: DraftOptions): Promise<DraftResult> {
   if (files.length > MAX_CHARS) files = `${files.slice(0, MAX_CHARS)}\n[the files are cut here, at ${MAX_CHARS} of ${files.length} characters]`;
   const count = opts.count ?? 20;
   const existing = opts.existing.slice(0, 12).map((c) => ({ id: c.id, input: c.input, expected: c.expected }));
-  const user = `The agent's system prompt:\n${seed ?? "(not declared)"}\n\nFiles:\n${files || "(none)"}\n\nExisting cases (do not repeat them; follow the form of their input):\n${existing.length ? JSON.stringify(existing, null, 1) : "(none)"}\n\nWrite ${count} new cases.`;
+  const user = `The agent's system prompt:\n${seed ?? "(not declared)"}\n\nFiles:\n${files || "(none)"}\n\nExisting cases (do not repeat them; follow the form of their input):\n${existing.length ? JSON.stringify(existing, null, 1) : "(none)"}\n\nWrite ${count} new cases. Each is sent to the agent as the first message of a new conversation, with no earlier conversation and nothing saved from one: leave out flows that need them (a follow-up, an approval of an earlier plan).`;
   const reply = await opts.chat({ system: SYSTEM, json: true, temperature: 0.4, maxTokens: 12_000, messages: [{ role: "user", content: user }] });
   let drafted: unknown;
   try {
