@@ -120,7 +120,7 @@ What `hone sharpen` tries are changes: files under `sharpen/`, one idea each, wi
 
 ```ts
 // sharpen/cite-policies.ts
-import { change } from "hone-eval";
+import { change } from "honed";
 
 change("cite the policy id", {
   why: "answers quote the policy text but never name the policy",
@@ -162,7 +162,7 @@ A target is what gets evaluated, and every result is a trace of messages and spa
 | sessions you already have | `replay` | `hone import claude-code` |
 
 ```ts
-import { defineConfig } from "hone-eval";
+import { defineConfig } from "honed";
 
 export default defineConfig({
   targets: {
@@ -220,7 +220,7 @@ Requires [Bun](https://bun.sh) 1.3.14 or newer. The package is not on npm yet, s
 git clone https://github.com/kyu1204/hone && cd hone && bun install && bun run build
 
 cd /path/to/your/project
-bun add -d /path/to/hone      # the package is named hone-eval, the command is hone
+bun add -d /path/to/hone      # the package is named honed, the command is hone
 bunx hone init
 bunx hone test
 ```

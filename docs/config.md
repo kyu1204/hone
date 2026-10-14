@@ -3,7 +3,7 @@
 `hone.config.ts` is a TypeScript module whose default export is a `HoneConfig`. `defineConfig` only adds types. `hone init` writes a starting point from what it detects in the directory: a Claude Code project, a FastAPI or Flask service, MCP servers, a Node AI app, or an agent built with LangChain or Strands (a `python` target, the function it calls in `hone_target.py`, and the system prompt declared as what `hone sharpen` may change).
 
 ```ts
-import { defineConfig } from "hone-eval";
+import { defineConfig } from "honed";
 
 export default defineConfig({
   targets: { rag: { kind: "http", url: "http://localhost:8000/ask" } },

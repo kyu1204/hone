@@ -1,5 +1,5 @@
 // The simplest loop: a function under test, exact/contains scorers, a consistency check, a gate.
-import { defineConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
+import { defineConfig } from "../../src/index.ts"; // in your project: from "honed"
 
 const FACTS: Record<string, string> = { "capital of france": "Paris", "largest planet": "Jupiter", "boiling point of water in celsius": "100" };
 

@@ -8,7 +8,7 @@ One command for what the rest of this page does step by step. What it tries are 
 
 ```ts
 // sharpen/terse-answers.ts
-import { change } from "hone-eval";
+import { change } from "honed";
 
 change("answer with the bare value", {
   why: "the cases expect the answer alone; the bot wraps it in a sentence",

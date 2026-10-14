@@ -14,7 +14,7 @@ A change is a file under `sharpen/`: one idea to try, with the reason. This one 
 
 ```ts
 // sharpen/loose-matching.ts
-import { change } from "hone-eval";
+import { change } from "honed";
 import { STYLE, withBot } from "../bot.ts";
 
 change("loose matching", {
@@ -56,7 +56,7 @@ The rewrite does not have to come from a model. Add a second change and no key i
 
 ```ts
 // sharpen/terse-answers.ts
-import { change } from "hone-eval";
+import { change } from "honed";
 
 change("answer with the bare value", {
   why: "the cases expect the answer alone; the bot wraps it in a sentence",
@@ -66,4 +66,4 @@ change("answer with the bare value", {
 
 `hone sharpen` then tries both changes alone, puts the one on the other, and ends `PROVEN` the same way. `hone.config.ts` says where a text goes (`sharpen.text`); a `config` change needs nothing declared.
 
-In your own project import from `hone-eval` instead of `../../src/index.ts`.
+In your own project import from `honed` instead of `../../src/index.ts`.

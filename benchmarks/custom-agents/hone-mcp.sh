@@ -9,4 +9,4 @@ set +a
 cd "$1"
 # an MCP client starts its servers with a short PATH: look for bun where it usually lives
 PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/.bun/bin"
-exec bun node_modules/hone-eval/dist/cli.js serve mcp --no-rewrites
+exec bun node_modules/honed/dist/cli.js serve mcp --no-rewrites
