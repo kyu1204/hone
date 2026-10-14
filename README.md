@@ -84,14 +84,14 @@ def answer(input, ctx):
     return ctx.from_langchain(result["messages"])             # ctx.from_strands(agent.messages, usage) for Strands
 ```
 
-`ctx.from_langchain` and `ctx.from_strands` record the conversation: every tool call with its arguments, every tool result, the tokens and what they cost. So a case can say what must hold in it, not only what the answer looks like:
+`ctx.from_langchain` and `ctx.from_strands` record the conversation: every tool call with its arguments, every tool result, the tokens and what they cost. So a case can say what must hold in it, not only what the answer looks like, and the built-in `agent` scorer checks it with no code:
 
 ```json
 {
   "id": "sec-lost-laptop",
   "input": { "from": "sara.cho@acme.example", "message": "I left my work laptop on the subway this morning." },
   "expected": {
-    "tools": ["create_ticket"],
+    "calls": ["create_ticket"],
     "args": { "create_ticket": { "category": "security", "priority": "urgent" } },
     "says": ["security@acme.example"]
   }

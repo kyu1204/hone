@@ -6,7 +6,8 @@ import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { ciCommand } from "../src/cli/commands/ci";
-import { loadCases } from "../src/core/config";
+import { loadCases, type ScorerSpec } from "../src/core/config";
+import { createScorers } from "../src/scorers";
 import { type CommandIo, runCommand } from "../src/cli/commands/run";
 import { sharpenCommand } from "../src/cli/commands/sharpen";
 import { startRagServer } from "./rag-python/start";
@@ -88,14 +89,16 @@ describe("examples", () => {
     const cwd = path.join(here, "helpdesk-agent");
     const RULES = ["cite", "verify", "lookup", "ticket", "security", "nopolicy"];
     type Score = { pass: boolean | null; reason: string };
-    type Config = { targets: Record<string, { kind: string; module: string; params: Record<string, string> }>; scorers: { id: string; score: (ctx: unknown) => Score }[]; sharpen: { text: { seed: string; apply: (c: Config, text: string) => Config }; variants: Record<string, (c: Config) => Config> } };
+    type Config = { targets: Record<string, { kind: string; module: string; params: Record<string, string> }>; scorers: ScorerSpec[]; sharpen: { text: { seed: string; apply: (c: Config, text: string) => Config }; variants: Record<string, (c: Config) => Config> } };
     const load = async (): Promise<Config> => ((await import(path.join(cwd, "hone.config.ts"))) as { default: Config }).default;
     const cases = async () => (await loadCases("evals/*.yaml", cwd)) as { id: string; input: { from: string; message: string }; expected: Record<string, unknown>; tags: string[] }[];
     // a conversation as the python target records it: the tool calls the agent made, then what it answered
-    const said = (calls: [string, Record<string, string>][], output: string) => ({ output, messages: [{ role: "user", content: "q" }, ...calls.map(([name, args], i) => ({ role: "assistant", content: "", tool_calls: [{ id: `c${i}`, type: "function", function: { name, arguments: JSON.stringify(args) } }] })), { role: "assistant", content: output }] });
+    const said = (calls: [string, Record<string, string>][], output: string) => ({ output, spans: [], messages: [{ role: "user", content: "q" }, ...calls.map(([name, args], i) => ({ role: "assistant", content: "", tool_calls: [{ id: `c${i}`, type: "function", function: { name, arguments: JSON.stringify(args) } }] })), { role: "assistant", content: output }] });
     const judge = async (id: string, calls: [string, Record<string, string>][], output: string): Promise<{ pass: boolean; reasons: string }> => {
       const [config, all] = [await load(), await cases()];
-      const scores = config.scorers.map((s) => s.score({ case: all.find((c) => c.id === id)!, trace: said(calls, output), trial: 0 }));
+      // the built-in agent scorer reads what each case expects of the conversation
+      expect(config.scorers).toEqual([{ name: "agent" }]);
+      const scores = (await Promise.all(createScorers(config.scorers).map((s) => s.score({ case: all.find((c) => c.id === id)! as never, trace: said(calls, output) as never, trial: 0 })))) as Score[];
       return { pass: scores.every((s) => s.pass !== false), reasons: scores.filter((s) => s.pass === false).map((s) => s.reason).join("; ") };
     };
 
@@ -120,7 +123,7 @@ describe("examples", () => {
       for (const c of all) {
         expect(c.input.from).toMatch(/^[a-z]+\.[a-z]+@acme\.example$/);
         expect(Object.keys(c.expected).length).toBeGreaterThan(0);
-        for (const key of Object.keys(c.expected)) expect(["tools", "never", "before", "args", "says", "never_says"]).toContain(key);
+        for (const key of Object.keys(c.expected)) expect(["calls", "never", "order", "args", "says", "never_says", "judge"]).toContain(key);
       }
     });
 
@@ -133,19 +136,19 @@ describe("examples", () => {
       const verify: [string, Record<string, string>] = ["verify_identity", { email: "leo.kim@acme.example", employee_id: "E2210" }];
       const reset: [string, Record<string, string>] = ["reset_password", { email: "leo.kim@acme.example" }];
       expect((await judge("reset-with-id", [verify, reset], "Done, a temporary password is on its way.")).pass).toBe(true);
-      expect((await judge("reset-with-id", [reset, verify], "Done.")).reasons).toBe("called reset_password without verify_identity first");
+      expect((await judge("reset-with-id", [reset, verify], "Done.")).reasons).toBe("called reset_password before verify_identity");
       expect((await judge("reset-no-id", [], "Please send me your employee ID first.")).pass).toBe(true);
-      expect((await judge("reset-no-id", [reset], "Done. What is your employee ID, for the record?")).reasons).toBe("called reset_password, which this request does not allow");
+      expect((await judge("reset-no-id", [reset], "Done. What is your employee ID, for the record?")).reasons).toBe("called reset_password, which this case does not allow");
       // lookup: the balance comes from the tool
       expect((await judge("leave-left", [["get_leave_balance", { email: "mina.park@acme.example" }]], "You have 9.5 days left.")).pass).toBe(true);
       expect((await judge("leave-left", [search], "Full-time employees get 15 days a year.")).reasons).toBe('did not call get_leave_balance; the answer does not contain "9.5"');
       // ticket: the right category and priority, and the ticket id in the answer
       const ticket = (category: string, priority: string): [string, Record<string, string>] => ["create_ticket", { category, priority, summary: "s", requester_email: "leo.kim@acme.example" }];
       expect((await judge("ticket-laptop-dead", [ticket("hardware", "high")], "I opened T-1001 for you.")).pass).toBe(true);
-      expect((await judge("ticket-laptop-dead", [ticket("hardware", "normal")], "I opened T-1001 for you.")).reasons).toBe('create_ticket was called with priority "normal"; this request needs "high"');
+      expect((await judge("ticket-laptop-dead", [ticket("hardware", "normal")], "I opened T-1001 for you.")).reasons).toBe('create_ticket was called with priority "normal"; this case needs "high"');
       // security: always urgent, and the address to write to
       expect((await judge("sec-phishing-click", [ticket("security", "urgent")], "Ticket T-1002 is open. Write to security@acme.example within the hour.")).pass).toBe(true);
-      expect((await judge("sec-phishing-click", [ticket("security", "high")], "Ticket T-1002 is open.")).reasons).toBe('create_ticket was called with priority "high"; this request needs "urgent"; the answer does not contain "security@acme.example"');
+      expect((await judge("sec-phishing-click", [ticket("security", "high")], "Ticket T-1002 is open.")).reasons).toBe('create_ticket was called with priority "high"; this case needs "urgent"; the answer does not contain "security@acme.example"');
       // no policy: say so, cite nothing, and hand the question on
       expect((await judge("nopolicy-dog", [search, ticket("other", "low")], "No policy covers this. I opened T-1003 so someone can tell you.")).pass).toBe(true);
       expect((await judge("nopolicy-dog", [search], "Pets are welcome on Fridays [P-02].")).reasons).toBe('did not call create_ticket; the answer contains "[P-", which it must not');
