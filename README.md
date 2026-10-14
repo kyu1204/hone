@@ -16,7 +16,7 @@
   <a href="./LICENSE"><img alt="Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2c6e9e?style=flat-square"></a>
 </p>
 
-> **Status:** v0.1.0, not on npm yet: [install from source](#install). Built in public: the plan is in [`WORKPLAN.md`](./WORKPLAN.md), every task landed as a pull request you can read, and [`CHANGELOG.md`](./CHANGELOG.md) lists what shipped.
+> **Status:** v0.1.0 on npm as [`hone-eval`](https://www.npmjs.com/package/hone-eval). Built in public: the plan is in [`WORKPLAN.md`](./WORKPLAN.md), every task landed as a pull request you can read, and [`CHANGELOG.md`](./CHANGELOG.md) lists what shipped.
 
 ---
 
@@ -214,16 +214,16 @@ hone is for the step after the score: which change to make, and whether it reall
 
 ## Install
 
-Requires [Bun](https://bun.sh) 1.3.14 or newer. The package is not on npm yet, so install it from a clone:
+Requires [Bun](https://bun.sh) 1.3.14 or newer. The package is `hone-eval`; the command is `hone`.
 
 ```bash
-git clone https://github.com/kyu1204/hone && cd hone && bun install && bun run build
-
 cd /path/to/your/project
-bun add -d /path/to/hone      # the package is named hone-eval, the command is hone
+bun add -d hone-eval
 bunx hone init
 bunx hone test
 ```
+
+Without installing: `bunx hone-eval init`. Standalone binaries for Linux, macOS and Windows are on the [Releases](https://github.com/kyu1204/hone/releases) page.
 
 A Python target needs `python3`; the generated config uses the project's `.venv` when there is one. `hone init` asks for API keys and stores them in `~/.config/hone/env`; `hone sharpen` needs one (Anthropic or OpenAI) only for its own rewrites and for naming failure modes, and runs your change files without.
 
