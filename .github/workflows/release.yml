@@ -116,6 +116,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.check.outputs.tag }}
           SHA: ${{ needs.check.outputs.sha }}
+        # the notes are the CHANGELOG section, then the merged pull requests
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" dist/bin/* --clobber
-          else gh release create "$TAG" dist/bin/* --target "$SHA" --title "hone $TAG" --notes-file notes.md --generate-notes --latest # the merged pull requests follow the CHANGELOG section; fi
+          else gh release create "$TAG" dist/bin/* --target "$SHA" --title "hone $TAG" --notes-file notes.md --generate-notes --latest; fi
