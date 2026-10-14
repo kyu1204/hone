@@ -23,7 +23,7 @@ const rows = (text: string): string[] => text.split("\n").filter((l) => /^  \S/.
 test("no arguments prints the everyday commands and nothing else", async () => {
   const { code, stdout } = await run([]);
   expect(code).toBe(0);
-  expect(rows(stdout)).toEqual(["init", "test", "sharpen"]);
+  expect(rows(stdout)).toEqual(["init", "draft", "test", "sharpen"]);
   expect(stdout).toContain("hone help all");
   const help = await run(["help"]);
   expect(help.stdout).toBe(stdout);
@@ -32,7 +32,7 @@ test("no arguments prints the everyday commands and nothing else", async () => {
 test("hone help all lists every other command in groups, in plain words", async () => {
   const { code, stdout } = await run(["help", "all"]);
   expect(code).toBe(0);
-  expect(rows(stdout)).toEqual(["init", "test", "sharpen", "cluster", "calibrate", "evolve", "optimize", "ablate", "compare", "power", "tui", "matrix", "explain", "diff", "fork", "bisect", "export", "import", "serve", "guide"]);
+  expect(rows(stdout)).toEqual(["init", "draft", "test", "sharpen", "cluster", "calibrate", "evolve", "optimize", "ablate", "compare", "power", "tui", "matrix", "explain", "diff", "fork", "bisect", "export", "import", "serve", "guide"]);
   expect(stdout).not.toMatch(/Thompson|Pareto/);
   expect(stdout).toContain("steps that `hone sharpen` runs for you");
 });
@@ -58,5 +58,5 @@ test("unknown commands exit 2 with the short usage on stderr", async () => {
   const bad = await run(["nope"]);
   expect(bad.code).toBe(2);
   expect(bad.stderr).toMatch(/unknown command "nope"/);
-  expect(rows(bad.stderr)).toEqual(["init", "test", "sharpen"]);
+  expect(rows(bad.stderr)).toEqual(["init", "draft", "test", "sharpen"]);
 });

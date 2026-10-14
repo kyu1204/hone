@@ -6,6 +6,7 @@ import { ciUsage } from "../src/cli/commands/ci";
 import { clusterUsage } from "../src/cli/commands/cluster";
 import { compareUsage } from "../src/cli/commands/compare";
 import { diffUsage } from "../src/cli/commands/diff";
+import { draftUsage } from "../src/cli/commands/draft";
 import { evolveUsage } from "../src/cli/commands/evolve";
 import { explainUsage } from "../src/cli/commands/explain";
 import { exportUsage } from "../src/cli/commands/export";
@@ -23,6 +24,7 @@ import { tuiUsage } from "../src/cli/commands/tui";
 
 const SECTIONS: [string, string, () => string][] = [
   ["Everyday", "init", initUsage],
+  ["Everyday", "draft", draftUsage],
   ["Everyday", "test", runUsage],
   ["Everyday", "test --ci", ciUsage],
   ["Everyday", "sharpen", sharpenUsage],
