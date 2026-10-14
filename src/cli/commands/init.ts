@@ -77,7 +77,7 @@ export async function initCommand(argv: string[], io: CommandIo): Promise<number
   const detection = detectProject(io.cwd);
   io.stdout(detection.signals.length ? `detected: ${detection.signals.join(", ")}\n` : "nothing detected; writing a minimal echo setup\n");
 
-  const importFrom = io.env.HONE_CONFIG_IMPORT ?? "hone-eval";
+  const importFrom = io.env.HONE_CONFIG_IMPORT ?? "honed";
   fs.writeFileSync(configPath, renderConfig(detection, importFrom));
   fs.mkdirSync(path.join(io.cwd, "evals"), { recursive: true });
   fs.writeFileSync(path.join(io.cwd, "evals", "cases.yaml"), renderCases(detection.cases));
@@ -145,7 +145,7 @@ export function installSkills(io: CommandIo): void {
 }
 
 // the bare name `hone` on npm is another package, so the server is started through the package name
-const MCP_ENTRY = { command: "bunx", args: ["hone-eval", "serve", "mcp"] };
+const MCP_ENTRY = { command: "bunx", args: ["honed", "serve", "mcp"] };
 
 /** Registers the MCP server as `hone` for Claude Code (`.mcp.json`) and, in a project that uses it, Cursor. Other servers and an existing `hone` entry are left as they are. */
 export function registerMcp(io: CommandIo): void {
@@ -179,7 +179,7 @@ read why cases fail (\`hone sharpen --budget 0\` names that page).
 
 \`\`\`ts
 // sharpen/first-idea.ts
-import { change } from "hone-eval";
+import { change } from "honed";
 
 change("what it does", {
   why: "which failure it fixes, and why",

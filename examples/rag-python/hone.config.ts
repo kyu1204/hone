@@ -1,5 +1,5 @@
 // RAG over HTTP: the service returns the answer plus the retrieved chunks; hone scores retrieval and citations.
-import { defineConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
+import { defineConfig } from "../../src/index.ts"; // in your project: from "honed"
 
 const url = `${process.env.RAG_URL ?? "http://127.0.0.1:8000"}/ask`;
 

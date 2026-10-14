@@ -103,7 +103,7 @@ An idea of your own is a file under `sharpen/`, tried along with the rest:
 
 ```ts
 // sharpen/cite-policies.ts
-import { change } from "hone-eval";
+import { change } from "honed";
 
 change("cite the policy id", {
   why: "answers quote the policy text but never name the policy, and the cite cases need [P-xx]",

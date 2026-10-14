@@ -1,6 +1,6 @@
 // A change: one idea to try, with the reason. `hone sharpen` evaluates every change under sharpen/.
 // A person wrote this one; a coding agent that read the diagnosis writes the same kind of file.
-import { change } from "../../../src/index.ts"; // in your project: from "hone-eval"
+import { change } from "../../../src/index.ts"; // in your project: from "honed"
 import { STYLE, withBot } from "../bot.ts";
 
 change("loose matching", {

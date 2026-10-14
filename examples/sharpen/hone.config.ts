@@ -4,7 +4,7 @@
 //   questions are matched word for word, so a messy phrasing finds nothing           -> sharpen/loose-matching.ts proposes a fix
 // Half of the 18 questions are asked plainly and half messily. Loose matching alone fixes nothing while the style is
 // wrong, so hone has to find that the two changes belong together.
-import { defineConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
+import { defineConfig } from "../../src/index.ts"; // in your project: from "honed"
 import { STYLE, withBot } from "./bot.ts";
 
 const base = defineConfig({ targets: {}, cases: "evals/*.yaml", trials: 1, scorers: [{ name: "exact", normalize: "trim" }] });

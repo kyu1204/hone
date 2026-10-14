@@ -4,7 +4,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { change, loadChanges } from "./change";
 
-const mod = new URL("./change.ts", import.meta.url).pathname; // what a project imports as "hone-eval"
+const mod = new URL("./change.ts", import.meta.url).pathname; // what a project imports as "honed"
 const dirs: string[] = [];
 afterEach(() => {
   for (const d of dirs.splice(0)) fs.rmSync(d, { recursive: true, force: true });

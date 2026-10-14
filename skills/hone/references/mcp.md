@@ -3,7 +3,7 @@
 `hone init` registers the server as `hone` in `.mcp.json` (Claude Code) and `.cursor/mcp.json`. By hand:
 
 ```bash
-claude mcp add hone -- bunx hone-eval serve mcp
+claude mcp add hone -- bunx honed serve mcp
 ```
 
 The server runs in the project directory and returns what the CLI prints with `--json`. Started as `hone serve mcp --no-rewrites`, its `hone_sharpen` never lets hone's own model write a rewrite: what you propose is what gets judged. With a shell, the CLI and the files it writes are the simpler route; the server is for clients without one.

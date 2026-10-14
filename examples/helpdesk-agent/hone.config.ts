@@ -2,7 +2,7 @@
 //   uv sync && export ANTHROPIC_API_KEY=...    the agents call a model on every trial
 //   hone test                                  both frameworks side by side
 //   HONE_AGENT=langchain hone sharpen          improve one of them
-import { defineConfig, type HoneConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
+import { defineConfig, type HoneConfig } from "../../src/index.ts"; // in your project: from "honed"
 
 // The first version of the prompt, as first versions are.
 const PROMPT = "You are the Acme internal helpdesk assistant. Help employees with their questions.";
