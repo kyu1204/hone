@@ -38,7 +38,8 @@ function extractJson(s: string): unknown {
   }
 }
 
-async function askJson(spec: LlmSpec, messages: ChatMessage[], system: string): Promise<{ json: unknown; costUsd: number; raw: string }> {
+/** Ask for a JSON reply, and once more when the first one is not JSON. */
+export async function askJson(spec: { provider?: LlmProvider; temperature?: number }, messages: ChatMessage[], system: string): Promise<{ json: unknown; costUsd: number; raw: string }> {
   let costUsd = 0;
   let res = await chat({ system, messages, json: true, temperature: spec.temperature ?? 0 }, { provider: spec.provider });
   costUsd += res.usage.costUsd;

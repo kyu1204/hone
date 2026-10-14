@@ -140,7 +140,7 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 
 Why: e2e's three layers, mapped onto evaluation: a grammar for cases, tools a coding agent can drive, and hone's own AI writing the cases, running them and reporting.
 
-- [ ] T-1201 A case says what must hold in the agent's conversation: the `agent` scorer (S)
+- [x] T-1201 A case says what must hold in the agent's conversation: the `agent` scorer (S)
 - [ ] T-1202 `hone try`: one message to the agent, the whole conversation back (S)
 - [ ] T-1203 `hone explore`: hone writes the cases from what the agent is for, runs them and reports (M)
 
@@ -242,3 +242,4 @@ Why: e2e's three layers, mapped onto evaluation: a grammar for cases, tools a co
 | 2026-10-14 | fix | #126 | a trial answered from hone's cache carried `flags: cached` into its failure summary, which is what the clustering embeds and the model reads to name failure modes and write rewrites: after a plain `hone test`, `hone sharpen` named the toy's failures "cached-refusal-response" and "stale-cache-template-answer"; the bookkeeping flag is left out of summaries |
 | 2026-10-14 | T-1105 | #127 | README rewritten for someone who builds agents: one line of what it does, the three commands with a current real run, what each verdict means and why the cycle says no, the custom-agent path first (one function, cases that read the conversation, the two-framework result with the two regressions the held-out check caught), changes as files with `add`, `text` and `config`, coding agents and the judge-only MCP server, the other targets in one table, three studies each with what it does not show, an honest note next to promptfoo, DeepEval, Inspect and Harbor in place of the feature matrix, and install from source (the npm badge and `bunx hone-eval init` are gone until the package is published); the demo gif now records `hone test` and `hone sharpen` on the toy example; the toy's README carries the same run |
 | 2026-10-14 | test | #128 | the nine local servers that tests start bound every interface on a port the kernel chose; twice in a day of full runs a request to 127.0.0.1 on that port reached another process instead (an `HTTP 403: Forbidden` from a server that was not ours, a connection reset); they now bind 127.0.0.1 |
+| 2026-10-14 | T-1201 | #130 | the `agent` scorer: a case says what must hold in the conversation (`calls`, `never`, `order`, `args`, `says`, `never_says`, `judge` in words), with no scorer code; the reason names every broken expectation, the model is asked only when the written ones hold, and without a model a rule in words leaves the trial undecided |

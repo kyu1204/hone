@@ -50,6 +50,8 @@ Targets may implement `resume(prefix, input, ctx)`; `hone fork` uses it to re-ru
 Deterministic (no API): `exact`, `contains`, `regex`, `json-schema`, `tool_used`, `tool_order`, `step_count`, `cost`, `latency`, `file_exists`, `test_command`, `hack` (reward-hack heuristics on diffs).
 RAG: `rag.recall`, `rag.precision`, `rag.citations`, `rag.faithfulness`, `rag.answer_relevance` (read retrieval spans).
 Judges: `jev.noul`, `jev.score`, `jev.choice`, `jev.steps` (Jev System One), `llm.rubric`, `llm.pairwise` (any chat model).
+
+Agents: `agent` reads what each case expects of the conversation: `calls` and `never` (tools that must and must not be called), `order` (tools that must come first), `args` (`{ tool: { argument: value } }`), `says` and `never_says` (the answer), and `judge` (a rule in words, decided by the configured LLM; undecided without one, or with `model: false`). The reason of a failed trial names every expectation it broke; the model is asked only when the written ones hold.
 Consistency: `consistency` re-runs the target on metamorphic mutations of the input.
 
 Every scorer returns `{ value: 0..1, pass: true | false | null, reason?, evidence? }`. A trial passes when no scorer fails and at least one passes; `null` means undecided.

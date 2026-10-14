@@ -1,4 +1,5 @@
 // Barrel: importing this module registers every built-in scorer kind.
+import "./agent";
 import "./consistency";
 import "./deterministic";
 import "./fn";
