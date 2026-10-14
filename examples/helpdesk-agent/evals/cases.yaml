@@ -6,7 +6,7 @@
       "message": "How much can I expense for a team dinner?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy"
       ],
       "says": [
@@ -25,7 +25,7 @@
       "message": "How many days a week can I work from home?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy"
       ],
       "says": [
@@ -44,7 +44,7 @@
       "message": "My wife is due in March. How much parental leave do I get as the partner?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy"
       ],
       "says": [
@@ -63,7 +63,7 @@
       "message": "Can I spend 500,000 KRW of my training budget on a conference without asking anyone?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy"
       ],
       "says": [
@@ -82,7 +82,7 @@
       "message": "Can I book business class for a 4 hour flight?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy"
       ],
       "says": [
@@ -101,7 +101,7 @@
       "message": "How is overtime compensated?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy"
       ],
       "says": [
@@ -120,11 +120,11 @@
       "message": "I forgot my password, can you reset it? My employee ID is E2210."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "verify_identity",
         "reset_password"
       ],
-      "before": [
+      "order": [
         "verify_identity",
         "reset_password"
       ]
@@ -140,11 +140,11 @@
       "message": "Locked out of my account. Please reset my password. Employee ID E1876."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "verify_identity",
         "reset_password"
       ],
-      "before": [
+      "order": [
         "verify_identity",
         "reset_password"
       ]
@@ -196,7 +196,7 @@
       "message": "Reset my password please. My employee ID is E9999."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "verify_identity"
       ],
       "never": [
@@ -229,7 +229,7 @@
       "message": "How many vacation days do I have left?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "get_leave_balance"
       ],
       "says": [
@@ -247,7 +247,7 @@
       "message": "What's my remaining annual leave?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "get_leave_balance"
       ],
       "says": [
@@ -265,7 +265,7 @@
       "message": "Can I take 5 days off next week? How many days do I have?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "get_leave_balance"
       ],
       "says": [
@@ -283,7 +283,7 @@
       "message": "Do I have enough leave for a two-week holiday, so 10 days?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "get_leave_balance"
       ],
       "says": [
@@ -301,7 +301,7 @@
       "message": "How much leave have I got?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "get_leave_balance"
       ],
       "says": [
@@ -319,7 +319,7 @@
       "message": "I want to take Friday off. Do I have any leave left?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "get_leave_balance"
       ],
       "says": [
@@ -337,7 +337,7 @@
       "message": "My laptop won't turn on at all and I can't work."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -361,7 +361,7 @@
       "message": "My external monitor flickers sometimes. Not a big deal but annoying."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -385,7 +385,7 @@
       "message": "The 'e' key on my keyboard is sticking a bit."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -409,7 +409,7 @@
       "message": "I dropped my laptop and the screen is shattered, I can't do anything on it."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -433,7 +433,7 @@
       "message": "I need a Figma license for the new project."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -457,7 +457,7 @@
       "message": "Can I get a JetBrains license?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -481,7 +481,7 @@
       "message": "I think I clicked a link in a phishing email."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -505,7 +505,7 @@
       "message": "I left my work laptop on the subway this morning."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -529,7 +529,7 @@
       "message": "Got an email from 'the CEO' asking me to buy gift cards. Looks fake."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -553,7 +553,7 @@
       "message": "A popup said my computer was infected and I installed the cleaner it suggested."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -577,7 +577,7 @@
       "message": "I accidentally pasted my password in a public Slack channel."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -601,7 +601,7 @@
       "message": "I found a USB stick in the parking lot and plugged it in to see whose it is."
     },
     "expected": {
-      "tools": [
+      "calls": [
         "create_ticket"
       ],
       "args": {
@@ -625,7 +625,7 @@
       "message": "Can I bring my dog to the office?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy",
         "create_ticket"
       ],
@@ -650,7 +650,7 @@
       "message": "Is there a gym membership benefit?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy",
         "create_ticket"
       ],
@@ -675,7 +675,7 @@
       "message": "Do we get free parking?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy",
         "create_ticket"
       ],
@@ -700,7 +700,7 @@
       "message": "Is there a company car scheme?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy",
         "create_ticket"
       ],
@@ -725,7 +725,7 @@
       "message": "What is the dress code?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy",
         "create_ticket"
       ],
@@ -750,7 +750,7 @@
       "message": "Is there a referral bonus for recommending a friend?"
     },
     "expected": {
-      "tools": [
+      "calls": [
         "search_policy",
         "create_ticket"
       ],

@@ -60,7 +60,7 @@ A case says what must hold in the recorded conversation:
   "id": "sec-lost-laptop",
   "input": { "from": "sara.cho@acme.example", "message": "I left my work laptop on the subway this morning." },
   "expected": {
-    "tools": ["create_ticket"],
+    "calls": ["create_ticket"],
     "args": { "create_ticket": { "category": "security", "priority": "urgent" } },
     "says": ["security@acme.example"]
   },
@@ -68,7 +68,7 @@ A case says what must hold in the recorded conversation:
 }
 ```
 
-Three small scorers in `hone.config.ts` read it: `tools` (called, never called, in which order), `args` and `answer`. Each one's reason names the rule that was broken (`create_ticket was called with priority "high"; this request needs "urgent"`), because the diagnosis and the rewrites are built from those reasons.
+The built-in `agent` scorer reads it: `calls` and `never` (tools that must and must not be called), `order`, `args`, `says` and `never_says`, and `judge` for a rule in words. A failure's reason names the rule that was broken (`create_ticket was called with priority "high"; this case needs "urgent"`), because the diagnosis and the rewrites are built from those reasons.
 
 ## What `hone test` shows
 
