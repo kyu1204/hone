@@ -117,6 +117,8 @@ jobs:
           TAG: ${{ needs.check.outputs.tag }}
           SHA: ${{ needs.check.outputs.sha }}
         # the notes are the CHANGELOG section, then the merged pull requests
+        # the tag is pushed with git: creating it through the Releases API (--target) needs a workflows permission the token cannot have
         run: |
+          git ls-remote --exit-code --tags origin "$TAG" >/dev/null || { git tag "$TAG" "$SHA" && git push origin "$TAG"; }
           if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" dist/bin/* --clobber
-          else gh release create "$TAG" dist/bin/* --target "$SHA" --title "hone $TAG" --notes-file notes.md --generate-notes --latest; fi
+          else gh release create "$TAG" dist/bin/* --title "hone $TAG" --notes-file notes.md --generate-notes --latest; fi
