@@ -1,20 +1,50 @@
 name: release
+# A release is the merge of a pull request from `release/vX.Y.Z` (package.json and CHANGELOG already at X.Y.Z).
+# The merge runs the checks, compiles the binaries, publishes to npm and creates tag vX.Y.Z with the GitHub Release.
+# Run it by hand with an existing tag to finish a release that stopped halfway; every step skips what is already done.
 on:
-  push:
-    tags: ["v*"]
+  pull_request:
+    types: [closed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to (re)release, e.g. v0.1.0"
+        required: true
 permissions:
   contents: read
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
   check:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.pull_request.merged == true &&
+       startsWith(github.event.pull_request.head.ref, 'release/v') &&
+       github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      sha: ${{ steps.v.outputs.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ inputs.tag && format('refs/tags/{0}', inputs.tag) || github.event.pull_request.merge_commit_sha }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
+      - name: the tag is the branch name and must match package.json
+        id: v
+        env:
+          REF: ${{ inputs.tag || github.event.pull_request.head.ref }}
+        run: |
+          TAG="${REF#release/}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - run: bun install --frozen-lockfile
       - run: bun run check
-      - run: bun scripts/release-check.ts "${GITHUB_REF_NAME}"
+      - run: bun scripts/release-check.ts "${{ steps.v.outputs.tag }}"
   binaries:
     needs: check
     runs-on: ubuntu-latest
@@ -23,6 +53,8 @@ jobs:
         target: [bun-linux-x64, bun-linux-x64-musl, bun-linux-arm64, bun-darwin-x64, bun-darwin-arm64, bun-windows-x64]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
@@ -41,19 +73,28 @@ jobs:
       id-token: write # npm trusted publishing (OIDC); no NPM_TOKEN secret
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ needs.check.outputs.sha }}
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+      - run: npm install -g npm@latest # trusted publishing needs npm >= 11.5.1
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - run: bun publish --access public --provenance
+      - name: publish, unless this version is on npm already
+        run: |
+          V="$(node -p 'require("./package.json").version')"
+          if npm view "hone-eval@$V" version >/dev/null 2>&1; then echo "hone-eval@$V is on npm already"; else npm publish --provenance --access public; fi
   release:
-    needs: [binaries, publish]
+    needs: [check, binaries, publish]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           path: artifacts
@@ -62,7 +103,12 @@ jobs:
           mkdir -p dist/bin
           find artifacts -type f -name 'hone-*' -exec cp {} dist/bin/ \;
           (cd dist/bin && sha256sum hone-* > SHA256SUMS && cat SHA256SUMS)
-      - name: create the GitHub release
+      - name: tag and GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "${GITHUB_REF_NAME}" dist/bin/* --title "hone ${GITHUB_REF_NAME}" --generate-notes
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.check.outputs.tag }}
+          SHA: ${{ needs.check.outputs.sha }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then gh release upload "$TAG" dist/bin/* --clobber
+          else gh release create "$TAG" dist/bin/* --target "$SHA" --title "hone $TAG" --generate-notes --latest; fi
