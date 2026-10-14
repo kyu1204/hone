@@ -27,7 +27,7 @@ Read the one reference that matches the request before doing anything else. `hon
 | Needing one step on its own: compare two targets, look at one trial, cluster failures, check a judge | `steps` | [references/steps.md](references/steps.md) |
 | Working through the MCP server instead of a shell | `mcp` | [references/mcp.md](references/mcp.md) |
 
-The full documentation ships in the `docs/` directory of the installed package (`node_modules/honed/docs`).
+The full documentation ships in the `docs/` directory of the installed package (`node_modules/hone-eval/docs`).
 
 ## Workflow: improving a system
 
@@ -38,7 +38,7 @@ The full documentation ships in the `docs/` directory of the installed package (
 5. Write one change per hypothesis as a file under `sharpen/` (topic `sharpening`):
    ```ts
    // sharpen/terse-answers.ts
-   import { change } from "honed";
+   import { change } from "hone-eval";
 
    change("answer with the bare value", {
      why: "the cases expect the answer alone; the bot wraps it in a sentence",
@@ -51,7 +51,7 @@ The full documentation ships in the `docs/` directory of the installed package (
 
 ## Rules
 
-- Run the CLI as `hone ...` (`bunx honed ...` when it is not installed in the project).
+- Run the CLI as `hone ...` (`bunx hone-eval ...` when it is not installed in the project).
 - One hypothesis per change, and say it in `why`. A change that does three things cannot tell you which one helped. For a text, that means one `add` per rule: do not write one big text yourself, hone puts the additions together and shows what each was worth.
 - Never edit a file the current system runs. Put new code in a new file and point the change's `config` function at it. If the baseline changes too, there is nothing left to compare against.
 - Do not open the case files to tune against them, and never copy a case's expected answer into a prompt or into code. A third of the cases is held out for the final check; the diagnosis page shows you the ones you may learn from.

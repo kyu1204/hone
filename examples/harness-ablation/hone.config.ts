@@ -1,5 +1,5 @@
 // Correction commands on an offline target: ablate rules, evolve the rules text, optimize between candidates.
-import { defineConfig, type HoneConfig } from "../../src/index.ts"; // in your project: from "honed"
+import { defineConfig, type HoneConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
 
 const RULES = ["Answer with the number only.", "Round to the nearest integer.", "Never include units."];
 

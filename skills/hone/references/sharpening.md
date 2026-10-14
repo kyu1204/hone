@@ -25,7 +25,7 @@ A change is a file under `sharpen/` that calls `change()`. One hypothesis per ca
 
 ```ts
 // sharpen/terse-answers.ts
-import { change } from "honed";
+import { change } from "hone-eval";
 
 change("answer with the bare value", {
   why: "the cases expect the answer alone; the bot wraps it in a sentence",
@@ -71,7 +71,7 @@ A change never edits a file the current system runs. Write the new version besid
 
 ```ts
 // sharpen/rerank.ts
-import { change } from "honed";
+import { change } from "hone-eval";
 import { answerWithRerank } from "../src/answer-rerank";   // a new file
 
 change("rerank the retrieved chunks", {

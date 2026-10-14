@@ -1,5 +1,5 @@
 // The system under test: a tiny help-desk bot. It looks an answer up and words it the way a style text says.
-import type { HoneConfig } from "../../src/index.ts"; // in your project: from "honed"
+import type { HoneConfig } from "../../src/index.ts"; // in your project: from "hone-eval"
 
 const FACTS: Record<string, string> = {
   "what is the return window": "30 days",

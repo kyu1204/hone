@@ -159,7 +159,7 @@ const SHARPEN_HINT = `  // What \`hone sharpen\` may change. Uncomment and point
   // },
 `;
 
-export function renderConfig(d: Detection, importFrom = "honed"): string {
+export function renderConfig(d: Detection, importFrom = "hone-eval"): string {
   const targets = d.targets.map((t) => `    ${JSON.stringify(t.id)}: ${t.spec},`).join("\n");
   const notes = d.notes.map((n) => `// ${n}`).join("\n");
   const preamble = d.preamble.join("\n");
