@@ -100,6 +100,8 @@ def answer(input, ctx):
 
 The system prompt comes from `params` in the config, which is what lets a change replace it without touching your code.
 
+You do not have to write the cases first. `hone init --cases` has hone's model read the agent's prompt and code (its tools, its data, its policies), draft cases in that form into `evals/drafted.yaml`, run them once and say which fail, the way a QA engineer would start. The drafts are proposals: keep the ones that say what the agent should do.
+
 [`examples/helpdesk-agent`](./examples/helpdesk-agent/) is such an agent, the same one in LangChain and in Strands: six tools, a one-line prompt, 36 cases over six house rules. Measured once per arm, on 12 held-out cases ([`docs/benchmarks/custom-agents.md`](./docs/benchmarks/custom-agents.md)):
 
 | | hone's own model writes the rewrites | Codex writes the change files, hone only judges |

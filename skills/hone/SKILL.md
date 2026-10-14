@@ -31,9 +31,10 @@ The full documentation ships in the `docs/` directory of the installed package (
 ## Workflow: improving a system
 
 1. Look at what exists: `hone.config.ts`, the cases (`evals/`), the changes already tried (`sharpen/`). No config: follow `setup`.
-2. Measure: `hone test`. If the system errors, fix that first; an error is not a wrong answer.
-3. Read why cases fail: `hone sharpen --budget 0` measures, diagnoses and names a page, `.hone/sharpen/<id>-diagnosis.md`. Read that page. It shows each failure mode with failing cases in full.
-4. Write one change per hypothesis as a file under `sharpen/` (topic `sharpening`):
+2. No cases yet, or too few: `hone init --cases` has hone's model read the agent's prompt and code, draft cases into `evals/drafted.yaml`, run them once and say which fail (`--read <file>` for the files that define the agent). Read the drafts and delete the ones that do not describe what the agent should do; they are proposals, like change files. Or write cases yourself (topic `cases`).
+3. Measure: `hone test`. If the system errors, fix that first; an error is not a wrong answer.
+4. Read why cases fail: `hone sharpen --budget 0` measures, diagnoses and names a page, `.hone/sharpen/<id>-diagnosis.md`. Read that page. It shows each failure mode with failing cases in full.
+5. Write one change per hypothesis as a file under `sharpen/` (topic `sharpening`):
    ```ts
    // sharpen/terse-answers.ts
    import { change } from "hone-eval";
@@ -44,8 +45,8 @@ The full documentation ships in the `docs/` directory of the installed package (
    });
    ```
    `add` is one paragraph for the text as it is; hone stacks the additions that help into one text. `text` replaces the whole text.
-5. Run the cycle: `hone sharpen`. It tries every change, pairs changes that only help together, and checks the best one on the held-out cases.
-6. Report the `Result:` line as printed, with what was tried. Apply a change to the project only when the verdict is `PROVEN`, or when the user decides otherwise knowing the verdict. After applying one, delete its file from `sharpen/`: it is now part of the system and would only be tried against itself.
+6. Run the cycle: `hone sharpen`. It tries every change, pairs changes that only help together, and checks the best one on the held-out cases.
+7. Report the `Result:` line as printed, with what was tried. Apply a change to the project only when the verdict is `PROVEN`, or when the user decides otherwise knowing the verdict. After applying one, delete its file from `sharpen/`: it is now part of the system and would only be tried against itself.
 
 ## Rules
 
