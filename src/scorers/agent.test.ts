@@ -70,7 +70,7 @@ describe("agent scorer", () => {
   test("judge: a rule in words, decided by the model from the whole conversation", async () => {
     const no = stubModel({ verdict: "fail", reason: "it never says to write to the security team" });
     const r = await judge({ calls: ["create_ticket"], judge: "tells the employee to report the incident within the hour" }, said([ticket("security", "urgent")], "Ticket T-1 is open."), { provider: no.provider });
-    expect(r).toMatchObject({ pass: false, reason: "tells the employee to report the incident within the hour: it never says to write to the security team" });
+    expect(r).toMatchObject({ pass: false, reason: "it never says to write to the security team (the rule: tells the employee to report the incident within the hour)" });
     expect(no.asked[0]).toContain("create_ticket"); // the model sees the tool calls, not only the answer
     const yes = stubModel({ verdict: "pass", reason: "it does" });
     expect((await judge({ judge: ["a", "b"] }, said([], "fine"), { provider: yes.provider })).pass).toBe(true);

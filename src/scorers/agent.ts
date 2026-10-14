@@ -103,7 +103,7 @@ export function agentScorer(spec: AgentSpec): Scorer {
       for (const rule of rules) {
         const r = await ask(rule, trace, spec);
         costUsd += r.costUsd;
-        if (r.pass === false) failed.push(`${rule}: ${r.reason}`);
+        if (r.pass === false) failed.push(`${r.reason} (the rule: ${rule})`);
         else if (r.pass === null) undecided.push(r.reason);
       }
       if (failed.length) return { scorer: "", value: 0, pass: false, reason: failed.join("; "), costUsd };
