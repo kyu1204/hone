@@ -138,11 +138,11 @@ Why: the agents teams build in-house (LangChain, Strands) are where an evaluatio
 
 ## P12 The QA engineer (after P11)
 
-Why: e2e's three layers, mapped onto evaluation: a grammar for cases, tools a coding agent can drive, and hone's own AI writing the cases, running them and reporting.
+Why: e2e's three layers, mapped onto evaluation: a grammar for cases, tools a coding agent can drive, and hone's own AI writing the cases, running them and reporting. No new command: the three stay `init`, `test`, `sharpen`.
 
 - [x] T-1201 A case says what must hold in the agent's conversation: the `agent` scorer (S)
-- [ ] T-1202 `hone try`: one message to the agent, the whole conversation back (S)
-- [ ] T-1203 `hone explore`: hone writes the cases from what the agent is for, runs them and reports (M)
+- [ ] T-1202 `hone try`: one message to the agent, the whole conversation back (S) DROPPED: no new command (the maintainer's call)
+- [ ] T-1203 `hone init --cases`: hone writes the cases from what the agent is for, runs them and reports (M)
 
 ## Progress log
 
