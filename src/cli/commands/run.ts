@@ -12,12 +12,15 @@ import { renderReport } from "../../io/export/html";
 import { createScorers } from "../../scorers/index";
 import { createTargets } from "../../targets/index";
 import { ArgError, parseArgs, usageLine } from "../args";
+import { bar, type Paint, paint } from "../paint";
 
 export interface CommandIo {
   stdout: (s: string) => void;
   stderr: (s: string) => void;
   cwd: string;
   env: Record<string, string | undefined>;
+  /** Colors for a person at a terminal; see colorOn. */
+  color?: boolean;
 }
 
 export const RUN_SPEC = {
@@ -69,12 +72,12 @@ export function evaluateGates(config: HoneConfig, summary: RunSummary): GateResu
   return out;
 }
 
-const dots = (trials: Trial[]): string => {
-  const shown = trials.slice(0, 5).map((t) => (t.pass === true ? "●" : "○")).join("");
+const dots = (trials: Trial[], p: Paint): string => {
+  const shown = trials.slice(0, 5).map((t) => (t.pass === true ? p.green("●") : t.pass === false ? p.red("○") : p.dim("○"))).join("");
   return trials.length > 5 ? `${shown}+` : shown;
 };
 
-export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], targetIds: string[]): string {
+export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], targetIds: string[], p: Paint = paint()): string {
   const caseIds = [...new Set(plan.cells.map((c) => c.caseId))];
   const byCell = new Map<string, Trial[]>();
   for (const t of trials) {
@@ -85,14 +88,17 @@ export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], t
   const caseWidth = Math.max(12, ...caseIds.map((c) => c.length)) + 2;
   const colWidth = 14;
   const lines: string[] = [];
-  lines.push(`${"case \\ target".padEnd(caseWidth)}${targetIds.map((t) => t.slice(0, colWidth - 1).padEnd(colWidth)).join("")}`);
-  lines.push(`${"-".repeat(caseWidth - 1)} ${targetIds.map(() => `${"-".repeat(colWidth - 1)} `).join("")}`);
+  lines.push(p.bold(`${"case \\ target".padEnd(caseWidth)}${targetIds.map((t) => t.slice(0, colWidth - 1).padEnd(colWidth)).join("")}`));
+  lines.push(p.dim(`${"-".repeat(caseWidth - 1)} ${targetIds.map(() => `${"-".repeat(colWidth - 1)} `).join("")}`));
   for (const c of caseIds) {
     const cells = targetIds.map((t) => {
       const v = verdict(c, t);
-      if (!v || v.n === 0) return "·".padEnd(colWidth);
-      const flagged = (byCell.get(`${c}\u0000${t}`) ?? []).some((x) => x.flags.includes("reward-hack")) ? " ⚑" : "";
-      return `${dots(byCell.get(`${c}\u0000${t}`) ?? [])} ${v.passAt1.toFixed(2)}${flagged}`.padEnd(colWidth);
+      if (!v || v.n === 0) return p.dim("·".padEnd(colWidth));
+      const cell = byCell.get(`${c}\u0000${t}`) ?? [];
+      const flagged = cell.some((x) => x.flags.includes("reward-hack")) ? " ⚑" : "";
+      // padded on the plain text, so the columns line up with colors on
+      const plain = `${dots(cell, paint())} ${v.passAt1.toFixed(2)}${flagged}`;
+      return `${dots(cell, p)} ${p.rate(v.passAt1, v.passAt1.toFixed(2))}${p.yellow(flagged)}${" ".repeat(Math.max(0, colWidth - plain.length))}`;
     });
     lines.push(`${c.slice(0, caseWidth - 2).padEnd(caseWidth)}${cells.join("")}`);
   }
@@ -105,7 +111,8 @@ export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], t
     .map(([f, n]) => `${n} ${f}`)
     .join(", ");
   lines.push("");
-  lines.push(`pass@1 ${summary.totals.passAt1.toFixed(2)}   pass^3 ${passHat3}   trials ${summary.totals.trials} (${summary.totals.cached} cached)   cost $${summary.totals.costUsd.toFixed(4)}   tokens/solve ${perSolve}${flagged ? `   ${flagged}` : ""}`);
+  const rate = summary.totals.passAt1;
+  lines.push(`${p.bold("pass@1")} ${p.rate(rate, `${rate.toFixed(2)} ${bar(rate)}`)}   pass^3 ${passHat3}   trials ${summary.totals.trials} (${summary.totals.cached} cached)   cost $${summary.totals.costUsd.toFixed(4)}   tokens/solve ${perSolve}${flagged ? `   ${flagged}` : ""}`);
   return `${lines.join("\n")}\n`;
 }
 
@@ -239,7 +246,7 @@ export async function runCommand(argv: string[], io: CommandIo): Promise<number>
     const target = args.values.json[0];
     if (target) fs.writeFileSync(path.resolve(io.cwd, target), doc);
     else io.stdout(`${doc}\n`);
-  } else io.stdout(renderMatrix(plan, summary, trials, targetIds));
+  } else io.stdout(renderMatrix(plan, summary, trials, targetIds, paint(io.color)));
   if (args.values.report) {
     const out = path.resolve(io.cwd, args.values.report[0] || "report.html");
     fs.writeFileSync(out, renderReport(runId, trials, summary as unknown as Record<string, unknown>));
