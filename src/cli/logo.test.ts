@@ -4,14 +4,14 @@ import { logoFrames, showLogo } from "./logo";
 const strip = (s: string) => s.replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;?]*[mA-Zlh]`, "g"), "");
 
 describe("logo", () => {
-  test("the dots of h, o, n, e appear column by column, and the last frame is the whole word", () => {
+  test("the block letters of hone appear column by column, and the last frame is the whole word", () => {
     const frames = logoFrames();
     expect(frames.length).toBeGreaterThan(4);
     const rows = (f: string) => strip(f).split("\n");
-    expect(rows(frames[0]!).join("")).not.toContain("●");
+    expect(rows(frames[0]!).join("").trim()).toBe("");
     const last = rows(frames.at(-1)!);
-    expect(last).toHaveLength(7);
-    expect(last[2]).toContain("●●●●●●");
+    expect(last).toHaveLength(6);
+    expect(last[2]).toContain("███████║");
     // every frame has the same shape, so redrawing in place does not jump
     for (const f of frames) expect(rows(f).map((r) => r.length)).toEqual(last.map((r) => r.length));
   });

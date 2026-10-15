@@ -1,0 +1,9 @@
+[
+  {
+    "id": "summarise-readme",
+    "input": "Summarise this repository's README in one sentence.",
+    "tags": [
+      "smoke"
+    ]
+  }
+]
