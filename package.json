@@ -1,6 +1,6 @@
 {
   "name": "hone-eval",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Evaluate. Correct. Sharpen. A terminal-first evaluation tool for RAG, agents, LLM QA and coding-agent harnesses.",
   "license": "Apache-2.0",
   "repository": {
