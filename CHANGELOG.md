@@ -2,6 +2,14 @@
 
 All notable changes to hone are recorded here. The format follows Keep a Changelog; versions follow semver.
 
+## 0.1.2 (2026-10-15)
+
+### Terminal look
+- `init`, `draft`, `test` and `sharpen` open with hone in block letters (cfonts) that form out of scattered dots (░ ▒ ▓) and then shine, in about 1.7 seconds.
+- `hone test` shows one spinner with the running counts (trials, passes, fails, cost) instead of a line per trial (@clack/prompts), then a bordered table of cases by targets (cli-table3) with passes in green, fails in red and each pass rate colored, and pass@1 as a bar.
+- `hone sharpen` shows the verdict as a colored badge (PROVEN, PROMISING, NO GAIN) in a rounded box with what to adopt, a bar for the current pass rate and for each change tried, and dims the changes that did not help. `hone draft` shows its passes and fails in color with a bar.
+- Only for a person at a terminal: piped output, `--json`, `--quiet` and `NO_COLOR` give the plain text as before (`FORCE_COLOR` turns the look on anywhere). The plain `hone test` summary now ends pass@1 with a bar.
+
 ## 0.1.1 (2026-10-15)
 
 ### Docs
