@@ -64,6 +64,8 @@ describe("hone test", () => {
     await runCommand(["--quiet"], o);
     expect(out).toContain("\x1b[32m●");
     expect(strip(out)).toMatch(/pass@1 0\.33 ███░░░░░░░/);
+    expect(strip(out)).toMatch(/┌─+┬/); // a bordered table
+    expect(strip(out)).toMatch(/│ greet\s+│/);
     const plain = io(dir);
     await runCommand(["--quiet"], plain);
     expect(plain.out).not.toContain("\x1b[");
