@@ -1,3 +1,4 @@
+import { spinner } from "@clack/prompts";
 import Table from "cli-table3";
 import * as fs from "node:fs";
 import * as path from "node:path";
@@ -133,6 +134,8 @@ export interface RunOptions {
   quiet?: boolean;
   stderr: (s: string) => void;
   color?: boolean;
+  /** Called for each finished trial in place of the progress line, e.g. to drive a spinner. */
+  onTrial?: (trial: Trial, cached: boolean) => void;
 }
 
 export interface RunOutcome {
@@ -201,7 +204,8 @@ export async function performRun(opts: RunOptions): Promise<RunOutcome> {
     cost += trial.costUsd;
     if (opts.maxCost !== undefined && cost > opts.maxCost) ctrl.abort();
     const p = paint(opts.color);
-    if (!opts.quiet) opts.stderr(`${trial.pass === true ? p.green("✓") : trial.pass === false ? p.red("✗") : "·"} ${trial.trace.caseId} ${p.dim(`${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}`)}\n`);
+    if (opts.onTrial) opts.onTrial(trial, cached);
+    else if (!opts.quiet) opts.stderr(`${trial.pass === true ? p.green("✓") : trial.pass === false ? p.red("✗") : "·"} ${trial.trace.caseId} ${p.dim(`${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}`)}\n`);
   });
   const execute = createExecutor({ targets, scorers, scorerSpecs: config.scorers, cases, cache, store, events, gates: config.gates, runId: run.id, useCache: opts.useCache ?? true, signal: ctrl.signal });
   const summary = await runPlan(plan, { runId: run.id, execute, events, signal: ctrl.signal });
@@ -209,6 +213,34 @@ export async function performRun(opts: RunOptions): Promise<RunOutcome> {
   for (const t of Object.values(targets)) await t.close?.();
   store.close();
   return { config, configHash: loaded.hash, plan, summary, trials, gates: evaluateGates(config, summary), runId: run.id, cost, targetIds: [...new Set(plan.cells.map((c) => c.targetId))], storeRoot: root };
+}
+
+/** A spinner on stderr that counts trials as they finish. */
+function spinnerProgress(): { onTrial: (t: Trial, cached: boolean) => void; done: () => void } {
+  const p = paint(true);
+  const s = spinner({ output: process.stderr });
+  let n = 0;
+  let pass = 0;
+  let fail = 0;
+  let cost = 0;
+  const started = Date.now();
+  const line = () => `${n} trials   ${p.green(`✓ ${pass}`)}   ${p.red(`✗ ${fail}`)}   ${p.dim(`$${cost.toFixed(4)}`)}`;
+  s.start("running the cases");
+  let open = true;
+  return {
+    onTrial: (t) => {
+      n++;
+      if (t.pass === true) pass++;
+      else if (t.pass === false) fail++;
+      cost += t.costUsd;
+      s.message(line());
+    },
+    done: () => {
+      if (!open) return;
+      open = false;
+      s.stop(`${line()}   ${p.dim(`${((Date.now() - started) / 1000).toFixed(1)}s`)}`);
+    },
+  };
 }
 
 export async function runCommand(argv: string[], io: CommandIo): Promise<number> {
@@ -227,6 +259,7 @@ export async function runCommand(argv: string[], io: CommandIo): Promise<number>
   if (args.values.target) filter.targets = args.values.target;
   if (args.values.case) filter.cases = args.values.case;
   if (args.values.tag) filter.tags = args.values.tag;
+  const progress = io.color && !args.flags.quiet && process.stderr.isTTY ? spinnerProgress() : undefined;
   let outcome: RunOutcome;
   try {
     outcome = await performRun({
@@ -242,8 +275,11 @@ export async function runCommand(argv: string[], io: CommandIo): Promise<number>
       quiet: args.flags.quiet,
       stderr: io.stderr,
       color: io.color,
+      onTrial: progress?.onTrial,
     });
+    progress?.done();
   } catch (e) {
+    progress?.done();
     io.stderr(`${e instanceof Error ? e.message : String(e)}\n`);
     return e instanceof RunError ? e.code : 2;
   }
