@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { bar, colorOn, decorateSharpen, paint } from "./paint";
 
-const strip = (s: string) => s.replace(/\x1b\[[0-9;]*m/g, "");
+const strip = (s: string) => s.replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g"), "");
 
 describe("paint", () => {
   test("colors only on a terminal, and never with NO_COLOR; FORCE_COLOR turns them on anywhere", () => {
