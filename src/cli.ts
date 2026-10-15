@@ -1,4 +1,6 @@
 #!/usr/bin/env bun
+import { showLogo } from "./cli/logo";
+import { colorOn } from "./cli/paint";
 import { ablateCommand } from "./cli/commands/ablate";
 import { bisectCommand } from "./cli/commands/bisect";
 import { calibrateCommand } from "./cli/commands/calibrate";
@@ -88,7 +90,7 @@ export function usageAll(): string {
 }
 
 export async function main(argv: string[]): Promise<number> {
-  const io: CommandIo = { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s), cwd: process.cwd(), env: process.env };
+  const io: CommandIo = { stdout: (s) => process.stdout.write(s), stderr: (s) => process.stderr.write(s), cwd: process.cwd(), env: process.env, color: colorOn(process.env, Boolean(process.stdout.isTTY)) };
   const [name, ...rest] = argv;
   if (!name && process.stdout.isTTY && process.stdin.isTTY) return tuiCommand([], io);
   if (!name || name === "--help" || name === "-h" || name === "help") {
@@ -104,8 +106,12 @@ export async function main(argv: string[]): Promise<number> {
     io.stderr(`unknown command "${name}"\n\n${usage()}`);
     return 2;
   }
+  if (LOGO.has(name)) await showLogo(rest, { isTTY: Boolean(process.stderr.isTTY && process.stdout.isTTY), env: process.env, write: (s) => process.stderr.write(s), sleep: (ms) => Bun.sleep(ms) });
   return cmd.run(rest, io);
 }
+
+// the everyday commands open with the logo, for a person at a terminal
+const LOGO = new Set(["init", "draft", "test", "sharpen"]);
 
 if (import.meta.main) {
   main(process.argv.slice(2)).then(
