@@ -1,12 +1,12 @@
 // The word "hone" in dots, lit column by column when a person starts a command at a terminal.
 
 const GLYPHS = [
-  ["●    ", "●    ", "●●●● ", "●   ●", "●   ●"], // h
-  ["     ", " ●●● ", "●   ●", "●   ●", " ●●● "], // o
-  ["     ", "●●●● ", "●   ●", "●   ●", "●   ●"], // n
-  ["     ", " ●●● ", "●●●●●", "●    ", " ●●●●"], // e
+  ["●●     ", "●●     ", "●●●●●● ", "●●   ●●", "●●   ●●", "●●   ●●", "●●   ●●"], // h
+  ["       ", "       ", " ●●●●● ", "●●   ●●", "●●   ●●", "●●   ●●", " ●●●●● "], // o
+  ["       ", "       ", "●●●●●● ", "●●   ●●", "●●   ●●", "●●   ●●", "●●   ●●"], // n
+  ["       ", "       ", " ●●●●● ", "●●   ●●", "●●●●●●●", "●●     ", " ●●●●●●"], // e
 ];
-const ROWS = [0, 1, 2, 3, 4].map((r) => GLYPHS.map((g) => g[r]).join(" "));
+const ROWS = GLYPHS[0]!.map((_, r) => GLYPHS.map((g) => g[r]).join(" "));
 const WIDTH = ROWS[0]!.length;
 // a cyan to blue sweep across the word (256-color codes)
 const SHADES = [51, 45, 39, 33, 27];
