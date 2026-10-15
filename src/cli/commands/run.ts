@@ -99,7 +99,7 @@ export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], t
   };
   if (p.on) {
     // a person at a terminal gets a bordered table
-    const table = new Table({ head: ["case", ...targetIds].map((h) => p.bold(h)), style: { head: [], border: ["gray"] } });
+    const table = new Table({ head: ["case", ...targetIds].map((h) => p.bold(h)), style: { head: [], border: ["gray"] }, chars: { mid: "", "left-mid": "", "mid-mid": "", "right-mid": "" } });
     for (const c of caseIds) table.push([c, ...targetIds.map((t) => cellText(c, t, p))]);
     lines.push(table.toString());
   } else {
