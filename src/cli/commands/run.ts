@@ -128,6 +128,7 @@ export interface RunOptions {
   maxCost?: number;
   quiet?: boolean;
   stderr: (s: string) => void;
+  color?: boolean;
 }
 
 export interface RunOutcome {
@@ -195,7 +196,8 @@ export async function performRun(opts: RunOptions): Promise<RunOutcome> {
     trials.push(trial);
     cost += trial.costUsd;
     if (opts.maxCost !== undefined && cost > opts.maxCost) ctrl.abort();
-    if (!opts.quiet) opts.stderr(`${trial.pass === true ? "✓" : trial.pass === false ? "✗" : "·"} ${trial.trace.caseId} ${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}\n`);
+    const p = paint(opts.color);
+    if (!opts.quiet) opts.stderr(`${trial.pass === true ? p.green("✓") : trial.pass === false ? p.red("✗") : "·"} ${trial.trace.caseId} ${p.dim(`${trial.trace.targetId} #${trial.trace.trial}${cached ? " (cached)" : ""} $${trial.costUsd.toFixed(4)}`)}\n`);
   });
   const execute = createExecutor({ targets, scorers, scorerSpecs: config.scorers, cases, cache, store, events, gates: config.gates, runId: run.id, useCache: opts.useCache ?? true, signal: ctrl.signal });
   const summary = await runPlan(plan, { runId: run.id, execute, events, signal: ctrl.signal });
@@ -235,6 +237,7 @@ export async function runCommand(argv: string[], io: CommandIo): Promise<number>
       maxCost: args.numbers["max-cost"],
       quiet: args.flags.quiet,
       stderr: io.stderr,
+      color: io.color,
     });
   } catch (e) {
     io.stderr(`${e instanceof Error ? e.message : String(e)}\n`);

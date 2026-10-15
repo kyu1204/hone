@@ -4,6 +4,7 @@ import type { ChatFn } from "../../correct/evolve";
 import { sharpen } from "../../correct/sharpen";
 import { chat, LlmConfigError, resolveLlmProvider } from "../../providers/llm";
 import { ArgError, parseArgs, usageLine } from "../args";
+import { decorateSharpen, paint } from "../paint";
 import type { CommandIo } from "./run";
 
 export const SHARPEN_SPEC = { flags: ["json", "no-cache", "no-rewrites", "quiet"], strings: [], numbers: ["budget", "max-cost", "until", "trials", "holdout", "seed", "alpha"], repeatable: [] } as const;
@@ -63,7 +64,7 @@ export async function sharpenCommand(argv: string[], io: CommandIo, deps: { chat
   }
   try {
     const r = await sharpen({ config: loaded.config, hash: loaded.hash, cwd: io.cwd, changes, chat: chatFn, rewrites: args.flags["no-rewrites"] !== true, budget: args.numbers.budget, maxCost: args.numbers["max-cost"], until: args.numbers.until, trials: args.numbers.trials, holdout: args.numbers.holdout, seed: args.numbers.seed, alpha: args.numbers.alpha, useCache: args.flags["no-cache"] !== true, log: args.flags.quiet ? undefined : io.stderr });
-    io.stdout(args.flags.json ? `${JSON.stringify(r, null, 2)}\n` : r.message);
+    io.stdout(args.flags.json ? `${JSON.stringify(r, null, 2)}\n` : decorateSharpen(r.message, paint(io.color)));
     return r.verdict === "cannot measure" ? 1 : 0;
   } catch (e) {
     io.stderr(`sharpen failed: ${e instanceof Error ? e.message : String(e)}\n`);
