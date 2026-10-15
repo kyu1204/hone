@@ -1,23 +1,19 @@
-// The word "hone" in dots, lit column by column when a person starts a command at a terminal.
+// "hone" in cfonts' block letters, lit column by column in a cyan to blue sweep when a person starts a command at a terminal.
+import { render } from "cfonts";
 
-const GLYPHS = [
-  ["●●     ", "●●     ", "●●●●●● ", "●●   ●●", "●●   ●●", "●●   ●●", "●●   ●●"], // h
-  ["       ", "       ", " ●●●●● ", "●●   ●●", "●●   ●●", "●●   ●●", " ●●●●● "], // o
-  ["       ", "       ", "●●●●●● ", "●●   ●●", "●●   ●●", "●●   ●●", "●●   ●●"], // n
-  ["       ", "       ", " ●●●●● ", "●●   ●●", "●●●●●●●", "●●     ", " ●●●●●●"], // e
-];
-const ROWS = GLYPHS[0]!.map((_, r) => GLYPHS.map((g) => g[r]).join(" "));
-const WIDTH = ROWS[0]!.length;
-// a cyan to blue sweep across the word (256-color codes)
-const SHADES = [51, 45, 39, 33, 27];
-const lit = (col: number) => `\x1b[1;38;5;${SHADES[Math.min(SHADES.length - 1, Math.floor((col / WIDTH) * SHADES.length))]}m●\x1b[0m`;
-const off = "\x1b[2m·\x1b[0m";
+const ANSI = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*m`, "g");
+// the letters without cfonts' own colors, so the sweep can color and reveal them column by column
+const ROWS = (render("hone", { font: "block", colors: ["system"], space: false, env: "node" }) as { string: string }).string.split("\n").map((r) => r.replace(ANSI, "").trimEnd()).filter((r) => r.trim() !== "");
+const WIDTH = Math.max(...ROWS.map((r) => r.length));
+// 256-color codes from cyan to blue
+const SHADES = [51, 45, 39, 33, 27, 21];
+const lit = (ch: string, col: number) => `\x1b[1;38;5;${SHADES[Math.min(SHADES.length - 1, Math.floor((col / WIDTH) * SHADES.length))]}m${ch}\x1b[0m`;
 
 /** One frame per column lit, from none to the whole word. Every frame has the same shape. */
 export function logoFrames(): string[] {
   const frames: string[] = [];
-  for (let upTo = 0; upTo <= WIDTH; upTo++) {
-    frames.push(ROWS.map((row) => [...row].map((ch, col) => (ch === "●" && col < upTo ? lit(col) : ch === "●" ? off : " ")).join("")).join("\n"));
+  for (let upTo = 0; upTo <= WIDTH + 1; upTo += 2) {
+    frames.push(ROWS.map((row) => [...row.padEnd(WIDTH)].map((ch, col) => (ch !== " " && col < upTo ? lit(ch, col) : " ")).join("")).join("\n"));
   }
   return frames;
 }

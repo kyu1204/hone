@@ -36,9 +36,12 @@
     "typescript": "latest"
   },
   "dependencies": {
+    "@clack/prompts": "1.8.1",
     "@opentui/core": "0.6.0",
     "@opentui/react": "0.6.0",
     "@opentui/ssh": "0.6.0",
+    "cfonts": "3.3.1",
+    "cli-table3": "0.6.5",
     "react": "19.3.0"
   }
 }
