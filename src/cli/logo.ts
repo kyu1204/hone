@@ -10,8 +10,8 @@ const SHADES = [51, 45, 39, 33, 27, 21];
 const shade = (col: number): number => SHADES[Math.min(SHADES.length - 1, Math.floor((col / WIDTH) * SHADES.length))]!;
 const paint = (ch: string, code: number) => `\x1b[1;38;5;${code}m${ch}\x1b[0m`;
 const STAGES = ["░", "▒", "▓"];
-const FORM = 22; // frames for the dots to form the letters
-const SHINE = 10; // frames for the band to cross
+const FORM = 30; // frames for the dots to form the letters
+const SHINE = 16; // frames for the band to cross
 
 // each cell starts forming at its own moment; seeded, so every run (and the test) sees the same dance
 function starts(): number[][] {
@@ -59,7 +59,7 @@ export async function showLogo(argv: string[], io: LogoIo): Promise<boolean> {
   const pad = (f: string) => f.split("\n").map((r) => `  ${r}`).join("\n");
   io.write(`\x1b[?25l\n${pad(frames[0]!)}\n`);
   for (const f of frames.slice(1)) {
-    await io.sleep(28);
+    await io.sleep(50);
     io.write(`\x1b[${ROWS.length}A\r${pad(f)}\n`);
   }
   io.write(`\n  \x1b[2mEvaluate. Correct. Sharpen.\x1b[0m\n\n\x1b[?25h`);
