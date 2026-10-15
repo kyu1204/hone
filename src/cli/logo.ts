@@ -59,7 +59,7 @@ export async function showLogo(argv: string[], io: LogoIo): Promise<boolean> {
   const pad = (f: string) => f.split("\n").map((r) => `  ${r}`).join("\n");
   io.write(`\x1b[?25l\n${pad(frames[0]!)}\n`);
   for (const f of frames.slice(1)) {
-    await io.sleep(50);
+    await io.sleep(36);
     io.write(`\x1b[${ROWS.length}A\r${pad(f)}\n`);
   }
   io.write(`\n  \x1b[2mEvaluate. Correct. Sharpen.\x1b[0m\n\n\x1b[?25h`);
