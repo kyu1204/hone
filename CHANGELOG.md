@@ -2,9 +2,17 @@
 
 All notable changes to hone are recorded here. The format follows Keep a Changelog; versions follow semver.
 
-## 0.1.0 (2026-10-12)
+## 0.1.1 (2026-10-15)
 
-First release. Everything below landed as reviewed pull requests #1 to #80 on https://github.com/kyu1204/hone; each task has a work order under `docs/work-orders/`.
+### Docs
+- The README installs from npm (`bun add -d hone-eval`, or `bunx hone-eval init` without installing) and points at the standalone binaries on the Releases page; the npm page no longer says the package is not on npm.
+
+### Release
+- A release is the merge of a pull request from `release/vX.Y.Z`: the workflow runs the checks, compiles six binaries, publishes to npm through trusted publishing, pushes the tag and creates the GitHub Release, whose notes are this file's section for the version followed by the merged pull requests. `gh workflow run release.yml -f tag=vX.Y.Z` finishes a release that stopped halfway.
+
+## 0.1.0 (2026-10-14)
+
+First release. Everything below landed as reviewed pull requests #1 to #138 on https://github.com/kyu1204/hone; each task has a work order under `docs/work-orders/`.
 
 ### Core
 - Data model: Target, Case, Trial, Trace (OpenAI/Docent-compatible messages plus spans), Score, Verdict; JSON store under `.hone/` with a rebuildable SQLite index; content-addressed caching of target outputs and judge results.
@@ -16,13 +24,14 @@ First release. Everything below landed as reviewed pull requests #1 to #80 on ht
 ### Scorers
 - Deterministic: exact, contains, regex, json-schema, tool_used, tool_order, step_count, cost, latency, file_exists, test_command; `hack` reward-hack detector on diffs.
 - RAG: context recall/precision, citations, faithfulness, answer relevance over retrieval spans.
+- Agents: the `agent` scorer reads the whole conversation: tools a case says must be called (`calls`), must not be (`never`), in which order (`order`), with which arguments (`args`), phrases the answer must or must not contain (`says`, `never_says`), and rules in words for a judge (`judge`), asked only when the written expectations hold.
 - Judges: Jev System One (noul, score, choice, per-step), LLM rubric and pairwise with order swap; consistency over metamorphic mutations.
 
 ### Statistics
 - Wilson/CLT/bootstrap intervals, pass@k and pass^k, paired t with exact McNemar, cluster-robust errors, Holm-adjusted leaderboard bands, noncentral-t power, sequential stopping, 2PL IRT, Thompson sampling. Test vectors from errorbars/scipy/statsmodels.
 
 ### Commands
-- Three everyday commands: `init`, `test` (with `--ci` for gates, JUnit and a PR comment, `--report` for HTML) and `sharpen`. `hone help all` lists the rest in three groups.
+- Four everyday commands: `init`, `draft` (hone's model reads the agent's prompt and code, writes cases in the `agent` grammar to `evals/drafted.yaml`, runs them once and says which fail), `test` (with `--ci` for gates, JUnit and a PR comment, `--report` for HTML) and `sharpen`. `hone help all` lists the rest in three groups.
 - Changes are files: `change(name, { why, add, text, config })` under `sharpen/`, written by a person or a coding agent. `add` is one paragraph for the text as it is, and the additions that help are stacked into one text; `text` is the whole new text. A model's winning rewrite and a winning stack are saved in the same form.
 - `sharpen` runs the whole cycle: a seeded held-out split that keeps declared clusters together, gates, failure diagnosis, variants and rewrites (each from the best candidate so far, variants retried on a winning rewrite), a sample check before a full run, a ledger of every attempt, and a confirmation on held-out cases that needs both a paired t test and an exact sign test, at a level divided by the number of different winners those cases have already judged.
 - Single steps and tools: `matrix`, `compare`, `power`, `explain`, `diff`, `cluster` (with `--induce` taxonomy), `calibrate` (fault injection), `fork`, `evolve` (GEPA-style with minibatch verification and a Pareto front), `optimize` (Thompson sampling with a paired verdict), `ablate`, `bisect`, `import` (Claude Code sessions, Inspect, Docent, plugin-eval, Harbor, OTel), `export` (rollouts, OTel GenAI, Docent, JUnit, HTML), `serve ssh|reward|mcp`, `tui`.
