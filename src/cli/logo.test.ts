@@ -4,9 +4,10 @@ import { logoFrames, showLogo } from "./logo";
 const strip = (s: string) => s.replace(new RegExp(`${String.fromCharCode(27)}\\[[0-9;?]*[mA-Zlh]`, "g"), "");
 
 describe("logo", () => {
-  test("the block letters of hone appear column by column, and the last frame is the whole word", () => {
+  test("the letters of hone materialize from scattered dots (░ ▒ ▓) into the whole word", () => {
     const frames = logoFrames();
-    expect(frames.length).toBeGreaterThan(4);
+    expect(frames.length).toBeGreaterThan(20);
+    expect(frames.some((f) => /[░▒▓]/.test(strip(f)))).toBe(true);
     const rows = (f: string) => strip(f).split("\n");
     expect(rows(frames[0]!).join("").trim()).toBe("");
     const last = rows(frames.at(-1)!);
