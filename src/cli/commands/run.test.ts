@@ -56,6 +56,19 @@ describe("hone test", () => {
     expect(fs.readdirSync(path.join(dir, ".hone", "runs"))).toHaveLength(1);
   });
 
+  test("on a terminal the matrix is colored and the pass rate has a bar; piped, it stays plain", async () => {
+    const dir = project(CONFIG, CASES);
+    const o = { ...io(dir), color: true };
+    let out = "";
+    o.stdout = (s: string) => void (out += s);
+    await runCommand(["--quiet"], o);
+    expect(out).toContain("\x1b[32m●");
+    expect(strip(out)).toMatch(/pass@1 0\.33 ███░░░░░░░/);
+    const plain = io(dir);
+    await runCommand(["--quiet"], plain);
+    expect(plain.out).not.toContain("\x1b[");
+  });
+
   test("--report writes the HTML report of the run it just made", async () => {
     const dir = project(CONFIG, CASES);
     const o = io(dir);
