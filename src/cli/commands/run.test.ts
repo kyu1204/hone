@@ -2,7 +2,7 @@ import { afterEach, describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
-import { type CommandIo, runCommand } from "./run";
+import { type CommandIo, performRun, runCommand } from "./run";
 
 const configModule = new URL("../../core/config.ts", import.meta.url).pathname;
 const dirs: string[] = [];
@@ -69,6 +69,15 @@ describe("hone test", () => {
     const plain = io(dir);
     await runCommand(["--quiet"], plain);
     expect(plain.out).not.toContain("\x1b[");
+  });
+
+  test("with onTrial, progress goes to the callback instead of a line per trial", async () => {
+    const dir = project(CONFIG, CASES);
+    const seen: string[] = [];
+    let err = "";
+    await performRun({ cwd: dir, stderr: (s) => void (err += s), onTrial: (t) => void seen.push(t.trace.caseId) });
+    expect(seen).toHaveLength(12);
+    expect(err).toBe("");
   });
 
   test("--report writes the HTML report of the run it just made", async () => {
