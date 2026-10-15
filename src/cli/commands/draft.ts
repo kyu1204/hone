@@ -1,3 +1,4 @@
+import { bar, paint } from "../paint";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Cache } from "../../core/cache";
@@ -29,6 +30,7 @@ export function draftUsage(): string {
 
 /** `hone draft`: the QA engineer's first job. Draft the cases, keep them where a person reviews them, run them once, say what fails. */
 async function draftInto(io: CommandIo, read: string[] | undefined, count: number | undefined, deps: { chat?: ChatFn }): Promise<number> {
+  const p = paint(io.color);
   let loaded: Awaited<ReturnType<typeof loadConfig>>;
   try {
     loaded = await loadConfig(io.cwd);
@@ -70,12 +72,14 @@ async function draftInto(io: CommandIo, read: string[] | undefined, count: numbe
       const run = await runConfig({ ...loaded.config, cases: drafted.cases, trials: 1 }, "drafted cases", { cwd: io.cwd, store, cache: new Cache(path.join(root, "cache")), hash: loaded.hash, useCache: false });
       const failed = run.trials.filter((t) => t.pass === false);
       const undecided = run.trials.filter((t) => t.pass === null).length;
-      lines.push(`Ran them once: ${run.trials.length - failed.length - undecided} passes, ${failed.length} fails${undecided ? `, ${undecided} undecided` : ""}.`);
+      const passes = run.trials.length - failed.length - undecided;
+      lines.push(`Ran them once: ${p.green(`${passes} passes`)}, ${failed.length ? p.red(`${failed.length} fails`) : "0 fails"}${undecided ? `, ${undecided} undecided` : ""}${p.on && run.trials.length ? ` ${p.rate(passes / run.trials.length, bar(passes / run.trials.length))}` : ""}.`);
       const width = Math.max(0, ...failed.map((t) => t.trace.caseId.length));
       for (const t of failed) {
         const why = t.trace.error ? `error: ${t.trace.error}` : t.scores.filter((x) => x.pass === false).map((x) => x.reason).join("; ");
         const row = `  ${t.trace.caseId.padEnd(width)}  ${why}`;
-        lines.push(row.length > 100 ? `${row.slice(0, 97)}...` : row);
+        const clipped = row.length > 100 ? `${row.slice(0, 97)}...` : row;
+        lines.push(p.on ? `  ${p.red(t.trace.caseId.padEnd(width))}${p.dim(clipped.slice(2 + width))}` : clipped);
       }
     } finally {
       store.close();
