@@ -1,3 +1,4 @@
+import Table from "cli-table3";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { Cache } from "../../core/cache";
@@ -88,19 +89,22 @@ export function renderMatrix(plan: Plan, summary: RunSummary, trials: Trial[], t
   const caseWidth = Math.max(12, ...caseIds.map((c) => c.length)) + 2;
   const colWidth = 14;
   const lines: string[] = [];
-  lines.push(p.bold(`${"case \\ target".padEnd(caseWidth)}${targetIds.map((t) => t.slice(0, colWidth - 1).padEnd(colWidth)).join("")}`));
-  lines.push(p.dim(`${"-".repeat(caseWidth - 1)} ${targetIds.map(() => `${"-".repeat(colWidth - 1)} `).join("")}`));
-  for (const c of caseIds) {
-    const cells = targetIds.map((t) => {
-      const v = verdict(c, t);
-      if (!v || v.n === 0) return p.dim("·".padEnd(colWidth));
-      const cell = byCell.get(`${c}\u0000${t}`) ?? [];
-      const flagged = cell.some((x) => x.flags.includes("reward-hack")) ? " ⚑" : "";
-      // padded on the plain text, so the columns line up with colors on
-      const plain = `${dots(cell, paint())} ${v.passAt1.toFixed(2)}${flagged}`;
-      return `${dots(cell, p)} ${p.rate(v.passAt1, v.passAt1.toFixed(2))}${p.yellow(flagged)}${" ".repeat(Math.max(0, colWidth - plain.length))}`;
-    });
-    lines.push(`${c.slice(0, caseWidth - 2).padEnd(caseWidth)}${cells.join("")}`);
+  const cellText = (c: string, t: string, q: Paint): string => {
+    const v = verdict(c, t);
+    if (!v || v.n === 0) return q.dim("·");
+    const cell = byCell.get(`${c}\u0000${t}`) ?? [];
+    const flagged = cell.some((x) => x.flags.includes("reward-hack")) ? " ⚑" : "";
+    return `${dots(cell, q)} ${q.rate(v.passAt1, v.passAt1.toFixed(2))}${q.yellow(flagged)}`;
+  };
+  if (p.on) {
+    // a person at a terminal gets a bordered table
+    const table = new Table({ head: ["case", ...targetIds].map((h) => p.bold(h)), style: { head: [], border: ["gray"] } });
+    for (const c of caseIds) table.push([c, ...targetIds.map((t) => cellText(c, t, p))]);
+    lines.push(table.toString());
+  } else {
+    lines.push(`${"case \\ target".padEnd(caseWidth)}${targetIds.map((t) => t.slice(0, colWidth - 1).padEnd(colWidth)).join("")}`);
+    lines.push(`${"-".repeat(caseWidth - 1)} ${targetIds.map(() => `${"-".repeat(colWidth - 1)} `).join("")}`);
+    for (const c of caseIds) lines.push(`${c.slice(0, caseWidth - 2).padEnd(caseWidth)}${targetIds.map((t) => cellText(c, t, p).padEnd(colWidth)).join("")}`);
   }
   const k3 = summary.cells.map((c) => c.passHatK[3]).filter((v): v is number => v !== undefined);
   const passHat3 = k3.length ? (k3.reduce((a, b) => a + b, 0) / k3.length).toFixed(2) : "n/a";
