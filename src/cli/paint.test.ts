@@ -42,5 +42,8 @@ describe("paint", () => {
     expect(strip(on)).toContain("Now: 55% ██████░░░░ of 11 cases pass.");
     expect(strip(on)).toContain("55% -> 91% █████████░");
     expect(strip(on)).toContain("Why it fails:");
+    // the verdict and what follows it sit in a box
+    expect(strip(on)).toMatch(/[╭┌]─/);
+    expect(strip(on)).toMatch(/│ .*rewrite 2 takes the pass rate/);
   });
 });

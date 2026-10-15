@@ -1,6 +1,8 @@
 // Colors and bars for what a person reads in a terminal. Off, every style returns its text unchanged, so piped output,
 // --json, the MCP server and the tests see the plain account.
 
+import { box } from "@clack/prompts";
+
 export type Badge = "proven" | "promising" | "none" | "bad";
 
 export interface Paint {
@@ -51,6 +53,21 @@ const share = (pct: string) => Number(pct) / 100;
 /** The sharpen account with a badge for the verdict, bars for pass rates, and the tried changes in green or dim. */
 export function decorateSharpen(message: string, p: Paint): string {
   if (!p.on) return message;
+  const lines = message.replace(/\n$/, "").split("\n");
+  const at = lines.findIndex((l) => /^(Result|Cannot measure|Nothing to sharpen)/.test(l));
+  const head = (at < 0 ? lines : lines.slice(0, at)).join("\n");
+  return `${decorateLines(head, p)}\n${at < 0 ? "" : boxed(decorateLines(lines.slice(at).join("\n"), p))}`;
+}
+
+/** Text in a rounded box, drawn by clack into a string. */
+export function boxed(text: string, width = Math.min(100, process.stdout.columns || 100)): string {
+  let out = "";
+  const sink = { write: (s: string) => ((out += s), true), columns: width } as unknown as NodeJS.WritableStream;
+  box(text, "", { output: sink as never, width: "auto", rounded: true, withGuide: false });
+  return out;
+}
+
+function decorateLines(message: string, p: Paint): string {
   return message
     .split("\n")
     .map((line) => {
