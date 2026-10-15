@@ -16,7 +16,7 @@
   <a href="./LICENSE"><img alt="Apache-2.0" src="https://img.shields.io/badge/license-Apache--2.0-2c6e9e?style=flat-square"></a>
 </p>
 
-> **Status:** v0.1.0 on npm as [`hone-eval`](https://www.npmjs.com/package/hone-eval). Built in public: the plan is in [`WORKPLAN.md`](./WORKPLAN.md), every task landed as a pull request you can read, and [`CHANGELOG.md`](./CHANGELOG.md) lists what shipped.
+> **Status:** on npm as [`hone-eval`](https://www.npmjs.com/package/hone-eval). Built in public: the plan is in [`WORKPLAN.md`](./WORKPLAN.md), every task landed as a pull request you can read, and [`CHANGELOG.md`](./CHANGELOG.md) lists what shipped.
 
 ---
 

@@ -1,6 +1,6 @@
 # Contributing to hone
 
-Thanks for looking. v0.1.0 is being built in public from [`WORKPLAN.md`](./WORKPLAN.md); each task has a work order under `docs/work-orders/` and lands as a pull request.
+Thanks for looking. hone is built in public from [`WORKPLAN.md`](./WORKPLAN.md); each task has a work order under `docs/work-orders/` and lands as a pull request.
 
 ## Ground rules
 
@@ -23,4 +23,4 @@ This adds a `Signed-off-by: Your Name <you@example.com>` trailer. There is no CL
 
 ## Reporting eval pain
 
-Issues that describe a real evaluation problem are the most useful thing you can send before v0.1.0 lands: a trace that fooled your judge, a harness comparison you wish you could run, a format you need imported.
+Issues that describe a real evaluation problem are the most useful thing you can send: a trace that fooled your judge, a harness comparison you wish you could run, a format you need imported.
