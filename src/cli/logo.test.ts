@@ -10,8 +10,8 @@ describe("logo", () => {
     const rows = (f: string) => strip(f).split("\n");
     expect(rows(frames[0]!).join("")).not.toContain("●");
     const last = rows(frames.at(-1)!);
-    expect(last).toHaveLength(5);
-    expect(last[2]).toContain("●●●●");
+    expect(last).toHaveLength(7);
+    expect(last[2]).toContain("●●●●●●");
     // every frame has the same shape, so redrawing in place does not jump
     for (const f of frames) expect(rows(f).map((r) => r.length)).toEqual(last.map((r) => r.length));
   });
